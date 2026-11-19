@@ -57,7 +57,7 @@ internal fun FigureKindPicker(
         Column(
             Modifier
                 .glassSurface()
-                .padding(vertical = 4.dp, horizontal = 4.dp),
+                .padding(DesktopTheme.popupInset),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
@@ -100,10 +100,11 @@ private fun FigureOptionCell(
     val inkColour = if (option.selected) DesktopTheme.accent else DesktopTheme.chromeInk
     Box(
         Modifier
-            .width(88.dp)
-            .hoverFill(DesktopTheme.railSlotShape, active = option.selected)
+            // The same cell width as a circuit part, so the two families' menus read as one material.
+            .width(84.dp)
+            .hoverFill(DesktopTheme.popupRowShape, active = option.selected)
             .then(
-                if (option.selected) Modifier.background(DesktopTheme.activeSlot, DesktopTheme.railSlotShape)
+                if (option.selected) Modifier.background(DesktopTheme.activeSlot, DesktopTheme.popupRowShape)
                 else Modifier,
             )
             .pointerInput(option) { detectTapGestures { onPick(option) } }

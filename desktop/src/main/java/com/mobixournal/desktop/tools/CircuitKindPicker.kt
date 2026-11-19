@@ -59,7 +59,7 @@ internal fun CircuitKindPicker(
         Column(
             Modifier
                 .glassSurface()
-                .padding(vertical = 4.dp, horizontal = 4.dp),
+                .padding(DesktopTheme.popupInset),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
@@ -89,10 +89,11 @@ private fun CircuitKindCell(kind: ShapeKind, picked: Boolean, onPick: () -> Unit
     val inkColour = if (picked) DesktopTheme.accent else DesktopTheme.chromeInk
     Column(
         Modifier
-            .width(78.dp)
-            .hoverFill(DesktopTheme.railSlotShape, active = picked)
+            // A figure's cell and a part's cell are one width: the two menus are the same surface.
+            .width(84.dp)
+            .hoverFill(DesktopTheme.popupRowShape, active = picked)
             .then(
-                if (picked) Modifier.background(DesktopTheme.activeSlot, DesktopTheme.railSlotShape)
+                if (picked) Modifier.background(DesktopTheme.activeSlot, DesktopTheme.popupRowShape)
                 else Modifier,
             )
             .pointerInput(kind) { detectTapGestures { onPick() } }

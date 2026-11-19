@@ -172,7 +172,7 @@ class ColourPickerTest {
     @Test
     fun `the panel renders its preview, and the palette row its custom swatch`() {
         val picker = ImageIO.read(ByteArrayInputStream(render("colour-picker") { ColourPickerPanel(
-            title = "Custom colour",
+            title = "Custom color",
             initial = 0xFF12AB34.toInt(),
             onSet = {},
             onCancel = {},

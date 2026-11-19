@@ -256,7 +256,7 @@ private fun PageGlyphButton(
             .size(PageMenuMetrics.glyphButton)
             .background(
                 if (hovered && enabled) DesktopTheme.hoverSlot else Color.Transparent,
-                DesktopTheme.capsuleShape,
+                DesktopTheme.popupRowShape,
             )
             .onPointerEvent(PointerEventType.Enter) { hovered = true }
             .onPointerEvent(PointerEventType.Exit) { hovered = false }
@@ -277,7 +277,7 @@ private fun PageGlyphButton(
  */
 internal object PageMenuMetrics {
     val width = 236.dp
-    val padding = 6.dp
+    val padding = 4.dp
     val rowHeight = 30.dp
     val headingHeight = 22.dp
     val ruleHeight = 7.dp
@@ -365,8 +365,7 @@ private fun PageMenuRow(
         Modifier
             .fillMaxWidth()
             .height(PageMenuMetrics.rowHeight)
-            .background(Color.Transparent, DesktopTheme.capsuleShape)
-            .hoverFill(DesktopTheme.capsuleShape, active = !enabled)
+            .hoverFill(DesktopTheme.popupRowShape, active = !enabled)
             .pointerInput(label, enabled) { if (enabled) detectTapGestures { onClick() } }
             .padding(horizontal = PageMenuMetrics.rowInset),
         verticalAlignment = Alignment.CenterVertically,

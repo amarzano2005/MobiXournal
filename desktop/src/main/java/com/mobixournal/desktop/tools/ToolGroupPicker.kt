@@ -10,8 +10,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -57,7 +59,10 @@ internal fun ToolGroupPicker(
         Column(
             Modifier
                 .glassSurface()
-                .padding(vertical = 4.dp, horizontal = 4.dp),
+                // The rows fill the widest of them, so every hover lands on one rectangle instead of
+                // hugging its own label — the row is the target, not the word.
+                .width(IntrinsicSize.Max)
+                .padding(DesktopTheme.popupInset),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             if (onOff != null) {
@@ -82,7 +87,8 @@ internal fun ToolGroupPicker(
 private fun OffRow(onClick: () -> Unit, onDismiss: () -> Unit) {
     Row(
         Modifier
-            .hoverFill(DesktopTheme.railSlotShape, active = false)
+            .fillMaxWidth()
+            .hoverFill(DesktopTheme.popupRowShape, active = false)
             .pointerInput(onClick) {
                 detectTapGestures {
                     onClick()
@@ -104,9 +110,10 @@ private fun PickerRow(tool: DesktopTool, picked: Boolean, onPick: () -> Unit) {
     val glyph = if (picked) DesktopTheme.accent else DesktopTheme.chromeInk
     Row(
         Modifier
-            .hoverFill(DesktopTheme.railSlotShape, active = picked)
+            .fillMaxWidth()
+            .hoverFill(DesktopTheme.popupRowShape, active = picked)
             .then(
-                if (picked) Modifier.background(DesktopTheme.activeSlot, DesktopTheme.railSlotShape)
+                if (picked) Modifier.background(DesktopTheme.activeSlot, DesktopTheme.popupRowShape)
                 else Modifier,
             )
             .pointerInput(tool) { detectTapGestures { onPick() } }

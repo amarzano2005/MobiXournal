@@ -213,7 +213,7 @@ internal fun StrokeFlyout(
     onEditCustom: () -> Unit,
     onAddColour: () -> Unit,
 ) {
-    Column(Modifier.glassSurface().padding(horizontal = 8.dp, vertical = 6.dp)) {
+    Column(Modifier.glassSurface().padding(6.dp)) {
         SwatchRow(
             palette = palette,
             current = ink.colour,
@@ -242,7 +242,7 @@ internal fun PaletteFlyout(
     onEditCustom: () -> Unit,
     onAddColour: () -> Unit,
 ) {
-    Column(Modifier.glassSurface().padding(horizontal = 8.dp, vertical = 6.dp)) {
+    Column(Modifier.glassSurface().padding(6.dp)) {
         SwatchRow(
             palette = palette,
             current = current,
@@ -312,11 +312,13 @@ private fun ColourSwatch(colour: Int, current: Int?, onPick: (Int) -> Unit) {
             .size(InkSlotMetrics.swatchSize + InkSlotMetrics.swatchRing * 2)
             .background(
                 if (colour == current) DesktopTheme.activeSlot else Color.Transparent,
-                DesktopTheme.capsuleShape,
+                CircleShape,
             )
+            // The ring is the button: a swatch answers the pointer on the 2 dp that only it shows.
+            .hoverFill(CircleShape, active = colour == current)
             .padding(InkSlotMetrics.swatchRing)
-            .background(Color(colour), DesktopTheme.capsuleShape)
-            .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape)
+            .background(Color(colour), CircleShape)
+            .border(1.dp, DesktopTheme.inkMuted, CircleShape)
             .pointerInput(colour) { detectTapGestures { onPick(colour) } },
     )
 }
@@ -339,8 +341,9 @@ private fun LineStylePicker(lineStyle: LineStyle, onPick: (LineStyle) -> Unit) {
                 Modifier
                     .background(
                         if (picked) DesktopTheme.activeSlot else Color.Transparent,
-                        DesktopTheme.capsuleShape,
+                        DesktopTheme.controlShape,
                     )
+                    .hoverFill(DesktopTheme.controlShape, active = picked)
                     .pointerInput(style) { detectTapGestures { onPick(style) } }
                     .padding(horizontal = 8.dp, vertical = 5.dp),
             ) {
@@ -373,11 +376,15 @@ private fun CustomSwatch(custom: Int?, onPick: (Int) -> Unit, onEdit: () -> Unit
     Box(
         Modifier
             .size(side)
-            .background(custom?.let(::Color) ?: Color.Transparent, DesktopTheme.capsuleShape)
+            // The same 22 dp disc inside the same 2 dp ring a stored swatch wears, so the custom slot is
+            // one of the row rather than a bigger circle beside it.
+            .hoverFill(CircleShape)
+            .padding(InkSlotMetrics.swatchRing)
+            .background(custom?.let(::Color) ?: Color.Transparent, CircleShape)
             .border(
                 1.dp,
                 if (custom == null) DesktopTheme.hairline else DesktopTheme.inkMuted,
-                DesktopTheme.capsuleShape,
+                CircleShape,
             )
             .pointerInput(custom) {
                 detectTapGestures(
@@ -402,7 +409,9 @@ private fun AddSwatch(onAdd: () -> Unit) {
     Box(
         Modifier
             .size(side)
-            .border(1.dp, DesktopTheme.hairline, DesktopTheme.capsuleShape)
+            .hoverFill(CircleShape)
+            .padding(InkSlotMetrics.swatchRing)
+            .border(1.dp, DesktopTheme.hairline, CircleShape)
             .pointerInput(Unit) { detectTapGestures { onAdd() } },
         contentAlignment = Alignment.Center,
     ) {
@@ -425,8 +434,9 @@ private fun WidthRow(ink: DesktopInk, onPick: (Float) -> Unit) {
                 Modifier
                     .background(
                         if (active) DesktopTheme.activeSlot else Color.Transparent,
-                        DesktopTheme.capsuleShape,
+                        DesktopTheme.controlShape,
                     )
+                    .hoverFill(DesktopTheme.controlShape, active = active)
                     .pointerInput(width) { detectTapGestures { onPick(width) } }
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

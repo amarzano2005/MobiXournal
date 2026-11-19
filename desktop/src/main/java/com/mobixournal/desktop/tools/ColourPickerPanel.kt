@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,7 +30,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
@@ -90,16 +89,23 @@ internal fun ColourPickerPanel(
             Box(
                 Modifier
                     .size(26.dp)
-                    .background(Color(draft.colour), DesktopTheme.capsuleShape)
-                    .border(1.dp, DesktopTheme.inkMuted, DesktopTheme.capsuleShape),
+                    .background(Color(draft.colour), CircleShape)
+                    .border(1.dp, DesktopTheme.inkMuted, CircleShape),
             )
             Spacer(Modifier.width(10.dp))
-            HexField(draft.text, Modifier.weight(1f)) { draft = draft.withText(it) }
+            // The window's own field: a 4 dp corner, a hairline and a focus ring, and the error step when
+            // what is typed is not a colour (`DesktopTextField`).
+            DesktopTextField(
+                value = draft.text,
+                onValueChange = { draft = draft.withText(it) },
+                error = draft.invalid,
+                modifier = Modifier.weight(1f),
+            )
         }
         if (draft.invalid) {
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "Not a #RRGGBB colour — still showing ${ColourPicker.hex(draft.colour)}",
+                text = "Not a #RRGGBB color — still showing ${ColourPicker.hex(draft.colour)}",
                 color = DesktopTheme.danger,
                 style = DesktopTheme.label,
             )
@@ -126,7 +132,8 @@ private fun SaturationValueField(draft: ColourDraft, modifier: Modifier, onChang
     val hueColour = Color(ColourPicker.hsv(draft.hue, 1f, 1f))
     Canvas(
         modifier
-            .clip(DesktopTheme.panelShape)
+            .clip(DesktopTheme.controlShape)
+            .border(1.dp, DesktopTheme.hairline, DesktopTheme.controlShape)
             .pointerInput(Unit) {
                 detectTapGestures { at -> onChange(fractionX(at.x), 1f - fractionY(at.y)) }
             }
@@ -148,7 +155,7 @@ private fun SaturationValueField(draft: ColourDraft, modifier: Modifier, onChang
 private fun HueSlider(hue: Float, modifier: Modifier, onChange: (Float) -> Unit) {
     Canvas(
         modifier
-            .clip(DesktopTheme.capsuleShape)
+            .clip(DesktopTheme.controlShape)
             .pointerInput(Unit) { detectTapGestures { at -> onChange(fractionX(at.x) * 360f) } }
             .pointerInput(Unit) {
                 detectDragGestures { change, _ -> onChange(fractionX(change.position.x) * 360f) }
@@ -163,21 +170,6 @@ private fun HueSlider(hue: Float, modifier: Modifier, onChange: (Float) -> Unit)
         drawLine(Color.White, Offset(x, 0f), Offset(x, size.height), strokeWidth = 3f)
         drawLine(Color.Black.copy(alpha = 0.6f), Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
     }
-}
-
-/** The `#RRGGBB` field: a glass capsule, not a stock text field. */
-@Composable
-private fun HexField(text: String, modifier: Modifier, onText: (String) -> Unit) {
-    BasicTextField(
-        value = text,
-        onValueChange = onText,
-        singleLine = true,
-        textStyle = DesktopTheme.body.copy(color = DesktopTheme.ink),
-        cursorBrush = SolidColor(DesktopTheme.accent),
-        modifier = modifier
-            .background(DesktopTheme.activeSlot, DesktopTheme.capsuleShape)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-    )
 }
 
 /** `x` as a 0..1 fraction of the node's width (pointer events arrive in pixels). */

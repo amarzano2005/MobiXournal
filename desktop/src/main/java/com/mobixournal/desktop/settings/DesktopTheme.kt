@@ -125,6 +125,9 @@ object DesktopTheme {
     val popupSurface: Color get() = panel
     val popupRadius = DesignTokens.DESKTOP_POPUP_CORNER_RADIUS_DP.dp
     val popupRowRadius = DesignTokens.DESKTOP_POPUP_ROW_CORNER_RADIUS_DP.dp
+
+    /** [popupRowRadius] as a shape: every row, cell and swatch inside a popup's 8 dp corner. */
+    val popupRowShape: RoundedCornerShape = RoundedCornerShape(popupRowRadius)
     val popupRowHeight = DesignTokens.DESKTOP_POPUP_ROW_HEIGHT_DP.dp
     val popupInset = DesignTokens.DESKTOP_POPUP_INSET_DP.dp
 

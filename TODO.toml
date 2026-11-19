@@ -47,41 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-popups-colour-picker"
-title = "Standardize all desktop popups/flyouts to concentric 8 dp / 4 dp geometry and clean up ColourPickerPanel"
-description = """
-Phase 3B of `desktop-ui-flat-workstation`. Depends on `desktop-ui-tool-strips`. Eliminate inverted corner radii (10/16/20 dp children inside 8 dp popups), missing hover states in `ColourFlyouts`, and UK/US spelling drift.
-
-Exact changes:
-1. `ToolGroupPicker.kt`, `FigureKindPicker.kt`, `CircuitKindPicker.kt`, `PageMenuPanel.kt`, `LayersPanel.kt`:
-   - Enforce concentric popup geometry everywhere: `.glassSurface()` (`8.dp`), `padding(DesktopTheme.popupInset)` (`4.dp`), every inner row/cell/button uses `DesktopTheme.popupRowRadius` (`4.dp`) — replace ALL `railSlotShape` (`10.dp`) and `capsuleShape` (`16.dp`) inside these popups.
-   - `ToolGroupPicker`: apply `Modifier.fillMaxWidth()` to `OffRow` and `PickerRow` so hover highlights align evenly.
-   - `FigureKindPicker` & `CircuitKindPicker`: harmonize cell width to `84.dp`.
-2. `desktop/src/main/java/com/mobixournal/desktop/tools/ColourFlyouts.kt`:
-   - Use `.glassSurface()` (`8.dp`) + `padding(6.dp)`.
-   - Add `hoverFill` feedback to `StrokeSlot`, palette swatches (`CircleShape`), `CustomSwatch`, `AddSwatch`, `WidthRow` (`4.dp`), and `LineStylePicker`.
-   - Match `CustomSwatch` diameter identically to standard palette swatches.
-   - Style `LineStylePicker` choices as uniform `4.dp` segmented controls (`activeSlot` + `ink` picked, `hoverFill(4.dp)` on hover) instead of a `16.dp` grey pill on `Solid`.
-3. `desktop/src/main/java/com/mobixournal/desktop/tools/ColourPickerPanel.kt` & `ColourPanel.kt`:
-   - Keep `8.dp` `.glassSurface()`; change SV box corner from `20.dp` (`panelShape`) to `4.dp` (`DesktopTheme.controlShape`) + `1.dp` `DesktopTheme.hairline`.
-   - Replace `HexField` (`16.dp` borderless pill) with `DesktopTextField` (`4.dp`, border + focus ring + `error = !valid`).
-   - Rename heading `"Custom colour"` -> `"Custom color"` (US English matching Settings `"Colors"`).
-   - Footer: `Arrangement.End`, `Cancel` (`PanelButton(primary = false)`) left, `Set` (`PanelButton(primary = true)`) right.
-4. Tests: update `ColourPickerTest.kt`, `ColourFlyoutTest.kt`, `DesktopFigureMenuTest.kt`, `DesktopPopupMaterialTest.kt`, `DesktopLayersTest.kt`.
-
-DO NOT: leave any `10.dp`/`16.dp`/`20.dp` inner control corner inside an `8.dp` popup; bypass `GlassPopup` (`GlassPopupGuardTest`).
-Verification: run `:desktop:test` on `ColourPickerTest`, `ColourFlyoutTest`, `DesktopFigureMenuTest`, `DesktopPopupMaterialTest`, `DesktopLayersTest`, `GlassPopupGuardTest`, plus `SourceStructureTest`; inspect `colour-flyout.png` and `colour-picker.png`; refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 80
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "popups"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-selection-bars-overlays"
 title = "Make SelectionBar/PdfTextCopyBar opaque 8 dp surfaces, fix ring rim/clamping, and tone down EdgeBump"
 description = """

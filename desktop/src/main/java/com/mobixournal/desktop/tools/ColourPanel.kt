@@ -32,7 +32,8 @@ internal fun BoxScope.ColourPanelHost(state: DesktopShellState) {
     GlassPresence(visible = editing != null) {
         val target = editing ?: lastEdit ?: return@GlassPresence
         ColourPickerPanel(
-            title = if (target == ColourEditorTarget.CUSTOM) "Custom colour" else "New colour",
+            // US English, as the Settings section spells it ("Colors").
+            title = if (target == ColourEditorTarget.CUSTOM) "Custom color" else "New color",
             initial = if (target == ColourEditorTarget.CUSTOM) {
                 state.paletteCustom ?: state.ink.colour
             } else {

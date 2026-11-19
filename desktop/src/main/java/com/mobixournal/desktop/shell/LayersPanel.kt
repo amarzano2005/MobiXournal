@@ -142,7 +142,7 @@ private fun LayerListRow(info: LayerRowInfo, onActivate: () -> Unit, onToggle: (
         Modifier
             .fillMaxWidth()
             .height(LayerMenuMetrics.rowHeight)
-            .background(fill, DesktopTheme.capsuleShape)
+            .background(fill, DesktopTheme.popupRowShape)
             .onPointerEvent(PointerEventType.Enter) { hovered = true }
             .onPointerEvent(PointerEventType.Exit) { hovered = false }
             .pointerInput(info.index, info.active) { detectTapGestures { onActivate() } }
@@ -206,7 +206,7 @@ private fun LayerMenuRow(glyph: ChromeGlyph, label: String, enabled: Boolean, on
             .height(LayerMenuMetrics.rowHeight)
             .background(
                 if (hovered && enabled) DesktopTheme.hoverSlot else Color.Transparent,
-                DesktopTheme.capsuleShape,
+                DesktopTheme.popupRowShape,
             )
             .onPointerEvent(PointerEventType.Enter) { hovered = true }
             .onPointerEvent(PointerEventType.Exit) { hovered = false }
@@ -269,7 +269,7 @@ internal fun LayerRenamePanel(
             Modifier
                 .width(300.dp)
                 .height(32.dp)
-                .background(DesktopTheme.panelField, DesktopTheme.capsuleShape)
+                .background(DesktopTheme.panelField, DesktopTheme.controlShape)
                 .semantics { contentDescription = "Layer name" }
                 .padding(horizontal = 10.dp),
             contentAlignment = Alignment.CenterStart,
@@ -340,7 +340,7 @@ internal fun BoxScope.LayerRenameHost(state: DesktopShellState) {
  */
 internal object LayerMenuMetrics {
     val width = 236.dp
-    val padding = 6.dp
+    val padding = 4.dp
     val rowHeight = 30.dp
     val headingHeight = 22.dp
     val ruleHeight = 7.dp
