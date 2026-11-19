@@ -153,10 +153,10 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   table on the PC is the table on the tablet; an entity this build cannot draw is reported, not drawn blank.
 - **Paints page pictures**: a pixmap background from the file the page names, and an annotated **PDF page**
   rasterised with PDFBox (about 144 dpi) under the ink; a `.mobix`'s bundled bytes win over the original.
-- **Shows the strips where the Settings say**: a **52 dp rail capsule in a 64 dp lane** beside the page
-  and a **48 dp ribbon capsule in a 56 dp band** across the top — **Left**, **Right** or **Top**
-  (`stripPlacement`), re-laid live. Both **take a lane** (2026-10-28): the lane and the ribbon's band are
-  the header's own material, the canvas is handed what is left, and no bar lies on the sheet.
+- **Shows the strips where the Settings say**: one **48 dp band** beside the page or a **44 dp band**
+  across the top, its slots 36 dp on a 4 dp corner — **Left**, **Right** or **Top** (`stripPlacement`),
+  re-laid live. Both **take a lane** (2026-10-28) and both are one tone (phase 3A): the band is the
+  header's own material, the canvas is handed what is left, and no bar lies on the sheet.
   `Ctrl+,` opens the panel that sets it — [`desktop-settings.md`](desktop-settings.md)
   owns what each section answers; the header has no chooser, because moving the strips is a setting.
   The capsule stands **in** its band — its own 6 dp lift, the family's rim and the nearly solid `STRIP_GLASS_ALPHA` fill — and the band under it is the window's glass at `DESKTOP_BAND_ALPHA`, so the

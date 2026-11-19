@@ -81,9 +81,9 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
             Column(Modifier.weight(1f).fillMaxHeight()) {
                 if (placement.showsRibbon) StripRibbon(state)
                 Row(Modifier.weight(1f).fillMaxWidth()) {
-                    if (placement.showsRail && railOnLeft) StripRail(state)
+                    if (placement.showsRail && railOnLeft) StripRail(state, canvasEdge = BandEdge.END)
                     WorkspaceCanvas(state, tab, tablet)
-                    if (placement.showsRail && !railOnLeft) StripRail(state)
+                    if (placement.showsRail && !railOnLeft) StripRail(state, canvasEdge = BandEdge.START)
                 }
             }
             if (state.prefs.inspectorPolicy != InspectorPolicy.NEVER) {
@@ -214,12 +214,18 @@ private fun StripRibbon(state: DesktopShellState, modifier: Modifier = Modifier)
  * miss the other.
  */
 @Composable
-private fun StripRail(state: DesktopShellState, modifier: Modifier = Modifier) {
+private fun StripRail(
+    state: DesktopShellState,
+    modifier: Modifier = Modifier,
+    /** The edge the canvas is on: the band's one hairline is drawn against it. */
+    canvasEdge: BandEdge,
+) {
     ToolRail(
         state = state.stripState,
         onSelect = state::selectTool,
         ink = state.inkActions(onLineStyle = state::pickLineStyle),
         modifier = modifier,
+        canvasEdge = canvasEdge,
     )
 }
 

@@ -47,38 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-tool-strips"
-title = "Flatten ToolRail/ToolRibbon into docked hairline strips with group dividers, scroll cue, and delayed tooltips"
-description = """
-Phase 3A of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Remove the nested 6 dp shadowed glass capsule inside a 4 dp shadowed lane, fix silent bottom clipping of 23 slots, enlarge tiny sub-targets, and debounce hover tooltips.
-
-Exact changes:
-1. `desktop/src/main/java/com/mobixournal/desktop/tools/ToolStrips.kt` & `StripItems.kt`:
-   - Replace capsule-in-lane with flat docked strips:
-     - `ToolRail`: `width = DesignTokens.DESKTOP_RAIL_WIDTH_DP.dp` (`48.dp`), `.bandSurface().bandDivider(canvasEdge)`, `padding(horizontal = 6.dp, vertical = 6.dp)`.
-     - `ToolRibbon`: `height = DesignTokens.DESKTOP_RIBBON_HEIGHT_DP.dp` (`44.dp`), `.bandSurface().bandDivider(BandEdge.BOTTOM)`, `padding(horizontal = 6.dp, vertical = 4.dp)`.
-   - Tool slots (`SlotFace` / `ToolSlot`): `36.dp × 36.dp`, `DesktopTheme.controlShape` (`4.dp`, never `10.dp` `railSlotShape`), `hoverFill(4.dp)` on hover (and add hover to `StrokeSlot` in `ColourFlyouts.kt`!), `activeSlot` + `accent` glyph when picked, `1.dp` `accent` focus ring.
-   - Insert `StripItem.Divider` (`1.dp` `DesktopTheme.hairline`, `24.dp` long centered) in `stripItems()` separating the 5 tool families: (1) Inking & Stroke, (2) Hand/Selection/Image/Text/Vertical Space, (3) Figures, (4) STEM & Circuits, (5) Guides.
-   - Add a subtle `3.dp` scroll thumb/fade indicator whenever `scrollState.maxValue > 0` so overflowed tools never clip invisibly.
-   - Enlarge `SlotChevron` and scalene edit button hit zones to `16.dp × 16.dp`; replace hardcoded `fontSize = 9.sp` on polygon badge with `10.sp` `tnum` style; delete dead private `StripCommandSlot`.
-   - Update `StripPill` tooltip: `4.dp` corner radius (`DesktopTheme.controlShape`), `1.dp` `DesktopTheme.borderStrong`, and `LaunchedEffect(hovered) { delay(350); visible = true }` so fast cursor sweeps do not strobe tooltips.
-   - Keep `SlotFace` and `ToolSlot` strictly `<= 90` lines each.
-2. Docs: update `docs/desktop-ui-layout.md` §2 for flat docked `48 dp` rail / `44 dp` ribbon (`<= 300` lines).
-3. Tests: update `ToolStripsTest.kt`, `DesktopStripLayoutTest.kt`, `StripItemsTest.kt`, `ColourFlyoutTest.kt` to match flat docked `48/44 dp` lane metrics and no nested capsule.
-
-DO NOT: leave `.glassCapsule(` in `ToolStrips.kt`; leave `9.sp` hardcoded; break `ToolStripMetrics` coordinate sync with tests.
-Verification: run `:desktop:test` on `ToolStripsTest`, `DesktopStripLayoutTest`, `StripItemsTest`, `ColourFlyoutTest`, `ToolSlotClickTest`, plus `DocsGuardTest` and `SourceStructureTest`; inspect `tools-rail.png`, `tools-ribbon.png`, `tools-shell-left.png`, `tools-shell-top.png`; refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 70
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "tools"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-popups-colour-picker"
 title = "Standardize all desktop popups/flyouts to concentric 8 dp / 4 dp geometry and clean up ColourPickerPanel"
 description = """

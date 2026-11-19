@@ -88,9 +88,9 @@ keep theirs, and Save As still switches.
   page is `#000000`; platform materials (Windows 11 Mica) are **not** used: Mica tints the window with the
   wallpaper, so it would stop matching the phone and change with the user's own picture.
 - **Both tool placements ship**: the vertical rail is the default, the horizontal ribbon the alternative
-  for 16:9 monitors. Whichever is on, the strip stands in a **lane of its own** beside the canvas — a band
-  with the tablet's capsule in it, never a bar over the page (2026-10-28, `interface-contract.md`); the
-  choice lives in the settings file, and the Interface section owns its door.
+  for 16:9 monitors. Either way the strip is a **docked band of its own** beside the canvas — 48 dp wide,
+  or 44 dp tall for the ribbon, drawn against the page — never a bar over the sheet and never a capsule
+  in a lane (lane 2026-10-28, flat band phase 3A); the settings file holds the choice.
 - **The window's surfaces are opaque tones of their own** (2026-11-19, superseding 2026-10-25): the band is
   `DESKTOP_BAND_DARK_RGB` (`#141417`), a panel or popup `DESKTOP_SURFACE_DARK_RGB`, a control
   `DESKTOP_CONTROL_DARK_RGB` — flat, no shadow, one hairline; the tablet keeps its frosted glass.
@@ -99,10 +99,10 @@ keep theirs, and Save As still switches.
 and both tool strips ([`desktop-workstation.md`](desktop-workstation.md) owns its inventory); from **this**
 spoke it takes four rules, and the parity work of 2026-10-22 put them all in the window:
 
-- **A band is chrome, a capsule is an object.** The header, status bar, sidebar and the strips' lanes take
-the opaque band tone and **no shadow**; the rail is a **52 dp capsule in a 64 dp lane** (6 dp of side air,
-8 above and below), the ribbon a 48 dp capsule in a 56 dp band, each on the surface tone with the family's
-  rim, and a header command is a 28 dp icon in that band's row. Separation is tone plus
+- **A band is chrome, a capsule is an object.** The header, status bar, sidebar and both strips take the
+opaque band tone and **no shadow**; the rail is 48 dp wide and the ribbon 44 dp tall, with 36 dp slots
+standing straight in that fill (6 dp of air, 4 between them) — one material, one hairline
+  — and a header command is a 28 dp icon in that band's row. Separation is tone plus
   `Modifier.bandDivider`'s 1 dp hairline — a flat workstation has no lift to lose to eight-bit rounding. The
   ink is the shared tokens' (`interface-contract.md` §2 owns the colours). The native Windows caption is the
   system's again: `Window(title = …)` names the document in front and DWM paints that caption in the band's
@@ -110,20 +110,18 @@ the opaque band tone and **no shadow**; the rail is a **52 dp capsule in a 64 dp
 - **One icon set.** The tool glyphs come from `ToolGlyphCatalogue` (`mobix-core`), plain geometry on the
 24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`. Neither
 shell keeps a set of its own — the tablet's deep circuit, gate, bond and variant vectors were transcribed
-and deleted — so a picker row and a slot face cannot disagree; the picked slot is a 10 dp steel squircle.
+and deleted — so a picker row and a slot face cannot disagree; the picked slot is a 4 dp steel square.
 The **chrome's** own pictures live in `ChromeGlyphCatalogue` — Material's path data, the selection bar's
 marks and the add/close/eye included — and **both** shells read it, so two screens show one set.
-- **Every surface answers the pointer**: a tab, a sidebar page, a layer row, a menu option, the open and
-  close buttons and every tool slot wear the steel at `hoverSlotAlpha` (0.45) while hovered, one step
-  short of the picked fill — `Modifier.hoverFill()` in `GlassEdge.kt`. Before that the rail answered only
-  with its tooltip and the sidebar not at all.
+- **Every surface answers the pointer**: a tab, a sidebar page, a layer row, a menu option and every tool
+  slot light one step short of the picked fill — `Modifier.hoverFill()` in `GlassEdge.kt`.
 - **No motion of its own**: the window's surfaces arrive **and leave** on `DesignTokens.GlassMotion`, read
 from the shared tokens rather than picked here. A flyout is opened through `GlassPopup` — a `GlassPresence`
 hold plus the same spring — so a menu that closes draws back instead of vanishing; only the bars' hover
 tooltips still land with the pointer (`interface-contract.md` §7 owns that exception).
-- **The colours and corners are the tokens**: 16 dp tab capsules, the 20 dp panel corner, a 40 dp header,
+- **The colours and corners are the tokens**: flat 28 dp tabs, the 20 dp panel corner, a 40 dp header,
 a 24 dp status bar, Inter with tabular figures, dark-first. `DesktopThemeTest` re-reads the JSON block
-above and `ChromeMaterialRenderTest` proves the lift, the flat fill and the rim as pixels.
+above and `ChromeMaterialRenderTest` proves the fill and the rim as pixels.
 
 Picking a colour writes it straight to the settings file (`ink.colour`, `ink.width`), and the palette is
 `palette.colours` through `PenPalette.sanitised`, so a hand-edited file cannot put a transparent colour,
@@ -192,17 +190,20 @@ Two decisions taken while building it:
 The drawing and STEM tools are always on screen, in whichever strip the window's saved placement selects
 (`toolPlacement` in its settings file; the Interface section will own the control):
 
-- **Rail (default)**: the 52 dp capsule in its 64 dp lane down one edge — the tablet's own geometry, which
-  leaves the sheet its full height on 16:9 and 21:9 monitors.
-- **Ribbon**: the 48 dp capsule in a 56 dp band under the header, for a window that is short or narrow.
+- **Rail (default)**: one 48 dp band down an edge (`DESKTOP_RAIL_WIDTH_DP`), its hairline on the canvas
+  side, which leaves the sheet its full height on 16:9 and 21:9 monitors.
+- **Ribbon**: one 44 dp band under the header (`DESKTOP_RIBBON_HEIGHT_DP`), its hairline beneath it, for a
+  window that is short or narrow.
 - **Both**: the ribbon above the rail, each with its own slots.
+- **Five families, four rules**: 36 dp slots on a 4 dp corner stand straight in that band, grouped as the
+  ink (Pen, Highlighter, the erasers, the stroke settings), the page commands (Hand, Marquee/Lasso,
+  Text/Formula, Vertical space, Insert image), the figures, the STEM elements and the guides, with a 24 dp
+  hairline between the runs and a 3 dp thumb on the canvas edge when the strip overflows.
 - **1-click STEM access**: `f(x)`, shapes, tables and circuits sit in the same strip as the inking tools,
-  with no submenu between the user and them — and so do the **plain figures**: Line, Arrow, Double
-  arrow, Rectangle, Ellipse and Axes are six slots of their own on the desktop, one click each. The
-  triangle, the trapezoid and the polygon are three more, exactly as the tablet's rail draws them: each
-  opens its **own menu** (the four triangle kinds, the three trapezoid kinds, the 3–12 side count) and
-  wears the answer it will draw, so a variant is never a second button and never a shared slot.
-- **Hover names the slot**: a pill tooltip shows the tool's name and its key (e.g. `Function plot [M]`).
+  and so do the **plain figures** — Line, Arrow, Double arrow, Rectangle, Ellipse and Axes, one click
+  each. Triangle, trapezoid and polygon open their **own menu** (four kinds, three kinds, 3–12 sides) and
+  wear the answer they will draw, so a variant is never a second button.
+- **Hover names the slot**: a pill shows the name and key (`Function plot [M]`) after 350 ms of rest.
 
 ### 3. Universal shortcuts across all tools (Mobile & Desktop)
 Every single tool and editing action in MobiXournal carries an assigned shortcut accelerator, providing

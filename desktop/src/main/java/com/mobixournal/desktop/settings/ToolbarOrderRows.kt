@@ -26,8 +26,9 @@ internal fun ToolbarOrderRows(policy: DesktopSettingsState) {
     // The rows are the strip's own contents in the strip's own order ([stripItems]): the list said
     // "bottom of the strip" while the strip drew Insert image under Text.
     for (item in stripItems(groups, policy.imageAfter)) when (item) {
-        // The stroke's settings travel with the highlighter; they are not a button, so they get no row.
-        StripItem.Stroke -> Unit
+        // The stroke's settings travel with the highlighter, and a family's rule is not a button: neither
+        // is a row the reader could move.
+        StripItem.Stroke, StripItem.Divider -> Unit
         is StripItem.Tools -> {
             val index = item.index
             ReorderRow(drag, index, groups.size) {

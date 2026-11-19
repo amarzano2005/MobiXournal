@@ -67,10 +67,10 @@ import org.junit.rules.TemporaryFolder
  *  2. **The placement is a setting, not a state.** It defaults to the rail, survives a restart through
  *     [DesktopSettings], and an unknown or unreadable file falls back to the default instead of stopping
  *     the window from opening.
- *  3. **A floating bar over the page.** The headless renders put a zoomed document on screen in all
- *     three placements: the sheet reaches the window's edges — nothing is taken out of the canvas for a
- *     lane — and a pen drag begun on a capsule leaves the page's ink alone. The PNGs are kept under
- *     `build/desktop-render/` so the strips can be looked at.
+ *  3. **A docked band, not a bar over the page.** The headless renders put a zoomed document on screen in
+ *     all three placements: the band takes its own lane, the sheet begins past it, and a pen drag begun
+ *     on the band leaves the page's ink alone. The PNGs are kept under `build/desktop-render/` so the
+ *     strips can be looked at.
  */
 class ToolStripsTest {
 
@@ -313,10 +313,7 @@ class ToolStripsTest {
         // The slot that faces Polygon is the figures group's — not the last slot, which is the Circuit
         // slot since the STEM slots joined the strip.
         val figureGroup = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.POLYGON in it.members }
-        val figures = stripItems(DESKTOP_TOOL_GROUPS).indexOfFirst {
-            it is StripItem.Tools && it.index == figureGroup
-        }
-        val pickedSlotX = ToolStripMetrics.ribbonSlotLeft.value.toInt() + (figures * slotStride) + 2
+        val pickedSlotX = ribbonSlotLeftX(figureGroup) + 2
         assertEquals(
             "the ribbon marks the picked tool with the active slot",
             activeSlotArgb,
@@ -325,14 +322,15 @@ class ToolStripsTest {
     }
 
     /**
-     * The rail's **capsule is a bar**, not a pane as tall as the window: it ends under the last of its slots
-     * and its own band shows below it.
+     * The rail is **one band down its edge**: 48 dp of the window's band tone, from under the header to
+     * the foot, with the slots standing straight in it.
      *
-     * The band runs the whole edge — that is a lane, on the window as on the tablet — so what is measured is
-     * the capsule's own span: the rows carrying its nearly-solid fill rather than the band's lighter one.
+     * It used to be a capsule floating in that lane — two materials and two shadows for one bar. What is
+     * measured now is that there is **one** tone: the lane's top padding and the fill under the last tool
+     * are the window's band, and nothing lighter sits between them.
      */
     @Test
-    fun `the rail's capsule ends under its last slot`() {
+    fun `the rail is one band down its edge`() {
         val lane = ToolStripMetrics.railWidth.value.toInt()
         val png = save(
             ImageComposeScene(lane, 1600, Density(1f)) { ToolRail(ToolStripState(), onSelect = {}) },
@@ -340,14 +338,11 @@ class ToolStripsTest {
         )
         val image = ImageIO.read(ByteArrayInputStream(png))
         fun toneAt(y: Int) = image.getRGB(lane / 2, y) and 0xFFFFFF
-        // The capsule's fill, read in the 4 dp of its top padding — above slot 0, inside the capsule.
-        // A flat capsule is opaque, so its **tone** is what marks it, not an alpha over the band.
-        val capsuleTone = toneAt(ToolStripMetrics.railSlotTop.value.toInt() - 2)
-        val bottom = (0 until image.height).lastOrNull { toneAt(it) == capsuleTone }
-            ?: error("the rail's capsule drew nothing")
-        assertTrue(
-            "the capsule is as tall as the window ($bottom of ${image.height}), not as tall as its tools",
-            bottom < image.height - 200,
+        assertEquals("the band's tone at the lane's top air", DesktopTheme.bandRgb, toneAt(2))
+        assertEquals(
+            "and the same tone under the last tool — a band, not a capsule ending over the band",
+            DesktopTheme.bandRgb,
+            toneAt(image.height - 3),
         )
     }
 
@@ -516,8 +511,8 @@ class ToolStripsTest {
 
     private val activeSlotArgb: Int get() = DesktopTheme.activeSlot.toArgb() and 0xFFFFFF
 
-    /** The hover step composited over the capsule it lies on: the tone a hovered slot must paint. */
-    private val hoverTone: Int get() = compositeOver(DesktopTheme.hoverSlot, DesktopTheme.stripGlass)
+    /** The hover step composited over the band it lies on: the tone a hovered slot must paint. */
+    private val hoverTone: Int get() = compositeOver(DesktopTheme.hoverSlot, DesktopTheme.glass)
 
     private fun compositeOver(top: Color, bottom: Color): Int {
         fun channel(t: Float, b: Float) = ((t * top.alpha + b * (1f - top.alpha)) * 255f).toInt().coerceIn(0, 255)
@@ -592,14 +587,22 @@ class ToolStripsTest {
         // Every slot the strip draws, the stroke's panel and the image picker included: they are
         // buttons of the strip too, and a glyph that stopped drawing there would be as dead as a tool's.
         val items = stripItems(DESKTOP_TOOL_GROUPS)
+        // The rules between the families cost their own thickness, so a slot's place is walked, not
+        // multiplied: `index * stride` would drift by one pixel per divider.
+        var along = 0f
         for (index in items.indices) {
+            if (items[index] == StripItem.Divider) {
+                // The rule crosses the strip: 1 dp along its run, 24 dp across it.
+                along += ToolStripMetrics.dividerThickness.value + ToolStripMetrics.gap.value
+                continue
+            }
             val x0 = if (vertical) {
                 ToolStripMetrics.railSlotLeft.value.toInt()
             } else {
-                ToolStripMetrics.ribbonSlotLeft.value.toInt() + index * slotStride
+                (ToolStripMetrics.ribbonSlotLeft.value + along).toInt()
             }
             val y0 = if (vertical) {
-                ToolStripMetrics.railSlotTop.value.toInt() + index * slotStride
+                (ToolStripMetrics.railSlotTop.value + along).toInt()
             } else {
                 ToolStripMetrics.ribbonSlotTop.value.toInt()
             }
@@ -614,6 +617,7 @@ class ToolStripsTest {
                 is StripItem.Tools -> item.group.face.label
                 StripItem.Stroke -> "Stroke"
                 StripItem.Image -> "Insert image"
+                StripItem.Divider -> "a divider"
             }
             // A tool's glyph is 20 dp of monoline art; the stroke slot is a dot at the ink's own width,
             // which is two or three pixels across at the thinnest slot, so it is asked for less ink.
@@ -624,7 +628,28 @@ class ToolStripsTest {
                     " (slot ${if (vertical) "at y = $y0, lane centre x = $centre" else "at x = $x0"})",
                 ink > needed,
             )
+            along += slot + ToolStripMetrics.gap.value
         }
+    }
+
+    /**
+     * The left edge of the ribbon slot whose group index is [group], walked through the items so the
+     * 1 dp family rules and the stroke's and image's own slots are counted where they are drawn.
+     */
+    private fun ribbonSlotLeftX(group: Int): Int {
+        var x = ToolStripMetrics.ribbonSlotLeft.value
+        for (item in stripItems(DESKTOP_TOOL_GROUPS)) {
+            when (item) {
+                is StripItem.Tools -> {
+                    if (item.index == group) return x.toInt()
+                    x += ToolStripMetrics.slotSize.value + ToolStripMetrics.gap.value
+                }
+                StripItem.Divider ->
+                    x += ToolStripMetrics.dividerThickness.value + ToolStripMetrics.gap.value
+                else -> x += ToolStripMetrics.slotSize.value + ToolStripMetrics.gap.value
+            }
+        }
+        error("no slot for group $group")
     }
 
     private fun difference(a: Int, b: Int): Int {

@@ -2,7 +2,6 @@ package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.tools.DesktopButton
 import com.mobixournal.desktop.tools.DesktopButtonVariant
 import com.mobixournal.desktop.tools.DesktopIconButton
-import com.mobixournal.desktop.tools.StripPill
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.ink.of

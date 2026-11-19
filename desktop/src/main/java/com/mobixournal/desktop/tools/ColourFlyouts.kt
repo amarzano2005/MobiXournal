@@ -138,8 +138,11 @@ internal fun StrokeSlot(
                 .size(ToolStripMetrics.slotSize)
                 .background(
                     if (open) DesktopTheme.activeSlot else Color.Transparent,
-                    DesktopTheme.railSlotShape,
+                    DesktopTheme.controlShape,
                 )
+                // The same five states as a tool slot, at the same 4 dp corner: this is a button of the
+                // strip, and a resting pointer must be answered here too (`docs/interface-contract.md` §6).
+                .hoverFill(DesktopTheme.controlShape, active = open)
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
                 .pointerInput(Unit) { detectTapGestures { open = !open && guard.mayOpen(Unit) } },

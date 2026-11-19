@@ -28,11 +28,11 @@ import org.junit.rules.TemporaryFolder
 /**
  * **Where the strips stand**, measured on the sheet they leave behind.
  *
- * Since 2026-10-28 the strips **take a lane** on the window, exactly as the tablet's rail does: the rail is
- * a band down an edge with its capsule standing in it, the ribbon a band under the header, and the canvas
- * is handed the rectangle that is left. Nothing of the chrome lies over the sheet, so the page can neither
- * be drawn under a bar nor have its ink swallowed by one. This file measures both halves: the opening frame
- * beside the lane, and the lane itself — a band, not the sheet, with a different material standing in it.
+ * Since 2026-10-28 the strips **take a lane** on the window: the rail is a band down an edge, the ribbon a
+ * band under the header, and the canvas is handed the rectangle that is left. Nothing of the chrome lies
+ * over the sheet, so the page can neither be drawn under a bar nor have its ink swallowed by one. Since
+ * phase 3A the band is **one tone** too — 48 dp of rail and 44 dp of ribbon, with the slots standing
+ * straight in them and no capsule inside either — so this file measures the frame and the lane's peace.
  *
  * The second render zooms the page past the window, because that is the case a lane has to survive: the paper
  * fills its own canvas to both edges, and the lane still shows beside it instead of the sheet running under
@@ -146,16 +146,16 @@ class DesktopStripLayoutTest {
     }
 
     /**
-     * **The lane is a band, and the sheet starts past it.**
+     * **The lane is one band, and the sheet starts past it.**
      *
      * Zoomed past the window the page fills its canvas to both edges, so the pixels just inside the lane
      * are the case that matters: the band's own tone there, never paper. That is the assertion the floating
-     * layout could not pass — and the one that keeps a bar from ever lying on the ink again. The capsule
-     * standing in the band is a second, lighter material, which is what "the tools in a glass pill, in a
-     * bar" looks like in pixels.
+     * layout could not pass — and the one that keeps a bar from ever lying on the ink again. The lane is
+     * also **one** material: the gutter beside the slots is the same tone as the band, because the capsule
+     * that used to stand in it is gone (`docs/interface-contract.md` §1).
      */
     @Test
-    fun `the rail takes a lane with its capsule in it`() {
+    fun `the rail takes a lane that is one band`() {
         val header = DesktopTheme.headerHeight.value.toInt()
         val lane = ToolStripMetrics.railWidth.value.toInt()
         val band = ToolStripMetrics.ribbonHeight.value.toInt()
@@ -166,22 +166,22 @@ class DesktopStripLayoutTest {
             // little shading, so exact white fails on a page that is plainly there.
             fun sheetAt(point: Pair<Int, Int>) = (pixels[point.second * width + point.first] and 0xFF) >= 0xD0
 
-            // The band's first pixels, the capsule's centre, and the sheet just past the board: the three
-            // samples a lane is made of, wherever the strip stands.
-            val (bandAt, capsuleAt, paperAt) = when {
-                // The band is sampled in the lane's top air, above the capsule: the pill's shadow
-                // reaches the lane's inner edge, and a shadow is not the band.
+            // The band's first pixels, the lane's own gutter inside a slot's row, and the sheet just past
+            // the board: the three samples a lane is made of, wherever the strip stands.
+            val (bandAt, gutterAt, paperAt) = when {
+                // The rail's own gutter, clear of the 3 dp overflow thumb the band draws on the edge
+                // facing the canvas.
                 placement.showsRail && placement.railSide == RailSide.LEFT ->
-                    Triple(2 to header + 3, lane / 2 to header + 200, lane + 8 to height / 2)
+                    Triple(2 to header + 3, 4 to header + 22, lane + 8 to height / 2)
                 placement.showsRail ->
                     Triple(
                         width - 3 to header + 3,
-                        width - lane / 2 to header + 200,
+                        width - 4 to header + 22,
                         width - lane - 8 to height / 2,
                     )
                 else -> Triple(
                     width / 2 to header + 2,
-                    width / 2 to header + band / 2,
+                    2 to header + band / 2,
                     width / 2 to header + band + 8,
                 )
             }
@@ -200,9 +200,9 @@ class DesktopStripLayoutTest {
                 sheetAt(paperAt),
             )
             assertTrue(
-                "$placement: the capsule stands in the band as its own material (sampled #%06X)"
-                    .format(at(capsuleAt)),
-                maxChannelGap(at(capsuleAt), DesktopTheme.bandRgb) > 3,
+                "$placement: the lane's gutter is the band too, with no capsule in it (sampled #%06X)"
+                    .format(at(gutterAt)),
+                maxChannelGap(at(gutterAt), DesktopTheme.bandRgb) <= 2,
             )
         }
     }

@@ -4,8 +4,10 @@ import com.mobixournal.desktop.tools.DEFAULT_IMAGE_ANCHOR
 import com.mobixournal.desktop.tools.DESKTOP_TOOL_GROUPS
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.StripItem
+import com.mobixournal.desktop.tools.stripFamily
 import com.mobixournal.desktop.tools.stripItems
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -39,6 +41,22 @@ class StripItemsTest {
             val (image, slot) = indices(anchor.name)
             assertTrue("the image slot is on the strip under $anchor", image > 0)
             assertEquals("it stands right after $anchor", slot + 1, image)
+        }
+    }
+
+    /**
+     * The rules fall **between** the families: four dividers for the five families of the factory order,
+     * each one between two slots that belong to different families, and none inside a family's run.
+     */
+    @Test
+    fun `the rules fall between the tool families`() {
+        val items = stripItems(DESKTOP_TOOL_GROUPS)
+        assertEquals("four rules separate five families", 4, items.count { it is StripItem.Divider })
+        for (index in items.indices) {
+            if (items[index] !is StripItem.Divider) continue
+            val before = items.take(index).filterIsInstance<StripItem.Tools>().last().group.face.stripFamily
+            val after = items.drop(index + 1).filterIsInstance<StripItem.Tools>().first().group.face.stripFamily
+            assertNotEquals("a rule must not fall inside one family", before, after)
         }
     }
 

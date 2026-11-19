@@ -78,15 +78,15 @@ Every surface is one of three objects. Pick the class from what the element *doe
   through the answers it was showing. It takes the near-solid panel the cards themselves wear, and keeps the
   rim, the panel corner and the spring; the window's own select opens on that fill for the same reason
   ([`desktop-settings.md`](desktop-settings.md)).
-- **The window's tool strips take a lane, as the tablet's do** (decision 2026-10-28). The rail stands in a
-  band down an edge and the ribbon in a band under the header — the header's own material and its one 4 dp
-  tone — with the capsule standing *in* that band: the rail 52 dp in a 64 dp lane, the ribbon 48 dp in a
-  56 dp band, each on the surface tone with the family's rim. The canvas is handed what is left, so
-  no bar is ever drawn on the sheet. The strips lay themselves *over* the page between 2026-10-26 and this
-  decision; that left the canvas full width and the page running behind the glass, and one window is not a
-  second design language. A capsule is opaque to the pointer and its fill is the surface tone
-  (`DesktopTheme.stripGlass`) — a translucent bar turned grey over a white sheet. The canvas can still be
-  told to frame a fitted page around a surface that lies on it (`ChromeInset`), which no strip asks for now.
+- **The window's tool strips are docked bands** (lane 2026-10-28, flat band 2026-11-19). The rail stands
+  in a band down an edge and the ribbon in a band under the header — the header's own material and its one
+  1 dp line on the canvas side — with the slots standing *in* that fill: 36 dp on a 4 dp corner, in a 48 dp
+  rail or a 44 dp ribbon, and a 24 dp hairline between the five tool families. No capsule stands in the
+  lane and no bar lies on the sheet: the canvas is handed what is left. The strips lay themselves *over*
+  the page between 2026-10-26 and the lane decision; that left the canvas full width and the page running
+  behind the glass, and one window is not a second design language. The band is opaque to the pointer
+  (`DesktopTheme.glass`) — a translucent bar turned grey over a white sheet. The canvas can still be told
+  to frame a fitted page around a surface that lies on it (`ChromeInset`), which no strip asks for now.
 - **Page content being authored is not a surface.** A stroke being drawn is a draft on the sheet, and the
   desktop's in-place text field is the same thing for words: it takes the document's own ink, face and
   place, and **no fill and no rim** — it wore the floating glass once and read as a charcoal slab across a
@@ -126,10 +126,9 @@ Every surface is one of three objects. Pick the class from what the element *doe
 | Measure | Value | Token |
 |---|---|---|
 | Header / status bar | 40 dp / 24 dp, both shells (the window's header is the token) | `HEADER_HEIGHT_DP`, `STATUS_HEIGHT_DP` |
-| Rail capsule in its lane | 52 dp in 64 dp (6 dp side air, 8 dp above and below) | `RAIL_*` |
-| Ribbon capsule in its band | 48 dp in 56 dp | `ribbonCapsuleHeight` |
-| Tool slot | 40 dp, 10 dp squircle | `COMPACT_BUTTON_SIZE_DP`, `RAIL_SLOT_CORNER_RADIUS_DP` |
-| Header control | 36 dp capsule | `HEADER_CONTROL_SIZE_DP` |
+| Rail / ribbon band | 48 dp wide / 44 dp tall, 36 dp slots, 6 dp of air | `DESKTOP_RAIL_WIDTH_DP`, `DESKTOP_RIBBON_HEIGHT_DP` |
+| Tool slot | window 36 dp on a 4 dp corner; tablet 40 dp squircle | `COMPACT_BUTTON_SIZE_DP`, `RAIL_SLOT_CORNER_RADIUS_DP` |
+| Header control | 28 dp icon command | `DESKTOP_HEADER_BUTTON_DP` |
 | Capsule / panel corner | 16 dp / 20 dp | `CAPSULE_CORNER_RADIUS_DP`, `PANEL_CORNER_RADIUS_DP` |
 | Rim stroke | 1 dp | `RIM_WIDTH_DP` |
 | Desktop control / surface corners | 4 dp / 8 dp | `DESKTOP_CONTROL_CORNER_DP`, `DESKTOP_POPUP_CORNER_RADIUS_DP` |

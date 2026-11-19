@@ -2,13 +2,11 @@ package com.mobixournal.desktop.tools
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.PaletteCodec
 import com.mobixournal.desktop.ink.of
-import com.mobixournal.desktop.io.ImageSlot
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.SlotPickerStack
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.settings.drawToolGlyph
 import com.mobixournal.desktop.settings.glyph
-import com.mobixournal.desktop.sheet.ChromeInset
 import com.mobixournal.desktop.sheet.GuideStrip
 import com.mobixournal.desktop.sheet.circuitFamilyOf
 import com.mobixournal.desktop.sheet.guideSlotGlyph
@@ -16,11 +14,15 @@ import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.PageMenuActions
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,11 +33,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +45,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
@@ -58,64 +64,72 @@ import com.mobixournal.design.PenPalette
 import com.mobixournal.design.ToolGlyph
 import com.mobixournal.render.CircuitFamily
 import com.mobixournal.render.ShapeKind
+import kotlinx.coroutines.delay
 
 /**
- * The two tool placements of `docs/ui-modernization.md` §2, and the metrics that keep them honest.
+ * The two tool placements, as the flat workstation draws them: **two docked bands**, and no object
+ * standing in either.
  *
- * **A floating bar lying on the page.** The rail is a capsule [railWidth] wide on an edge of the canvas
- * and the ribbon one across its top; the sheet runs behind both, which is the desktop decision of
- * 2026-10-26 and the reason the page does not move when the placement changes (`docs/interface-contract.md`
- * — a floating surface may lie over the page). The rail wraps its slots rather than filling the edge, so it
- * reads as a bar of tools and not as a pane the height of the window. Each strip is the **capsule** of the
- * tablet's own recipe — 52 dp of glass in a 64 dp lane of air — filled with `DesktopTheme.stripGlass`,
- * nearly solid: a sheet under it must not turn the bar grey. The capsule's own scroll pane and slots make
- * the surface opaque to the pointer, so a press on it is never a stroke on the page beneath
- * (`ToolStripsTest` sends a tap and two drags at the glass and counts the page's elements).
+ * Phase 1A of `desktop-ui-flat-workstation` had taken the strips out of the sheet, but left the tablet's
+ * capsule inside them — 52 dp of glass with its own rim and shadow, floating in a 64 dp lane — so the
+ * window was a bar inside a bar. `docs/interface-contract.md` §1 settles it: chrome is one tone and one
+ * hairline, and a band is geometry, not an object lying on another. The rail is therefore 48 dp wide with
+ * its line on the side facing the canvas, the ribbon 44 dp tall with its line beneath it, and the 36 dp
+ * slots sit straight in that fill.
  *
- * The page is framed in what these capsules *leave* ([ChromeInset]), so a document opens on the desk beside
- * the bar and not underneath it, while a page too large for that room can still be scrolled behind it.
+ * Three things follow and are as much of the change as the pixels:
  *
- * The strips only **set a [ToolSelection]** — this is the chrome Phase 2 asks for, and what a pen does
- * with the picked tool arrives with the desktop editing phase. Because of that, the two placements draw
- * the same list from [DesktopTool], in the enum's order, with the same glyphs and the same pills: a
- * test can therefore assert they offer *the same tools* rather than two hand-kept copies.
+ *  - the **families** are separated by a 24 dp hairline ([StripItem.Divider]) instead of reading as one
+ *    run of twenty buttons;
+ *  - an overflowed strip shows a **3 dp thumb** ([StripScrollCue]) so a tool past the window's edge is
+ *    known to be there rather than silently clipped;
+ *  - the tooltip waits **350 ms** ([StripPill]) so sweeping the pointer across the rail does not strobe a
+ *    pill per slot on the way.
+ *
+ * The page is still framed in what the bands leave (`ChromeInset`), so a document opens beside the rail
+ * and under the ribbon rather than underneath either. The strips only set a [ToolSelection]; what a pen
+ * does with the picked tool is the canvas's own business.
  */
 object ToolStripMetrics {
 
-    /** The rail's lane: 64 dp (the capsule plus its air), floating on the canvas's edge. */
-    val railWidth = DesktopTheme.railLaneWidth
+    /** The rail's lane: one band down an edge, 48 dp (`DESKTOP_RAIL_WIDTH_DP`). */
+    val railWidth = DesignTokens.DESKTOP_RAIL_WIDTH_DP.dp
 
-    /** The ribbon's lane: 56 dp — the capsule plus the air above and below it. */
-    val ribbonHeight = 56.dp
+    /** The ribbon's band under the header: 44 dp (`DESKTOP_RIBBON_HEIGHT_DP`). */
+    val ribbonHeight = DesignTokens.DESKTOP_RIBBON_HEIGHT_DP.dp
 
-    /** The ribbon's floating capsule inside that lane: 48 dp, so a 40 dp slot keeps 4 dp of air. */
-    val ribbonCapsuleHeight = 48.dp
-
-    /** One tool slot — the compact button of the token table (40 dp). */
-    val slotSize = DesignTokens.COMPACT_BUTTON_SIZE_DP.dp
+    /** One tool slot. 36 dp in a 48 dp lane leaves 6 dp of air on each side. */
+    val slotSize = 36.dp
 
     /** The glyph drawn inside a slot: monoline art at a size that keeps the strokes apart. */
     val glyphSize = 20.dp
 
-    /** The gap between slots, and the strip's own padding. */
+    /** The gap between slots, and every strip's own padding: what centres a slot in its lane. */
     val gap = 4.dp
+    val stripPadding = 6.dp
 
     /** How far the hover pill sits from the slot it names. */
     val tooltipGap = 6.dp
 
+    /** A family's rule inside a strip: 1 dp across, 24 dp long, with [gap] of air either side. */
+    val dividerThickness = 1.dp
+    val dividerLength = 24.dp
+
+    /** The overflow thumb, at the lane's edge on the canvas side. */
+    val scrollCue = 3.dp
+
+    /** How long a resting pointer must stay on a slot before its pill appears. */
+    const val tooltipDelayMs = 350L
+
     /**
-     * Where slot 0 starts inside the rail's lane — the capsule's side air plus the column's padding.
-     * Derived rather than written down, so the strip and a render test cannot disagree about it.
+     * Where slot 0 starts inside the rail's lane. Derived rather than written down, so the strip and a
+     * render test cannot disagree about it.
      */
-    val railSlotLeft = (railWidth - DesktopTheme.railCapsuleWidth) / 2f + DesktopTheme.railLanePadding
+    val railSlotLeft = stripPadding
+    val railSlotTop = stripPadding
 
-    /** Where slot 0 starts down the rail's lane: the capsule's vertical air plus the column's padding. */
-    val railSlotTop = DesktopTheme.railOuterPadding + gap
-
-    /** Where the first slot starts across the ribbon: the capsule's air plus the row's padding. */
-    val ribbonSlotLeft = DesktopTheme.railOuterPadding + DesktopTheme.railLanePadding
-
-    /** The ribbon's slots are centred in the lane, so they start this far down it. */
+    /** Where the first slot starts across the ribbon, and how far down the 44 dp band it is centred. */
+    val ribbonSlotLeft = stripPadding
     val ribbonSlotTop = (ribbonHeight - slotSize) / 2f
 }
 
@@ -196,75 +210,69 @@ class InkActions(
 /**
  * Option B: the vertical rail, docked beside the canvas.
  *
- * The tool slots and the ink slots are ~900 dp tall together, so the lane scrolls rather than dropping
- * its last tools on a window that is shorter than that — a tool that is off screen because the window is
- * short would be a tool the user has to guess at.
+ * One band 48 dp wide, its hairline on the side the canvas is on — [canvasEdge] is `END` for a rail on
+ * the left and `START` for one on the right, so the line always lands between the tools and the sheet.
+ * The slots scroll when the window cannot hold them, and a 3 dp thumb says so instead of dropping the
+ * last tools off the band in silence.
  */
 @Composable
-fun ToolRail(
+internal fun ToolRail(
     state: ToolStripState,
     onSelect: (DesktopTool) -> Unit,
     ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
+    /** The edge the canvas is on, which is the edge the band's one hairline is drawn against. */
+    canvasEdge: BandEdge = BandEdge.END,
 ) {
-    // **A lane, not a bar lying on the page** (decision 2026-10-28): the lane is a band of its own —
-    // `bandSurface()`, the header's own fill and its one 4 dp lift onto the canvas — and the capsule
-    // stands *in* it, exactly as the tablet's rail does: 52 dp of glass inside a 64 dp lane, 6 dp of air
-    // each side and 8 above and below, its own shadow and its own rim. Taking the lane out of the row is
-    // what makes the page stop under the bar instead of behind it: the two shells now lay the tools out
-    // the same way instead of the window inventing a floating variant of the tablet's rail.
+    val scroll = rememberScrollState()
     Box(
         modifier
-            .width(DesktopTheme.railLaneWidth)
+            .width(ToolStripMetrics.railWidth)
             .fillMaxHeight()
-            .bandSurface(),
+            .bandSurface()
+            .bandDivider(canvasEdge),
         contentAlignment = Alignment.TopCenter,
     ) {
-        Box(
+        Column(
             Modifier
-                .padding(vertical = DesktopTheme.railOuterPadding)
-                .width(DesktopTheme.railCapsuleWidth)
-                // It wraps its slots: a bar of tools floating on the page, not a pane as tall as the
-                // window. `verticalScroll` inside still bounds it when a short window cannot hold them.
-                .wrapContentHeight()
-                .glassCapsule(fill = DesktopTheme.stripGlass),
+                .fillMaxSize()
+                .verticalScroll(scroll)
+                .padding(ToolStripMetrics.stripPadding),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
         ) {
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
-                    .padding(
-                        horizontal = DesktopTheme.railLanePadding,
-                        vertical = ToolStripMetrics.gap,
-                    ),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
-            ) {
-                for (item in stripItems(state.groups, state.imageAfter)) {
-                    when (item) {
-                        is StripItem.Tools -> ToolSlot(
-                            group = item.group, selection = state.selection,
-                            pickerOpen = state.openGroup == item.index, onSelect = onSelect,
-                            onOpenPicker = { state.onOpenGroup(item.index) },
-                            onClosePicker = { state.onOpenGroup(null) },
-                            circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
-                            onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
-                            figures = state.figures, guides = state.guides, side = StripSide.RIGHT,
-                        )
+            for (item in stripItems(state.groups, state.imageAfter)) {
+                when (item) {
+                    is StripItem.Tools -> ToolSlot(
+                        group = item.group, selection = state.selection,
+                        pickerOpen = state.openGroup == item.index, onSelect = onSelect,
+                        onOpenPicker = { state.onOpenGroup(item.index) },
+                        onClosePicker = { state.onOpenGroup(null) },
+                        circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
+                        onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
+                        figures = state.figures, guides = state.guides, side = StripSide.RIGHT,
+                    )
 
-                        else -> StripCommand(item, state, ink, StripSide.RIGHT)
-                    }
+                    StripItem.Divider -> StripDivider(vertical = true)
+
+                    else -> StripCommand(item, state, ink, StripSide.RIGHT)
                 }
             }
         }
+        // The thumb sits on the edge facing the canvas, like the band's own hairline.
+        StripScrollCue(
+            scroll,
+            vertical = true,
+            alignment = if (canvasEdge == BandEdge.START) Alignment.CenterStart else Alignment.CenterEnd,
+        )
     }
 }
 
 /**
  * Option A: the horizontal ribbon, a band under the header.
  *
- * It scrolls horizontally for the same reason the rail scrolls vertically: eighteen slots do not fit a
- * narrow window, and a ribbon that clipped them would silently hide the STEM half of the tool set.
+ * The rail laid on its side: 44 dp tall, its hairline along its lower edge, the same 6 dp of side air and
+ * the same family rules. It scrolls across when the window is narrow, with the overflow thumb under it.
  */
 @Composable
 fun ToolRibbon(
@@ -273,54 +281,105 @@ fun ToolRibbon(
     ink: InkActions = InkActions(),
     modifier: Modifier = Modifier,
 ) {
-    // The ribbon is the rail laid on its side — a band under the header with the capsule standing in it,
-    // the same two layers in the same order as the rail's lane (see that note).
+    val scroll = rememberScrollState()
     Box(
         modifier
             .fillMaxWidth()
             .height(ToolStripMetrics.ribbonHeight)
-            .bandSurface(),
+            .bandSurface()
+            .bandDivider(BandEdge.BOTTOM),
         contentAlignment = Alignment.Center,
     ) {
         Row(
             Modifier
-                .fillMaxWidth()
-                .height(ToolStripMetrics.ribbonCapsuleHeight)
-                .padding(horizontal = DesktopTheme.railOuterPadding)
-                .glassCapsule(fill = DesktopTheme.stripGlass),
+                .fillMaxSize()
+                .horizontalScroll(scroll)
+                .padding(horizontal = ToolStripMetrics.stripPadding),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
         ) {
-            Row(
-                Modifier
-                    .fillMaxSize()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = DesktopTheme.railLanePadding),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(ToolStripMetrics.gap),
-            ) {
-                for (item in stripItems(state.groups, state.imageAfter)) {
-                    when (item) {
-                        is StripItem.Tools -> ToolSlot(
-                            group = item.group, selection = state.selection,
-                            pickerOpen = state.openGroup == item.index, onSelect = onSelect,
-                            onOpenPicker = { state.onOpenGroup(item.index) },
-                            onClosePicker = { state.onOpenGroup(null) },
-                            circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
-                            onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
-                            figures = state.figures, guides = state.guides, side = StripSide.BELOW,
-                        )
+            for (item in stripItems(state.groups, state.imageAfter)) {
+                when (item) {
+                    is StripItem.Tools -> ToolSlot(
+                        group = item.group, selection = state.selection,
+                        pickerOpen = state.openGroup == item.index, onSelect = onSelect,
+                        onOpenPicker = { state.onOpenGroup(item.index) },
+                        onClosePicker = { state.onOpenGroup(null) },
+                        circuitKinds = state.circuitKinds, circuitPickerOpen = state.circuitPickerOpen,
+                        onCircuitKind = state.onCircuitKind, onCircuitPicker = state.onCircuitPicker,
+                        figures = state.figures, guides = state.guides, side = StripSide.BELOW,
+                    )
 
-                        else -> StripCommand(item, state, ink, StripSide.BELOW)
-                    }
+                    StripItem.Divider -> StripDivider(vertical = false)
+
+                    else -> StripCommand(item, state, ink, StripSide.BELOW)
                 }
             }
+        }
+        StripScrollCue(scroll, vertical = false, alignment = Alignment.BottomCenter)
+    }
+}
+
+/**
+ * The **overflow thumb**: a 3 dp bar in the lane's own gutter whenever the strip has more than it can
+ * show.
+ *
+ * A strip that clipped silently was the old bug — twenty slots in a window that held fourteen, with no
+ * sign that the STEM half was still there. The bar is drawn from the scroll state, so it is the strip's
+ * own answer rather than a second opinion about how much is hidden.
+ */
+@Composable
+private fun BoxScope.StripScrollCue(scroll: ScrollState, vertical: Boolean, alignment: Alignment) {
+    // Nothing hidden: a thumb would be a promise of content that is not there.
+    if (scroll.maxValue <= 0) return
+    Canvas(
+        if (vertical) {
+            Modifier.align(alignment).fillMaxHeight().width(ToolStripMetrics.scrollCue)
+        } else {
+            Modifier.align(alignment).fillMaxWidth().height(ToolStripMetrics.scrollCue)
+        },
+    ) {
+        val total = scroll.maxValue + scroll.viewportSize
+        if (total <= 0 || scroll.maxValue <= 0) return@Canvas
+        val ink = DesktopTheme.inkMuted.copy(alpha = 0.45f)
+        val radius = CornerRadius(size.minDimension / 2f)
+        if (vertical) {
+            val thumb = size.height * scroll.viewportSize / total
+            val start = (size.height - thumb) * (scroll.value.toFloat() / scroll.maxValue)
+            drawRoundRect(ink, Offset(0f, start), Size(size.width, thumb), radius)
+        } else {
+            val thumb = size.width * scroll.viewportSize / total
+            val start = (size.width - thumb) * (scroll.value.toFloat() / scroll.maxValue)
+            drawRoundRect(ink, Offset(start, 0f), Size(thumb, size.height), radius)
         }
     }
 }
 
+/**
+ * A family's rule: one 1 dp hairline, 24 dp long across the strip and **perpendicular** to its run.
+ *
+ * A rule drawn along the run would read as a tick inside the lane rather than as a break in it: a
+ * vertical rail is separated by a horizontal line 24 dp wide, a horizontal ribbon by a vertical one
+ * 24 dp tall. The line is the panel's own hairline, so it is the same edge as the band's, at a quarter
+ * of its length.
+ */
+@Composable
+private fun StripDivider(vertical: Boolean) {
+    val line = Modifier
+        .then(
+            if (vertical) {
+                Modifier.width(ToolStripMetrics.dividerLength).height(ToolStripMetrics.dividerThickness)
+            } else {
+                Modifier.width(ToolStripMetrics.dividerThickness).height(ToolStripMetrics.dividerLength)
+            },
+        )
+        .background(DesktopTheme.hairline)
+    Box(line)
+}
 
 /**
- * One tool slot of a strip: the picked glyph in the accent, a hover pill, and the gesture it answers.
+ * One tool slot of a strip: the picked glyph in the accent, the 4 dp corner's hover step, and the
+ * gesture it answers.
  *
  * A slot that [ToolGroup.hasPicker] carries the chevron and opens the group's picker — by clicking the
  * chevron, by right-clicking anywhere on the slot, or by holding it; a click on the glyph picks the tool
@@ -345,8 +404,7 @@ private fun ToolSlot(
     val tool = group.faceFor(selection)
     val figure = tool.takeIf { it in FIGURE_TOOLS }
     val active = tool == selection.current
-    // What the slot's chevron (and a second click on a picked slot) opens, and what closes it again —
-    // the group's members, a circuit palette or a figure's variants (`slotSurface`).
+    // What its chevron (or a second click on a picked slot) opens: the group, a circuit palette, a figure.
     val surface = slotSurface(
         tool = tool,
         pickerOpen = pickerOpen,
@@ -356,9 +414,8 @@ private fun ToolSlot(
         closeGroup = onClosePicker,
         circuit = onCircuitPicker,
     )
-    // A surface that is up belongs to the slot that opened it, so the next click on that slot **closes**
-    // it. The popup dismisses itself on the same press, and the tap under it must not open it again
-    // (DismissGuard) — otherwise clicking the trigger of an open list read as a dead click.
+    // A surface belongs to the slot that opened it: its next click closes it, and the popup's own
+    // dismissal is remembered so that same press cannot reopen it (DismissGuard).
     val guard = remember { DismissGuard() }
     val toggleSurface: () -> Unit = {
         when {
@@ -378,8 +435,8 @@ private fun ToolSlot(
         val armedCircuit = circuitFamilyOf(tool)?.let { circuitKinds[it] ?: it.face }
         SlotFace(
             tool = tool,
-            // A guides slot wears the instrument that is **placed**, so a reader back on the pen can still
-            // see which one is on the sheet; every other slot draws its own face.
+            // A guides slot wears the instrument **placed**, so a reader back on the pen sees it; every
+            // other slot draws its own face.
             glyph = guideSlotGlyph(tool, guides.placed) ?: figureSlotGlyph(tool, figures.shape),
             circuitKind = armedCircuit,
             badge = if (figure == DesktopTool.POLYGON) "${figures.shape.polygonSides}" else null,
@@ -394,7 +451,8 @@ private fun ToolSlot(
             onEditFigure = if (isScaleneEdit) { { figures.onOpenDialog(tool) } } else null,
         )
         // The pill stands aside while the slot's own surface is up — any of them, so a circuit slot's
-        // palette or a figure's variants are not covered by its tooltip.
+        // palette or a figure's variants are not covered by its tooltip. It appears after the pointer has
+        // rested a moment (`StripPill`), so a sweep across the rail does not strobe.
         if (hovered && !surface.up) TooltipPill(tool = tool, offset = surfaceOffset)
         SlotPickerStack(
             group = group,
@@ -429,11 +487,13 @@ private fun StripSide.surfaceOffset(slotPx: Int, gapPx: Int): IntOffset = when (
 }
 
 /**
- * The slot's face: its glyph, its background and the two gestures it answers — a click that picks (or
- * asks which member) and, for a grouped tool, a chevron with a tap target of its own.
+ * The slot's face: its glyph, its background and the three gestures it answers — a click that picks (or
+ * asks which member), a chevron with a 16 dp tap target of its own, and the focus ring.
  *
- * Split from [ToolSlot] so the slot itself is placement and the surfaces it opens, and the 40 dp frame
- * with its five states is one component both strips share.
+ * Split from [ToolSlot] so the slot itself is placement and the surfaces it opens, and the 36 dp frame
+ * with its five states is one component both strips share: resting on the band, hovered with the 4 dp
+ * corner, picked in the active steel with an accent glyph, focused with a 1 dp accent ring, and pressed
+ * through the same fill one step in.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -455,17 +515,14 @@ private fun SlotFace(
     circuitKind: ShapeKind? = null,
     onEditFigure: (() -> Unit)? = null,
 ) {
+    var focused by remember { mutableStateOf(false) }
     Box(
         Modifier
             .size(ToolStripMetrics.slotSize)
-            .background(
-                when {
-                    active -> DesktopTheme.activeSlot
-                    hovered -> DesktopTheme.hoverSlot
-                    else -> Color.Transparent
-                },
-                DesktopTheme.railSlotShape,
-            )
+            .background(if (active) DesktopTheme.activeSlot else Color.Transparent, DesktopTheme.controlShape)
+            .hoverFill(DesktopTheme.controlShape, active = active, focused = focused)
+            .focusable()
+            .onFocusChanged { focused = it.isFocused }
             .onPointerEvent(PointerEventType.Enter) { onHover(true) }
             .onPointerEvent(PointerEventType.Exit) { onHover(false) }
             .pointerInput(group, selection) {
@@ -495,18 +552,18 @@ private fun SlotFace(
                 text = badge,
                 color = if (active) DesktopTheme.accent else DesktopTheme.chromeInk,
                 style = DesktopTheme.numeric,
-                fontSize = 9.sp,
+                fontSize = 10.sp,
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(start = 4.dp, top = 2.dp),
             )
         }
         if (onEditFigure != null) {
+            // The scalene edit: 16 dp of target in a 36 dp slot, so it is a button and not a hairline.
             Box(
                 Modifier
                     .align(Alignment.TopEnd)
                     .size(16.dp)
-                    .padding(1.dp)
                     .pointerInput(onEditFigure) { detectTapGestures { onEditFigure() } },
                 contentAlignment = Alignment.Center,
             ) {
@@ -516,13 +573,14 @@ private fun SlotFace(
             }
         }
         if (opensSurface) {
-            // The marker, at the end the strip's own side leaves free, with its own tap target so a
-            // chevron click never doubles as a pick of the face.
+            // The marker, at the end the strip's own side leaves free, in a 16 dp target so a chevron
+            // click never doubles as a pick of the face.
             Box(
                 Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(3.dp)
+                    .size(SlotChevronTarget)
                     .pointerInput(group) { detectTapGestures { onOpenPicker() } },
+                contentAlignment = Alignment.Center,
             ) {
                 SlotChevron(active = active)
             }
@@ -530,48 +588,8 @@ private fun SlotFace(
     }
 }
 
-/**
- * One command of a strip: the same 40 dp frame and glyph as a tool slot, with the tooltip pill a
- * tool has and no picked state (a command is over the moment it opens its surface).
- */
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-private fun StripCommandSlot(
-    glyph: ToolGlyph,
-    label: String,
-    offsetSide: StripSide,
-    onClick: () -> Unit,
-) {
-    var hovered by remember { mutableStateOf(false) }
-    val density = LocalDensity.current
-    val slotPx = with(density) { ToolStripMetrics.slotSize.roundToPx() }
-    val gapPx = with(density) { ToolStripMetrics.tooltipGap.roundToPx() }
-    Box {
-        Box(
-            Modifier
-                .size(ToolStripMetrics.slotSize)
-                .background(
-                    if (hovered) DesktopTheme.hoverSlot else Color.Transparent,
-                    DesktopTheme.railSlotShape,
-                )
-                .onPointerEvent(PointerEventType.Enter) { hovered = true }
-                .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .pointerInput(glyph) { detectTapGestures { onClick() } },
-            contentAlignment = Alignment.Center,
-        ) {
-            Canvas(Modifier.size(ToolStripMetrics.glyphSize)) {
-                drawToolGlyph(glyph, DesktopTheme.chromeInk)
-            }
-        }
-        if (hovered) {
-            StripPill(
-                label = label,
-                accent = "",
-                offset = offsetSide.surfaceOffset(slotPx, gapPx),
-            )
-        }
-    }
-}
+/** The chevron's tap target: 16 dp inside a 36 dp slot, with the 7 dp mark centred in it. */
+private val SlotChevronTarget = 16.dp
 
 /** The subtle pill: the tool's name in the chrome's ink, its accelerator in the accent. */
 @Composable
@@ -580,17 +598,30 @@ private fun TooltipPill(tool: DesktopTool, offset: IntOffset) {
 }
 
 /**
- * The one hover pill of a strip: a name in the chrome's ink and its accelerator in the accent.
+ * The one hover pill of the window: a name in the ink and its accelerator in the accent.
  *
- * Shared with the ink slots ([ColourSlot], [SizeSlot]) so the strip's own words — a tool's key, a
- * favourite's digit, a width's `S`/`M`/`L` — are drawn by one component and cannot drift in style.
+ * Shared with the ink slots ([StrokeSlot]), the header's commands and the status band, so the strip's own
+ * words — a tool's key, a favourite's digit, a width's `S`/`M`/`L` — are drawn by one component and cannot
+ * drift in style. It is a **label**, not a capsule: the 4 dp corner, one hairline of [DesktopTheme.borderStrong]
+ * and the popup's own tone (`docs/interface-contract.md` §6).
+ *
+ * The pill appears only after the pointer has rested [ToolStripMetrics.tooltipDelayMs] on its trigger: a
+ * pointer crossing the rail passes twenty slots on its way somewhere, and twenty pills on the way is a
+ * strobe, not an answer. The caller drops the pill the moment the pointer leaves, which cancels the wait.
  */
 @Composable
 internal fun StripPill(label: String, accent: String, offset: IntOffset) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(ToolStripMetrics.tooltipDelayMs)
+        shown = true
+    }
+    if (!shown) return
     Popup(offset = offset, properties = FloatingSurface) {
         Row(
             Modifier
-                .glassSurface()
+                .background(DesktopTheme.popupSurface, DesktopTheme.controlShape)
+                .border(1.dp, DesktopTheme.borderStrong, DesktopTheme.controlShape)
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

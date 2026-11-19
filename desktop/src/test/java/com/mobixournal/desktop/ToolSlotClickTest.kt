@@ -55,15 +55,9 @@ class ToolSlotClickTest {
             )
         }
         try {
-            // The slot's place in the strip: the stroke's panel and the image picker are slots too, so a
-            // group's index in the arrangement is not its place on the band.
-            val group = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.CIRCUIT in it.members }
-            val index = stripItems(DESKTOP_TOOL_GROUPS).indexOfFirst {
-                it is StripItem.Tools && it.index == group
-            }
-            val x = ToolStripMetrics.ribbonSlotLeft.value +
-                index * (ToolStripMetrics.slotSize.value + ToolStripMetrics.gap.value) +
-                ToolStripMetrics.slotSize.value / 2
+            // The slot's place in the strip: the stroke's panel, the image picker and the family rules
+            // are items too, so a group's index is not its place on the band.
+            val x = slotCentreX(DesktopTool.CIRCUIT)
             val y = ToolStripMetrics.ribbonSlotTop.value + ToolStripMetrics.slotSize.value / 2
 
             click(scene, x, y, at = 1_000L)
@@ -92,13 +86,7 @@ class ToolSlotClickTest {
             )
         }
         try {
-            val group = DESKTOP_TOOL_GROUPS.indexOfFirst { DesktopTool.ERASER in it.members }
-            val index = stripItems(DESKTOP_TOOL_GROUPS).indexOfFirst {
-                it is StripItem.Tools && it.index == group
-            }
-            val x = ToolStripMetrics.ribbonSlotLeft.value +
-                index * (ToolStripMetrics.slotSize.value + ToolStripMetrics.gap.value) +
-                ToolStripMetrics.slotSize.value / 2
+            val x = slotCentreX(DesktopTool.ERASER)
             val y = ToolStripMetrics.ribbonSlotTop.value + ToolStripMetrics.slotSize.value / 2
 
             click(scene, x, y, at = 1_000L)
@@ -108,6 +96,28 @@ class ToolSlotClickTest {
         } finally {
             scene.close()
         }
+    }
+
+    /**
+     * The centre of the ribbon slot that faces [tool], walked through the items so the 1 dp family rules
+     * and the stroke's own slot are counted where they are drawn.
+     */
+    private fun slotCentreX(tool: DesktopTool): Float {
+        val slot = ToolStripMetrics.slotSize.value
+        var x = ToolStripMetrics.ribbonSlotLeft.value
+        for (item in stripItems(DESKTOP_TOOL_GROUPS)) {
+            when (item) {
+                is StripItem.Tools -> {
+                    if (tool in item.group.members) return x + slot / 2
+                    x += slot + ToolStripMetrics.gap.value
+                }
+                StripItem.Divider ->
+                    // A vertical rule: 1 dp across the ribbon's run, plus the strip's gap either side.
+                    x += ToolStripMetrics.dividerThickness.value + ToolStripMetrics.gap.value
+                else -> x += slot + ToolStripMetrics.gap.value
+            }
+        }
+        error("no slot faces $tool")
     }
 
     /** A mouse press and release that never moves: one click, at [x], [y], at [at] ms. */
