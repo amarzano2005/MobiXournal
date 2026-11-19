@@ -47,42 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-selection-bars-overlays"
-title = "Make SelectionBar/PdfTextCopyBar opaque 8 dp surfaces, fix ring rim/clamping, and tone down EdgeBump"
-description = """
-Phase 3C of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Fix muddy translucent floating bars over white pages, SelectionBar width/tooltip/HiDPI bugs, incomplete pen-tip ring outer rim & edge clipping, and flashy neon EdgeBump glow.
-
-Exact changes:
-1. `desktop/src/main/java/com/mobixournal/desktop/sheet/SelectionBar.kt`:
-   - Replace `.glassCapsule(cornerRadius = 20.dp, shadow = 6.dp)` with opaque `.glassSurface(cornerRadius = DesktopTheme.surfaceRadius)` (`8.dp`, `DesktopTheme.popupSurface`, `1.dp` `DesktopTheme.hairline`).
-   - Use `DesktopTheme.controlShape` (`4.dp`) on all `32.dp` bar buttons and `AlignMenu` items.
-   - Fix `BAR_BUTTONS` mismatch: currently hardcoded `8` while 9 buttons render when `hasSelection` is true — compute width from actual button count (`9`) so centering and clamping are exact.
-   - Fix `BarButton` tooltip `StripPill` offset from `IntOffset(sizePx + gapPx, 0)` (which covered the adjacent button!) to `IntOffset(0, sizePx + gapPx)` below the bar.
-   - In `AlignMenu`, replace raw pixel `IntOffset(0, 46)` with `44.dp.roundToPx()`.
-   - Extract button group helper so `SelectionBar()` stays `<= 85` lines (currently 97/100).
-2. `desktop/src/main/java/com/mobixournal/desktop/io/PdfTextCopyBar.kt`:
-   - Replace `.glassCapsule(cornerRadius = 20.dp)` with opaque `.glassSurface(cornerRadius = DesktopTheme.surfaceRadius)` (`8.dp`).
-   - Replace borderless `CircleShape` pills with `DesktopButton(Ghost, minHeight = 32.dp)` (or keep `heightIn(min = 40.dp)` outer tap zone if required by `PdfTextCopyBarTest`, with `4.dp` hover fill, `DesktopTheme.ink` enabled text, and `1.dp` `accent` focus border).
-3. `desktop/src/main/java/com/mobixournal/desktop/sheet/DesktopHudPaint.kt` & `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopRing.kt`:
-   - Draw the ring's `hairline` boundary at outer disc radius `ringRadius + slotRadius + air` (`146.dp`) instead of `ringRadius` (`116.dp`).
-   - In `DesktopRing`, clamp `openAt(x, y)` inside canvas width/height with `margin = 154.dp` so summoning near any edge never clips the ring off-screen.
-4. `desktop/src/main/java/com/mobixournal/desktop/sheet/EdgeBump.kt`:
-   - Reduce `EDGE_BAND_DP` from `28f` to `12f` and `EDGE_ALPHA` from `0.28f` to `0.10f`; debounce wheel re-triggers (`>= 180 ms` cooldown) to stop neon strobing.
-5. Tests: update `DesktopSelectionBarTest.kt`, `PdfTextCopyBarTest.kt`, `DesktopRingRenderTest.kt`, `EdgeBumpTest.kt`.
-
-DO NOT: leave translucent `control` or `glassCapsule` on `SelectionBar` or `PdfTextCopyBar`; leave raw pixel offsets in `AlignMenu`.
-Verification: run `:desktop:test` on `DesktopSelectionBarTest`, `PdfTextCopyBarTest`, `DesktopRingRenderTest`, `DesktopRingTest`, `EdgeBumpTest`, plus `SourceStructureTest`; refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 90
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "canvas"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-entry-workspace-fixes"
 title = "Redesign EntryScreen without halo glow, fix SavingBadge z-order, and unify workspace band dividers"
 description = """

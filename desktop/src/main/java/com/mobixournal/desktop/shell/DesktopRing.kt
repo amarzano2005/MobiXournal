@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import com.mobixournal.desktop.sheet.DesktopHud
 import com.mobixournal.desktop.sheet.DesktopHudState
 import com.mobixournal.desktop.sheet.RingContents
@@ -84,6 +85,19 @@ internal class DesktopRing(
     }
 
     /**
+     * The canvas the ring is drawn on, in pixels, reported with the nib's readings.
+     *
+     * Remembered so [summon] can keep the whole disc inside the window: a ring opened with the nib in a
+     * corner used to lose half its faces off screen, with no way to reach them.
+     */
+    fun noteBounds(size: Size) {
+        field = size
+    }
+
+    /** The canvas's rectangle, as last reported; null until the canvas has been laid out once. */
+    private var field: Size? = null
+
+    /**
      * The canvas's density, remembered from the nib's last reading.
      *
      * The pen's packets are in pixels and the ring's geometry in dp, and a summon always follows a reading of
@@ -99,7 +113,13 @@ internal class DesktopRing(
         }
         if (slots.isEmpty()) return false
         val at = anchor ?: Offset.Zero
-        open = DesktopHud.openAt(at.x, at.y)
+        // The disc's own reach plus a hair of air: the ring's boundary is 146 dp out, and a summon this far
+        // from every edge cannot be clipped.
+        val margin = RING_MARGIN_DP * density
+        val box = field
+        val cx = box?.let { at.x.coerceIn(margin, (it.width - margin).coerceAtLeast(margin)) } ?: at.x
+        val cy = box?.let { at.y.coerceIn(margin, (it.height - margin).coerceAtLeast(margin)) } ?: at.y
+        open = DesktopHud.openAt(cx, cy)
         return true
     }
 
@@ -155,3 +175,10 @@ internal class DesktopRing(
         }
     }
 }
+
+/**
+ * How far the ring's whole disc reaches from its centre, in dp: the 116 dp slot ring, the 20 dp slot radius
+ * and the 10 dp of air, plus 8 dp so the hairline is not on the very edge. A summon keeps this much room
+ * from every side of the canvas.
+ */
+internal const val RING_MARGIN_DP = 154f

@@ -61,8 +61,11 @@ internal fun DrawScope.drawRing(
 
     // The glass: one disc under the whole ring, which is what makes it a surface rather than a scatter of
     // buttons — and the rim that says where it ends.
-    drawCircle(color = DesktopTheme.floating, radius = ringRadius + slotRadius + air, center = centre)
-    drawCircle(color = DesktopTheme.hairline, radius = ringRadius, center = centre, style = Stroke(width = hairline))
+    val disc = ringRadius + slotRadius + air
+    drawCircle(color = DesktopTheme.floating, radius = disc, center = centre)
+    // The boundary is the **disc's** own edge, not the slot band's inner radius: a hairline at 116 dp cut
+    // the 146 dp disc in two and left its outer 30 dp looking like a stray halo.
+    drawCircle(color = DesktopTheme.hairline, radius = disc - hairline / 2f, center = centre, style = Stroke(width = hairline))
 
     faces.forEachIndexed { index, face ->
         val (x, y) = RadialHud.slotCenter(centre.x, centre.y, index, faces.size, ringRadius)

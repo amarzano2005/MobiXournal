@@ -83,12 +83,23 @@ internal class EdgeBumpState {
     var seq: Int by mutableStateOf(0)
         private set
 
-    /** A side refused travel, or nothing (a write that travelled as far as it asked reports nothing). */
-    fun report(hit: EdgeHit?) {
+    /**
+     * A side refused travel, or nothing (a write that travelled as far as it asked reports nothing).
+     *
+     * A wheel that keeps turning against an edge reports on every notch, which used to restart the flash
+     * eight times a second and read as a neon strobe. Two bumps closer than [EDGE_COOLDOWN_MS] are one
+     * gesture, so the second is dropped.
+     */
+    fun report(hit: EdgeHit?, nowMs: Long = System.currentTimeMillis()) {
         if (hit == null || hit.edges.isEmpty()) return
+        if (nowMs - lastReportMs < EDGE_COOLDOWN_MS) return
+        lastReportMs = nowMs
         this.hit = hit
         seq++
     }
+
+    /** When the last bump was painted, for the cooldown above. */
+    private var lastReportMs = Long.MIN_VALUE / 2
 }
 
 @Composable
@@ -155,10 +166,13 @@ private const val EDGE_REFUSAL_DP = 0.5f
 private const val EDGE_STRENGTH_DP = 12f
 
 /** How wide the band is, in dp: a hint at the edge, not a border on the page. */
-private const val EDGE_BAND_DP = 28f
+private const val EDGE_BAND_DP = 12f
 
 /** The flash's own peak opacity, before the hit's strength scales it. */
-private const val EDGE_ALPHA = 0.28f
+private const val EDGE_ALPHA = 0.10f
+
+/** Two bumps closer than this are one gesture: a wheel against an edge flashes once, not per notch. */
+internal const val EDGE_COOLDOWN_MS = 180L
 
 /** How long a bump stays visible, in ms. */
 internal const val EDGE_FLASH_MS = 240

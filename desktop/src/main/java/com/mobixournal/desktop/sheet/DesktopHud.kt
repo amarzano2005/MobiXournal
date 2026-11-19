@@ -1,6 +1,7 @@
 package com.mobixournal.desktop.sheet
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import com.mobixournal.render.RadialHud
 import kotlin.math.hypot
 
@@ -42,6 +43,11 @@ internal class HudUi(
     val slots: List<RingFace> = emptyList(),
     /** The nib's place, in canvas pixels, reported to the shell that anchors the ring there. */
     val onPointerAt: (at: Offset, density: Float) -> Unit = { _, _ -> },
+    /**
+     * The canvas's own size, in pixels: a ring summoned near an edge is pulled inside it, so no face is
+     * ever drawn where the window cannot show it.
+     */
+    val onBounds: (Size) -> Unit = {},
     /**
      * True from the press the ring answered until that contact is over — its lift in either stream, or the
      * copy of it that the page swallows.

@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -90,6 +91,8 @@ internal fun Modifier.nibReporting(memory: CanvasMemory, density: Float, hud: Hu
         .clipToBounds()
         .onGloballyPositioned { coordinates ->
             memory.track(coordinates)
+            // The canvas's own rectangle, so the ring can be kept inside it (`DesktopRing.summon`).
+            hud.onBounds(Size(coordinates.size.width.toFloat(), coordinates.size.height.toFloat()))
             val at = memory.pointer.hover.value
                 ?: Offset(coordinates.size.width / 2f, coordinates.size.height / 2f)
             hud.onPointerAt(at, density)

@@ -1,6 +1,7 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.desktop.sheet.Edge
+import com.mobixournal.desktop.sheet.EdgeBumpState
 import com.mobixournal.desktop.sheet.Viewport
 import com.mobixournal.desktop.sheet.edgeHitOf
 import com.mobixournal.desktop.sheet.edgeRefusal
@@ -64,6 +65,22 @@ class EdgeBumpTest {
     @Test
     fun `a pixel of rounding is not an edge`() {
         assertNull(edgeHitOf(0.2f, -0.3f))
+    }
+
+    /**
+     * A wheel held against an edge reports on every notch; the flash is one gesture, not eight a second.
+     * Two bumps inside the cooldown keep the first one's frame, one past it is a new flash.
+     */
+    @Test
+    fun `a wheel held against an edge flashes once, not per notch`() {
+        val state = EdgeBumpState()
+        val hit = edgeHitOf(6f, 0f)!!
+        state.report(hit, nowMs = 1_000L)
+        val first = state.seq
+        state.report(hit, nowMs = 1_100L)
+        assertEquals("a notch inside the cooldown is the same gesture", first, state.seq)
+        state.report(hit, nowMs = 1_300L)
+        assertEquals("past the cooldown it is a new bump", first + 1, state.seq)
     }
 
     @Test

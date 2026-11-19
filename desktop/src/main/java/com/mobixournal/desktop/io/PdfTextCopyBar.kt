@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.io
-import com.mobixournal.desktop.tools.glassCapsule
+import com.mobixournal.desktop.tools.glassSurface
+import com.mobixournal.desktop.tools.hoverFill
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.drawChromeGlyph
 import com.mobixournal.desktop.settings.glyph
@@ -98,8 +99,8 @@ internal data class PdfTextCopyUi(
  * The bar a **PDF text selection** wears, where the element selection's bar would stand: **Copy** and
  * **Highlight**.
  *
- * It sits in the same glass capsule, at the same offset rule ([selectionBarOffset]) as the element bar, so the
- * window does not grow a second place for a selection's actions to appear. Two words and not three: the words
+ * It sits on the same opaque 8 dp surface, at the same offset rule ([selectionBarOffset]) as the element bar,
+ * so the window does not grow a second place for a selection's actions to appear. Two words and not three: the words
  * are already selected, so what a reader can do with them is take them elsewhere or mark them on the page —
  * and deselecting is a click on the page, which needs no button.
  *
@@ -109,8 +110,8 @@ internal data class PdfTextCopyUi(
  * is what the clamp uses, so the bar stays inside the pane at every edge — and it grew a word without a
  * second hard-coded width to get wrong.
  *
- * The ring is the keyboard's: a capsule in the middle of the page draws no focus of its own, so Tab landing
- * on Copy or Highlight has to be visible.
+ * The ring is the keyboard's: a bar in the middle of the page draws no focus of its own, so Tab landing on
+ * Copy or Highlight has to be visible.
  */
 @Composable
 internal fun PdfTextCopyBar(
@@ -155,7 +156,9 @@ internal fun PdfTextCopyBar(
     ) {
         Row(
             Modifier
-                .glassCapsule(cornerRadius = DesktopTheme.panelRadius, shadow = DesktopTheme.bandShadow)
+                // Opaque, like the element bar: a glass capsule over white text greyed the words it was
+                // meant to act on (`docs/interface-contract.md` §1).
+                .glassSurface(cornerRadius = DesktopTheme.surfaceRadius)
                 // The capsule shows no Deselect word — a click on the page and Escape already drop the
                 // selection, and a third word was the widest thing in a two-word bar. It stays reachable as
                 // this surface's accessibility action, so a keyboard reader keeps the same door.
@@ -249,12 +252,14 @@ private fun BarWord(label: String, glyph: ChromeGlyph?, onClick: (() -> Unit)?, 
     ) {
         Row(
             Modifier
-                .heightIn(min = DesignTokens.COMPACT_ACTION_HEIGHT_DP.dp)
-                .clip(CircleShape)
+                // A word is a control of the bar: 4 dp corner, the pointer step, and the accent ring only
+                // while the keyboard is on it — the same five states every other button has.
+                .heightIn(min = 32.dp)
+                .hoverFill(DesktopTheme.controlShape)
                 .border(
-                    width = 2.dp,
+                    width = 1.dp,
                     color = if (focused) DesktopTheme.accent else Color.Transparent,
-                    shape = CircleShape,
+                    shape = DesktopTheme.controlShape,
                 )
                 .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -265,7 +270,7 @@ private fun BarWord(label: String, glyph: ChromeGlyph?, onClick: (() -> Unit)?, 
             }
             Text(
                 text = label,
-                color = if (enabled) DesktopTheme.inkSecondary else DesktopTheme.inkSecondary.copy(alpha = 0.45f),
+                color = if (enabled) DesktopTheme.ink else DesktopTheme.ink.copy(alpha = 0.45f),
                 style = DesktopTheme.label,
             )
         }

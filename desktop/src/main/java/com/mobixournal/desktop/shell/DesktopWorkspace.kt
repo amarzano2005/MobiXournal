@@ -140,6 +140,7 @@ private fun androidx.compose.foundation.layout.RowScope.WorkspaceCanvas(
                 onPress = { x, y, density -> state.ring.press(x, y, density) },
                 slots = state.ring.slots,
                 onPointerAt = { at, density -> state.ring.notePointer(at, density) },
+                onBounds = state.ring::noteBounds,
                 pressHeld = { state.ring.pressHeld },
                 onRelease = { state.ring.release() },
             ),

@@ -154,6 +154,22 @@ class DesktopRingTest {
     }
 
     /**
+     * A ring summoned with the nib in a corner is **pulled inside** the canvas: half its faces off screen
+     * were unreachable, because the pointer never left the paper to reach them again.
+     */
+    @Test
+    fun `a summon near a corner is pulled inside the canvas`() {
+        val ring = ring()
+        ring.noteBounds(androidx.compose.ui.geometry.Size(800f, 600f))
+        ring.notePointer(Offset(2f, 3f), density)
+        assertTrue(ring.summon())
+        val open = requireNotNull(ring.open)
+        val margin = 154f * density
+        assertTrue("the centre keeps the disc's reach from the left (${"%.1f".format(open.cx)})", open.cx >= margin - 1e-3f)
+        assertTrue("and from the top (${"%.1f".format(open.cy)})", open.cy >= margin - 1e-3f)
+    }
+
+    /**
      * An empty palette is not an empty ring: the widths and the three tools are always there, so a document
      * whose swatches were all removed still has a working surface — the tablet's ring holds the same six.
      */
