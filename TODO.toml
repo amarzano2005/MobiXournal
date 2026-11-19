@@ -985,7 +985,7 @@ title = "One report of what a conversion preserved, lost or refused"
 description = """
 Add `mobix-core/src/main/java/com/mobixournal/render/ConversionReport.kt` holding per-object (`elementId`, family, description) and per-target (`MOBIX`, `XOPP`, `PDF`, `SVG`, `PNG`, `CSV`, `JSON`) verdicts from `preserved | editable | displayed | partlyLost | unsupported` plus reasons. Map `XoppSynthesis.Uncompilable` into it without altering `.xopp` synthesis.
 
-Surface non-preserved losses on both shells: update `app/src/main/java/com/mobixournal/ui/ExportGapsDialog.kt`, and on desktop carry losses through `DesktopSaveWorker.Saved` (`desktop/src/main/java/com/mobixournal/desktop/io/DesktopSaveWorker.kt`, which currently discards `staged.uncompiled`) and `DesktopSaves.kt` to display in `DesktopStatus.kt` (reusing the `DesktopExportNotice` status bar pattern). Update `docs/xopp-bridge.md` and `docs/guide-formats-and-conversion.md`; verify with new `ConversionReportTest.kt` via `./gradlew :mobix-core:test --tests '*ConversionReportTest*' :app:testDebugUnitTest :desktop:test`."""
+Surface non-preserved losses on both shells: update `app/src/main/java/com/mobixournal/ui/ExportGapsDialog.kt`, and on desktop carry losses through `DesktopSaveWorker.Saved` (`desktop/src/main/java/com/mobixournal/desktop/shell/DesktopSaveWorker.kt`, which currently discards `staged.uncompiled`) and `DesktopSaves.kt` to display in `DesktopStatus.kt` (reusing the `DesktopExportNotice` status bar pattern). Update `docs/xopp-bridge.md` and `docs/guide-formats-and-conversion.md`; verify with new `ConversionReportTest.kt` via `./gradlew :mobix-core:test --tests '*ConversionReportTest*' :app:testDebugUnitTest :desktop:test`."""
 status = "active"
 level = "task"
 category = "feature"

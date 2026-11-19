@@ -232,6 +232,26 @@ class PlanRulesTest(unittest.TestCase):
             ))
             self.assertEqual([], plan_rules.validate_plan([good], [], root=tmp))
 
+            with_targets = task(
+                targets=["docs/mobix-format.md"],
+                reviewed=datetime.date(2026, 11, 15),
+                description="Update the published container layout rules for zip entries and verify with DocClaimsTest.",
+            )
+            self.assertEqual([], plan_rules.validate_plan([with_targets], [], root=tmp))
+
+            missing_target = task(
+                targets=["docs/does-not-exist.md"],
+                description="Update the missing doc file in this specification module and verify with DocsGuardTest.",
+            )
+            self.assertTrue(any("does not exist" in e for e in plan_rules.validate_plan([missing_target], [], root=tmp)))
+
+            bad_reviewed = task(
+                created=datetime.date(2026, 11, 15),
+                reviewed=datetime.date(2026, 11, 10),
+                description="Update docs/mobix-format.md with reviewed timestamp rules and verify with DocsGuardTest.",
+            )
+            self.assertTrue(any("cannot predate created" in e for e in plan_rules.validate_plan([bad_reviewed], [], root=tmp)))
+
     def test_list_ready_and_plan_commands(self):
         with tempfile.TemporaryDirectory() as tmp:
             active = [

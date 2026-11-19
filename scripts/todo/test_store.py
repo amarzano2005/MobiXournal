@@ -14,6 +14,7 @@ which without the sort left a plan that no longer matched the file it lives in.
 
 from __future__ import annotations
 
+import datetime
 import os
 import sys
 import tempfile
@@ -94,11 +95,12 @@ def main():
              "status": "active", "level": "scope", "category": "refactor",
              "urgency": "high", "order": 5, "created": "2026-10-22", "tags": ["desktop"],
              "epic": "parent-epic", "depends_on": ["prereq-1", "prereq-2"],
+             "targets": ["docs/mobix-format.md"], "reviewed": datetime.date(2026, 11, 19),
              "rebuild": False, "emulator_debug": False},
             {"id": "bare", "title": "Bare", "description": "a bare description",
              "status": "active", "level": "task", "category": "chore",
              "urgency": "normal", "order": 10, "created": "2026-10-22", "tags": [],
-             "epic": "", "depends_on": [],
+             "epic": "", "depends_on": [], "targets": [], "reviewed": None,
              "rebuild": False, "emulator_debug": False},
         ]}, path)
         back_all = store.load(path)["tasks"]
@@ -108,10 +110,13 @@ def main():
               and back.get("tags") == ["desktop"] and back.get("rebuild") is False
               and back.get("epic") == "parent-epic"
               and back.get("depends_on") == ["prereq-1", "prereq-2"]
+              and back.get("targets") == ["docs/mobix-format.md"]
+              and back.get("reviewed") == datetime.date(2026, 11, 19)
               and back.get("created") == "2026-10-22",
               "sorting changes no field but the sequence")
-        check("epic" not in bare and "depends_on" not in bare,
-              "empty epic and depends_on are omitted on write")
+        check("epic" not in bare and "depends_on" not in bare
+              and "targets" not in bare and "reviewed" not in bare,
+              "empty epic, depends_on, targets, and None reviewed are omitted on write")
 
     print()
     if _FAILURES:

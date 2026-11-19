@@ -35,6 +35,7 @@ jobs:
           python3 scripts/todo/test_store.py
           python3 scripts/todo/test_operational.py
           python3 scripts/todo/test_plan_rules.py
+          python3 scripts/todo/test_doctor.py
           python3 scripts/todo/test_done.py
           python3 scripts/todo/test_design.py
           python3 scripts/todo/test_release.py

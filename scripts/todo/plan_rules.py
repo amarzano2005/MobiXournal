@@ -7,6 +7,7 @@ a checkout containing ``docs/``, keeping isolated temp-dir tests clean.
 
 from __future__ import annotations
 
+import datetime
 import os
 import re
 
@@ -56,7 +57,7 @@ _OLD_EMU_DOC_RE = re.compile(
 _BARE_TODO_PY_RE = re.compile(r"\bpython3?\s+scripts/todo/todo\.py\b")
 _REPO_DOC_REF_RE = re.compile(r"\b(docs/[A-Za-z0-9_./-]+)")
 _REPO_SCRIPT_REF_RE = re.compile(r"\b(scripts/[A-Za-z0-9_./-]+)")
-_NEW_PREFIX_RE = re.compile(r"\b(?:new|create)(?:\s+(?:file|spoke))?\s+$", re.IGNORECASE)
+_NEW_PREFIX_RE = re.compile(r"\b(?:new|create)(?:\s+(?:file|spoke))?\s+[`'\"]?$", re.IGNORECASE)
 _GRADLE_TEST_TASK_RE = re.compile(
     r":(mobix-core|app|desktop):(?:test|testDebugUnitTest)\b"
     r"((?:\s+--tests\s+(?:'[^']+'|\"[^\"]+\"|[^\s`\"')]+))+)"
@@ -80,8 +81,45 @@ def _index_test_files(root):
     return modules
 
 
-def _check_fields_and_graph(active_tasks, active_by_id, all_by_id):
+def _parse_date(value):
+    if type(value) is datetime.date:
+        return value
+    if isinstance(value, str):
+        try:
+            return datetime.date.fromisoformat(value)
+        except ValueError:
+            return None
+    return None
+
+
+def _check_targets_and_reviewed(task, where, has_repo_tree, root):
     errors = []
+    targets = task.get("targets")
+    if targets is not None:
+        if not isinstance(targets, list) or any(not isinstance(t, str) or not t.strip() for t in targets):
+            errors.append(f"{where}: targets must be a list of non-empty path strings")
+        else:
+            if len(set(targets)) != len(targets):
+                errors.append(f"{where}: targets contains duplicate paths")
+            if has_repo_tree:
+                for path in targets:
+                    if not os.path.exists(os.path.join(root, path)):
+                        errors.append(f"{where}: target path {path!r} does not exist")
+    reviewed = task.get("reviewed")
+    if reviewed is not None:
+        rev_date = _parse_date(reviewed)
+        if rev_date is None:
+            errors.append(f"{where}: reviewed must be a YYYY-MM-DD date, got {reviewed!r}")
+        else:
+            created_date = _parse_date(task.get("created"))
+            if created_date is not None and rev_date < created_date:
+                errors.append(f"{where}: reviewed ({rev_date}) cannot predate created ({created_date})")
+    return errors
+
+
+def _check_fields_and_graph(active_tasks, active_by_id, all_by_id, root=None):
+    errors = []
+    has_repo_tree = bool(root and os.path.isdir(os.path.join(root, "docs")))
     for task in active_tasks:
         tid = task.get("id", "?")
         where = f"TODO [{tid}]"
@@ -96,6 +134,7 @@ def _check_fields_and_graph(active_tasks, active_by_id, all_by_id):
                 target = active_by_id.get(epic)
                 if not target or target.get("level", store.DEFAULT_LEVEL) != "epic":
                     errors.append(f"{where}: epic {epic!r} must reference an active epic")
+        errors += _check_targets_and_reviewed(task, where, has_repo_tree, root)
         deps = task.get("depends_on")
         if deps is None:
             continue
@@ -247,7 +286,7 @@ def _check_task_readiness(task, all_by_id):
                 f"{where}: open design/exploration imperative {match.group(0).strip()!r} belongs in a scope, not a task"
             )
             break
-    has_anchor = bool(_FILE_ANCHOR_RE.search(desc)) or (
+    has_anchor = bool(task.get("targets")) or bool(_FILE_ANCHOR_RE.search(desc)) or (
         bool(task.get("emulator_debug")) and "com.mobixournal" in desc and "docs/tools-emulator.md" in desc
     )
     if not has_anchor:
@@ -319,7 +358,7 @@ def validate_plan(active_tasks, finished_tasks, root=None):
     all_by_id.update(active_by_id)
     finished_ids = {t["id"] for t in finished_tasks if t.get("id")}
 
-    errors = _check_fields_and_graph(active_tasks, active_by_id, all_by_id)
+    errors = _check_fields_and_graph(active_tasks, active_by_id, all_by_id, root=root)
     errors += _detect_cycles(active_tasks, active_by_id)
     errors += _check_ordering_and_blocking(active_tasks, active_by_id, finished_ids)
 

@@ -28,6 +28,7 @@ import subprocess
 import sys
 
 import design
+import doctor
 import operational
 import plan_rules
 import release
@@ -67,6 +68,10 @@ def _print_task(task, indent=""):
         meta += f" epic={task['epic']}"
     if task.get("depends_on"):
         meta += f" depends_on=[{', '.join(task['depends_on'])}]"
+    if task.get("targets"):
+        meta += f" targets=[{', '.join(task['targets'])}]"
+    if task.get("reviewed"):
+        meta += f" reviewed={task['reviewed']}"
     if "rebuild" in task:
         meta += f" rebuild={'yes' if task['rebuild'] else 'no'}"
     if "emulator_debug" in task:
@@ -289,6 +294,35 @@ def cmd_count(args):
         print(len(tasks))
 
 
+def cmd_brief(args, root=None):
+    _, todo_doc = _load_todo(root)
+    _, done_doc = _load_finished(root)
+    task = store.find(todo_doc["tasks"], args.id)
+    if not task:
+        sys.exit(f"no active task with id {args.id!r}")
+    repo_root = root or store.find_repo_root()
+    payload = doctor.brief_task(task, todo_doc["tasks"], done_doc["tasks"], root=repo_root)
+    if args.json:
+        print(json.dumps(payload, default=str, indent=2))
+        return
+    print(doctor.format_brief(payload))
+
+
+def cmd_doctor(args, root=None):
+    _, todo_doc = _load_todo(root)
+    _, done_doc = _load_finished(root)
+    repo_root = root or store.find_repo_root()
+    payload = doctor.diagnose_plan(
+        todo_doc["tasks"], done_doc["tasks"], root=repo_root, include_all=args.all,
+    )
+    if args.json:
+        print(json.dumps(payload, default=str, indent=2))
+    else:
+        print(doctor.format_diagnosis(payload))
+    if args.strict and (payload["stale_tasks"] or payload["missing_paths"]):
+        sys.exit(1)
+
+
 def cmd_add(args):
     path, doc = _load_todo()
     _, done = _load_finished()
@@ -312,6 +346,10 @@ def cmd_add(args):
         task["epic"] = args.epic
     if args.depends_on:
         task["depends_on"] = _dedupe(args.depends_on)
+    if args.target:
+        task["targets"] = _dedupe(args.target)
+    if args.reviewed:
+        task["reviewed"] = datetime.date.fromisoformat(args.reviewed)
     doc["tasks"].append(task)
     store.save_todo(doc, path)
     print(f"added [{task['id']}] {task['title']}")
@@ -328,6 +366,12 @@ def cmd_edit(args):
         sys.exit("pass --clear-depends-on alone, not with --depends-on/--add-depends-on")
     if args.depends_on is not None and args.add_depends_on:
         sys.exit("pass --depends-on or --add-depends-on, not both")
+    if args.clear_targets and (args.target is not None or args.add_target):
+        sys.exit("pass --clear-targets alone, not with --target/--add-target")
+    if args.target is not None and args.add_target:
+        sys.exit("pass --target or --add-target, not both")
+    if args.reviewed and args.mark_reviewed:
+        sys.exit("pass --reviewed or --mark-reviewed, not both")
     description = _description_text(args, required=False)
     if description is not None:
         task["description"] = description
@@ -350,6 +394,20 @@ def cmd_edit(args):
         task["depends_on"] = _dedupe(list(task.get("depends_on") or []) + args.add_depends_on)
     elif args.clear_depends_on:
         task.pop("depends_on", None)
+    if args.target is not None:
+        tgts = _dedupe(args.target)
+        if tgts:
+            task["targets"] = tgts
+        else:
+            task.pop("targets", None)
+    elif args.add_target:
+        task["targets"] = _dedupe(list(task.get("targets") or []) + args.add_target)
+    elif args.clear_targets:
+        task.pop("targets", None)
+    if args.reviewed:
+        task["reviewed"] = datetime.date.fromisoformat(args.reviewed)
+    elif args.mark_reviewed:
+        task["reviewed"] = _today()
     if args.add_tag:
         task.setdefault("tags", [])
         for tag in args.add_tag:
@@ -445,7 +503,8 @@ def cmd_done(args, root=None):
     task["completed"] = (
         datetime.date.fromisoformat(args.date) if args.date else _today()
     )
-    for stray in ("order", "urgency", "epic", "depends_on", "rebuild", "emulator_debug"):
+    for stray in ("order", "urgency", "epic", "depends_on", "targets", "reviewed",
+                  "rebuild", "emulator_debug"):
         task.pop(stray, None)
     # The archive says what the task **delivered**; the plan it came from is not the record.
     task["description"] = shipped
@@ -946,6 +1005,17 @@ def build_parser():
     sh.add_argument("--json", action="store_true")
     sh.set_defaults(func=cmd_show)
 
+    br = sub.add_parser("brief", help="print a task context packet (deps, file sizes, verify)")
+    br.add_argument("id")
+    br.add_argument("--json", action="store_true")
+    br.set_defaults(func=cmd_brief)
+
+    dr = sub.add_parser("doctor", help="check ready/active tasks for staleness, missing paths, and ceilings")
+    dr.add_argument("--all", action="store_true", help="inspect all active non-epic tasks (default: ready only)")
+    dr.add_argument("--strict", action="store_true", help="exit non-zero when stale tasks or missing paths are found")
+    dr.add_argument("--json", action="store_true")
+    dr.set_defaults(func=cmd_doctor)
+
     st = sub.add_parser("stats", help="summary counts")
     st.add_argument("--json", action="store_true")
     st.set_defaults(func=cmd_stats)
@@ -971,6 +1041,10 @@ def build_parser():
     ad.add_argument("--epic", help="parent active epic id")
     ad.add_argument("--depends-on", action="append", metavar="ID",
                     help="prerequisite task or scope id (repeatable)")
+    ad.add_argument("--target", action="append", metavar="PATH",
+                    help="existing repository file path touched by this task (repeatable)")
+    ad.add_argument("--reviewed", metavar="YYYY-MM-DD",
+                    help="last date the task plan was verified against the codebase")
     ad.add_argument("--tag", action="append")
     ad.add_argument("--rebuild", action=argparse.BooleanOptionalAction, default=True,
                     help="rebuild the Android app for this task (default: yes)")
@@ -998,6 +1072,16 @@ def build_parser():
                     help="append prerequisite id (repeatable)")
     ed.add_argument("--clear-depends-on", action="store_true",
                     help="remove all depends_on entries")
+    ed.add_argument("--target", action="append", metavar="PATH",
+                    help="replace targets list (repeatable)")
+    ed.add_argument("--add-target", action="append", metavar="PATH",
+                    help="append target path (repeatable)")
+    ed.add_argument("--clear-targets", action="store_true",
+                    help="remove all targets entries")
+    ed.add_argument("--reviewed", metavar="YYYY-MM-DD",
+                    help="set reviewed date")
+    ed.add_argument("--mark-reviewed", action="store_true",
+                    help="stamp reviewed with today's date")
     ed.add_argument("--add-tag", action="append")
     ed.add_argument("--remove-tag", action="append")
     ed.add_argument("--rebuild", action=argparse.BooleanOptionalAction, default=None,

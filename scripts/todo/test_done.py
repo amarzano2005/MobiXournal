@@ -94,7 +94,12 @@ def main():
 
     # The everyday case: the archive holds the delivery, with the plan gone.
     with tempfile.TemporaryDirectory() as tmp:
-        scratch(tmp, active=[active(epic="some-epic", depends_on=["some-dep"])])
+        scratch(tmp, active=[active(
+            epic="some-epic",
+            depends_on=["some-dep"],
+            targets=["docs/tools.md"],
+            reviewed=datetime.date(2026, 11, 19),
+        )])
         todo.cmd_done(args(shipped=summary), root=tmp)
         archived = shipped_read(tmp)
         check(len(archived) == 1, "the task reaches the archive")
@@ -104,8 +109,9 @@ def main():
         check(entry["status"] == "finished", "the entry is stamped finished")
         check(entry["completed"] == datetime.date.today(), "and dated today")
         check(todo_read(tmp) == [], "the task left TODO.toml")
-        check(not any(key in entry for key in ("order", "urgency", "epic", "depends_on", "rebuild", "emulator_debug")),
-              "the active-only fields are dropped")
+        check(not any(key in entry for key in (
+            "order", "urgency", "epic", "depends_on", "targets", "reviewed", "rebuild", "emulator_debug",
+        )), "the active-only fields are dropped")
 
     # Newest first: the archive's documented order survives the insert.
     with tempfile.TemporaryDirectory() as tmp:
