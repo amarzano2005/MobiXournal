@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.mobixournal.desktop.settings.SettingsScrollPane
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
@@ -39,6 +40,28 @@ class SettingsScrollPaneTest {
             assertEquals("the long page has scrolled", 0xFFFF0000.toInt(), color())
             section.value = 2
             assertEquals("the new page starts at its heading", 0xFF0000FF.toInt(), color())
+        } finally { scene.close() }
+    }
+
+    /**
+     * The pane keeps a lane for its scrollbar: a control or a nav label under the thumb was a word with a
+     * grey bar through its last letter.
+     */
+    @Test fun theContentStopsShortOfTheScrollbar() {
+        val scene = ImageComposeScene(200, 100, Density(1f)) {
+            SettingsScrollPane(Modifier.fillMaxSize(), "lane", Modifier) {
+                Box(Modifier.fillMaxWidth().height(20.dp).background(Color.Blue))
+            }
+        }
+        try {
+            Snapshot.sendApplyNotifications()
+            val bytes = scene.render().encodeToData()!!.bytes
+            val image = javax.imageio.ImageIO.read(java.io.ByteArrayInputStream(bytes))
+            assertEquals("the row still fills the pane", 0x0000FF, image.getRGB(150, 10) and 0xFFFFFF)
+            assertTrue(
+                "and stops before the scrollbar's lane: ${image.getRGB(195, 10) and 0xFFFFFF}",
+                image.getRGB(195, 10) and 0xFFFFFF != 0x0000FF,
+            )
         } finally { scene.close() }
     }
 }

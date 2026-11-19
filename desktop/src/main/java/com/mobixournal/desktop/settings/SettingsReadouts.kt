@@ -24,6 +24,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /**
@@ -44,8 +45,19 @@ internal fun SettingsReadout(label: String, value: String) {
             .padding(horizontal = ROW_INSET),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = DesktopTheme.inkMuted, style = DesktopTheme.label, modifier = Modifier.weight(1f))
+        // The label reads at the rows' own role: a readout is a setting whose answer no control changes,
+        // not a footnote under one — at 11 sp it sat a size below every name around it. The value keeps
+        // the numeric face, and both are cut with an ellipsis rather than running under the panel's edge.
+        Text(
+            label,
+            color = DesktopTheme.ink,
+            style = DesktopTheme.body,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
         Spacer(Modifier.width(16.dp))
-        Text(value, color = DesktopTheme.ink, style = DesktopTheme.numeric, maxLines = 1)
+        Text(value, color = DesktopTheme.ink, style = DesktopTheme.numeric, maxLines = 1,
+            overflow = TextOverflow.Ellipsis)
     }
 }

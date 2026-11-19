@@ -14,9 +14,9 @@ import org.junit.Test
  * to stay true here, and this test reads the sources for both:
  *
  * - a hover step is never asked for without a shape (`hoverFill()` would light the bounds);
- * - a **rectangular** hover exists only on the settings rows, whose group card clips them
- *   (`SettingsGroup` → `glassSurface`), which is the one place a rectangle is right: the row is the card's
- *   width and the card's own corner rounds the first and last of them.
+ * - the light wears the **control's own corner**, never a rectangle: a settings row was the one place a
+ *   hard box was drawn, on the argument that its group card would round the ends, and it sat beside a
+ *   focus ring that *was* rounded — two shapes for one row. Hover and focus are both `controlShape` now.
  *
  * The step chevrons of the header's search field are pinned by name because they were the one interactive
  * control in the window with no answer to the pointer at all — the gap the shared rule found. On the flat
@@ -36,19 +36,17 @@ class DesktopShapeFeedbackTest {
     }
 
     @Test
-    fun `a rectangular hover belongs to flat desktop settings rows`() {
+    fun `a settings row lights the same corner it frames`() {
         val rect = sources()
             .filter { Regex("""hoverFill\(\s*RectangleShape""").containsMatchIn(it.readText()) }
             .map { it.relativeTo(root()).invariantSeparatorsPath }
-        assertEquals(
-            "only the settings rows draw a rectangle, and only because their card supplies the corners",
-            listOf("settings/SettingsRows.kt"),
-            rect,
-        )
+        assertTrue("no hover lights the bounds as a rectangle: $rect", rect.isEmpty())
         val rows = File(root(), "settings/SettingsRows.kt").readText()
+        val row = body(rows, "internal fun SettingsRow(")
+        assertTrue("the row's hover wears the 4 dp control corner", row.contains("hoverFill(DesktopTheme.controlShape)"))
         assertTrue(
-            "the group card must clip the rows whose rectangle it rounds (SettingsGroup → glassSurface)",
-            body(rows, "internal fun SettingsGroup(").let { !it.contains("glassSurface(") && it.contains("DesktopTheme.hairline") },
+            "and so does the focus ring it sits inside",
+            row.contains("border(1.dp, if (focused) DesktopTheme.accent else Color.Transparent, PropertyControlShape)"),
         )
     }
 

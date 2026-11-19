@@ -7,8 +7,9 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 
 ## What it is
 
-`Ctrl+,` (or the header menu's Settings row) opens a **floating surface over the page** — an opaque body with a
-desktop popup border and compact corner — so a setting is changed while looking at the thing it changes. The pointer is
+`Ctrl+,` (or the header menu's Settings row) opens a **floating surface over the page** — under a scrim, an
+opaque body with a desktop popup border and compact corner — so a setting is changed while looking at the
+thing it changes, and nothing behind the panel reads as a control while the settings own the pointer. The pointer is
 the panel's while it is up: a press or a wheel notch on a row never reaches the page behind it, because a
 sheet that read the click would ink what nothing on screen was marking. It is
 **draggable by its title bar**: it opens centred, which is over the sheet the reader came to compare
@@ -31,8 +32,12 @@ and control states while using the wider pointer/keyboard workspace. The panel a
 760 dp, with a 210 dp navigation column and a separator before the content.
 
 The list is **names only** — a glyph and a word per section — because two-line summaries are a page to skip.
+The selected section is marked **once**: a 2 dp accent stripe down the row's left edge over a quiet steel
+fill, never the stripe and an underline as well, which drew an L around the name.
 
-The header carries a unified **search field** beside the close glyph: a section stays in the list
+The header carries a unified **search field** beside the close glyph — the window's own field, on its
+`panelField` fill with the strong hairline and the accent border while it is typed in, so it is visible on
+the dark desk — and a section stays in the list
 when its title, its summary, aliases or commands match, and the filter stays active while browsing
 results until cleared with `×` or `Esc`. Queries match all words, including area names; results and fallback pages follow the visible index order. It is deliberately not focused on opening: the list is what
 a reader returns for, and a focused bar eats a shortcut's first letter.
@@ -42,8 +47,9 @@ request a section, such as Stylus from the pen menu. Switching sections starts t
 
 ### Labels and explanations
 
-Rows keep aligned control columns and a minimum 40 dp hit area. Explanations are visible beneath their
-labels, up to two lines; the hover footer remains available for the complete sentence. Each page starts
+Rows keep a 40 dp hit area, the name and its note on the left and the control at the right edge hugging its
+own words — not a fixed share of the row, which wrapped a note beside a small checkbox. Explanations are
+visible beneath their labels, up to two lines; the hover footer remains available for the complete sentence. Each page starts
 with its title and summary. Groups use whitespace and a hairline instead of nested rounded cards.
 
 ### The page's grammar
@@ -60,7 +66,7 @@ One rule per kind of thing, so a reader can tell an answer from an action at a g
 - a **toggle** ends in a square checkbox, and the whole row is the hit area (`Pressure sensitivity`);
 - a **readout** ends in a word or a number with no control at all, at the row's own inset so its small type sits
   on the labels' column (`Version` → *1.3.0*);
-- a **command** is a row with **nothing at its end**: the label is in the accent and the row is the button
+- a **command** is the window's **secondary button**, its own inset landing the label on the rows' column
   (`Reset to defaults`, `Export settings…`, `SettingsCommand`) — one label for every way back to the
   factory values, in whichever section it stands.
 

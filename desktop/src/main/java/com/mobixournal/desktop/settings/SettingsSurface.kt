@@ -1,6 +1,8 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.desktop.tools.BandEdge
 import com.mobixournal.desktop.tools.PanelEdgeAir
 import com.mobixournal.desktop.tools.PointerOwnership
+import com.mobixournal.desktop.tools.bandDivider
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.tools.LaneClose
@@ -19,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -87,6 +90,9 @@ internal fun SettingsSurface(
         val roomY = with(density) { ((maxHeight - panelHeight) / 2f).toPx() }
         val dx = policy.panelDx.coerceIn(-roomX, roomX)
         val dy = policy.panelDy.coerceIn(-roomY, roomY)
+        // A modal, drawn honestly: the page stays where it was (it is what the setting changes) and goes
+        // under the scrim, so nothing behind the panel reads as a control the pointer could still reach.
+        Box(Modifier.fillMaxSize().background(DesktopTheme.scrim))
         Column(
             Modifier
                 .offset { IntOffset(dx.roundToInt(), dy.roundToInt()) }
@@ -105,7 +111,11 @@ internal fun SettingsSurface(
                         resetKey = policy.shownSection,
                         contentPadding = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
                     ) {
-                        DesktopSettingPage(policy, palette, policy.shownSection)
+                        // The page is a column with a readable line length, not a surface that grows with
+                        // the monitor: past 720 dp a label and its control stop belonging to each other.
+                        Column(Modifier.widthIn(max = SettingsMetrics.PAGE_MAX_WIDTH)) {
+                            DesktopSettingPage(policy, palette, policy.shownSection)
+                        }
                     }
                 }
             }
@@ -122,16 +132,17 @@ private fun SettingsPanelHeader(policy: DesktopSettingsState) {
         Modifier
             .fillMaxWidth()
             .height(HEADER_HEIGHT)
+            // The header's own hairline: it meets the index's separator, so the title row and the two
+            // columns under it read as one panel instead of a row floating above a box.
+            .bandDivider(BandEdge.BOTTOM)
             .padding(start = 16.dp, end = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // The title area is the handle: a header is where a window is grabbed, and the field and the
-        // close glyph keep their own pointer handling beside it.
-        Text(
-            "Settings",
-            color = DesktopTheme.ink,
-            style = DesktopTheme.title,
-            modifier = Modifier
+        // close glyph keep their own pointer handling beside it. Centred by the box rather than nudged
+        // with a top padding, so the title sits on the header's own middle at every font metric.
+        Box(
+            Modifier
                 .weight(1f)
                 .fillMaxHeight()
                 .pointerInput(policy) {
@@ -139,9 +150,11 @@ private fun SettingsPanelHeader(policy: DesktopSettingsState) {
                         change.consume()
                         policy.dragPanel(drag.x, drag.y)
                     }
-                }
-                .padding(top = 13.dp),
-        )
+                },
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            Text("Settings", color = DesktopTheme.ink, style = DesktopTheme.title)
+        }
         SettingsSearchField(
             query = policy.query,
             onQuery = policy::search,
@@ -179,7 +192,9 @@ private fun SettingsIndex(policy: DesktopSettingsState) {
                 area.title,
                 color = DesktopTheme.inkMuted,
                 style = DesktopTheme.label,
-                modifier = Modifier.padding(start = 10.dp, top = 5.dp, bottom = 2.dp),
+                // An area's eyebrow opens the group: 12 dp of air above it, so *Workspace* and the section
+                // under it belong together while the previous group's last row does not join this one.
+                modifier = Modifier.padding(start = 10.dp, top = 12.dp, bottom = 2.dp),
             )
             for (section in rows) {
                 SettingsSectionRow(
@@ -221,4 +236,4 @@ private val MAX_HEIGHT = 760.dp
 private val HEADER_HEIGHT = 46.dp
 
 /** The help line under the body: one sentence, at the label role, and never more than one line. */
-private val HELP_HEIGHT = 27.dp
+private val HELP_HEIGHT = 28.dp

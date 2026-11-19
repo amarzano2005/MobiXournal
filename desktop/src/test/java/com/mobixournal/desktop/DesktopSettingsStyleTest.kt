@@ -235,6 +235,42 @@ class DesktopSettingsStyleTest {
         })
     }
 
+    /**
+     * The selected section carries **one** indicator: the stripe on its left edge.
+     *
+     * The picked state also wore the text recipe's underline, so a selected section drew an L — a 2 dp bar
+     * down one edge and a rule across the row for the same selection. A rule is a horizontal run of accent,
+     * so the measurement is the longest one in the index column: the stripe is 2 px, a glyph's stroke is a
+     * few, and the underline spanned the row's whole width. The quiet steel under the row is not the accent.
+     */
+    @Test
+    fun `the selected section carries one indicator, not two`() {
+        val pixels = pixels(state(DesktopSettingSection.APPEARANCE))
+        val accent = DesktopTheme.accent.toArgb() and 0xFFFFFF
+        val panelWidth = minOf((width * 0.9f).toInt(), 1050)
+        val panelHeight = minOf((height * 0.88f).toInt(), 760)
+        val left = (width - panelWidth) / 2
+        val top = (height - panelHeight) / 2 + DesktopTheme.headerHeight.value.toInt()
+        val bottom = (height - panelHeight) / 2 + panelHeight - 28
+        var longest = 0
+        var where = -1
+        for (y in top until bottom) {
+            var run = 0
+            for (x in left until (left + SettingsMetrics.INDEX_WIDTH.value.toInt())) {
+                if (pixels.rgb(x, y) == accent) {
+                    run++
+                    if (run > longest) {
+                        longest = run
+                        where = y
+                    }
+                } else {
+                    run = 0
+                }
+            }
+        }
+        assertTrue("the accent marks the row, never rules across it: $longest px at y $where", longest <= 30)
+    }
+
     @Test
     fun `the settings add no colour and no type size of their own`() {
         val offenders = mutableListOf<String>()

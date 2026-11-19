@@ -4,6 +4,7 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopSettingSection
 import com.mobixournal.desktop.settings.DesktopNewDocumentFormat
 import com.mobixournal.desktop.settings.DesktopSettings
+import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.shell.DesktopShell
 import com.mobixournal.desktop.shell.DesktopShellState
@@ -11,6 +12,7 @@ import com.mobixournal.desktop.shell.DesktopShellState
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Density
 import com.mobixournal.format.mobix.SyntheticNotebook
 import java.io.ByteArrayInputStream
@@ -103,13 +105,50 @@ class DesktopSettingsSurfaceTest {
 
         state.prefs.openAt()
         val surface = pixels(state, "settings-surface")
+        // The body is not replaced: the panel is a bounded box with the page (dimmed) around it, so the
+        // window's own edges are still the page and not the panel's fill.
+        val panel = DesktopTheme.settingsPanel.toArgb() and 0xFFFFFF
+        val middle = height / 2
         assertTrue(
-            "the page is still drawn around the panel: ${longestPaperRun(surface)}",
-            longestPaperRun(surface) >= 40,
+            "the panel is drawn in the middle of the window",
+            (0 until width).any { surface.rgb(it, middle) == panel },
         )
+        assertTrue("the panel stops short of the window's left edge", surface.rgb(2, middle) != panel)
+        assertTrue("and of its right edge", surface.rgb(width - 3, middle) != panel)
         val changed = workspace.indices.count { workspace[it] != surface[it] }
         assertTrue("and the panel is actually drawn on top: $changed pixels differ", changed > 20_000)
     }
+
+    /**
+     * The panel is a **modal**, drawn honestly: the page survives (it is what the setting changes) and goes
+     * under the scrim, so nothing behind the panel reads as a control the pointer could still reach.
+     *
+     * The measurement is a pixel in the margin the centred panel leaves at the window's edge, in the light
+     * palette — the scrim there is the slate at a quarter, so the margin has to get darker. The dark palette
+     * is the desk itself and would say nothing.
+     */
+    @Test
+    fun `the page behind the panel is dimmed`() {
+        val state = state()
+        state.prefs.appearance.chooseTheme(com.mobixournal.desktop.settings.DesktopThemeMode.LIGHT)
+        try {
+            val closed = pixels(state, "settings-scrim-closed")
+            state.prefs.openAt()
+            val open = pixels(state, "settings-scrim-open")
+            val x = 6
+            val y = height / 2
+            val before = brightness(closed.rgb(x, y))
+            val after = brightness(open.rgb(x, y))
+            assertTrue("the page beside the panel is dimmed: $before -> $after", after < before)
+        } finally {
+            com.mobixournal.desktop.settings.DesktopTheme.use(false)
+        }
+    }
+
+    private fun IntArray.rgb(x: Int, y: Int): Int = this[y * width + x] and 0xFFFFFF
+
+    private fun brightness(rgb: Int): Int =
+        ((rgb shr 16) and 0xFF) + ((rgb shr 8) and 0xFF) + (rgb and 0xFF)
 
     @Test
     fun `the index picks the page that is drawn`() {
@@ -127,10 +166,12 @@ class DesktopSettingsSurfaceTest {
     fun `every section draws without the window falling over`() {
         val state = state()
         state.prefs.openAt()
+        val panel = DesktopTheme.settingsPanel.toArgb() and 0xFFFFFF
         for (section in DesktopSettingSection.entries) {
             state.prefs.show(section)
             val drawn = pixels(state, "settings-${section.name.lowercase()}")
-            assertTrue("$section draws a page over the page", longestPaperRun(drawn) >= 40)
+            val filled = drawn.count { (it and 0xFFFFFF) == panel }
+            assertTrue("$section draws its page over the page: $filled panel px", filled > 50_000)
         }
     }
     @Test fun appearanceUsesTheSharedDarkAndLightPalettes() {

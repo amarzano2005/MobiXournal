@@ -21,9 +21,17 @@ import androidx.compose.ui.unit.dp
 ) {
     val scroll = remember(resetKey) { ScrollState(0) }
     Box(modifier) {
-        Column(Modifier.fillMaxWidth().verticalScroll(scroll).then(contentPadding), content = content)
+        // The scrollbar is drawn over the pane's right edge, so the content stops short of it: a nav label
+        // or a row's control under the thumb was a word with a grey bar through its last letter.
+        Column(
+            Modifier.fillMaxWidth().padding(end = SCROLLBAR_RESERVE).verticalScroll(scroll).then(contentPadding),
+            content = content,
+        )
         VerticalScrollbar(rememberScrollbarAdapter(scroll),
             Modifier.align(Alignment.CenterEnd).fillMaxHeight().padding(vertical = 6.dp, horizontal = 2.dp),
             style = defaultScrollbarStyle().copy(unhoverColor = DesktopTheme.hairline, hoverColor = DesktopTheme.inkSecondary))
     }
 }
+
+/** The lane the scrollbar keeps for itself inside a pane. */
+private val SCROLLBAR_RESERVE = 10.dp

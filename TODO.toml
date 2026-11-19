@@ -47,46 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-settings-shell"
-title = "Fix Settings chrome: modal scrim, single nav indicator (no L-shape), visible search field, flexible rows, and clamped sliders"
-description = """
-Phase 4C of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Fix the structural visual defects in the Settings shell: L-shaped double active indicator, invisible dark-mode search bar, missing header hairline, scrollbar collision, truncated descriptions beside checkboxes, clipped slider knobs, and misaligned commands.
-
-Exact changes:
-1. `desktop/src/main/java/com/mobixournal/desktop/settings/SettingsSurface.kt` & `SettingsScrollPane.kt`:
-   - Wrap Settings modal in `DesktopTheme.scrim` backdrop so the panel separates cleanly from dark/light canvas behind it.
-   - Add `.bandDivider(BandEdge.BOTTOM)` under `SettingsPanelHeader` so the vertical sidebar hairline connects cleanly.
-   - Center `"Settings"` in `SettingsPanelHeader` with `Box(Alignment.CenterStart)` (delete `.padding(top = 13.dp)` hack).
-   - Reserve `10.dp` end padding inside scrollable panes so `VerticalScrollbar` never overlaps nav labels or right controls.
-   - Apply `Modifier.widthIn(max = SettingsMetrics.PAGE_MAX_WIDTH)` (`720.dp`) to the content page column.
-   - Change `HELP_HEIGHT` from odd `27.dp` to `28.dp`.
-2. `desktop/src/main/java/com/mobixournal/desktop/settings/SettingsRows.kt` & `SettingsReadouts.kt`:
-   - **Fix L-shaped double selection indicator in `SettingsSectionRow`:** REMOVE `.desktopTextFeedback(picked = selected)` bottom underline! Selected state uses ONLY the `2.dp` left `accent` bar + subtle `DesktopTheme.activeSlot.copy(alpha = 0.50f)` `4.dp` row fill; wire `focused` state to `1.dp` `accent` border.
-   - Increase area eyebrow (`Workspace`, `Input`, `Drawing`, `Files & app`) top padding from `5.dp` to `12.dp`.
-   - Replace rigid `CONTROL_SHARE = 0.85f` split in `SettingsRow` with natural `Row { Column(Modifier.weight(1f)) { label + note }; Spacer(16.dp); Box { control() } }` so descriptions next to `18.dp` checkboxes never wrap prematurely.
-   - Align `SettingsRow` hover fill shape (`DesktopTheme.controlShape` `4.dp`) with its `4.dp` focus border (no 0 dp vs 4 dp clash).
-   - Align `SettingsCommand` horizontal inset to `ROW_INSET` (`12.dp`, removing the 4 dp misalignment) and render via `DesktopButton(Secondary / Ghost)`.
-   - Upgrade `SettingsReadout` label from `11.sp` `inkMuted` to `DesktopTheme.body` (`13.sp`) with `TextOverflow.Ellipsis` so readouts match sibling rows.
-   - `SettingsSlider`: clamp knob center to `[knobRadius .. size.width - knobRadius]` so it never overflows at 0%/100%; give readout `widthIn(min = 48.dp)` tabular width so the slider track never shifts horizontally.
-3. `desktop/src/main/java/com/mobixournal/desktop/settings/SettingsSearchField.kt` & `SettingsSelect.kt`:
-   - Migrate `SettingsSearchField` to `DesktopTextField` (visible opaque `panelField` fill in dark mode, matching `12.sp` text/placeholder, hoverable clear `×` with `contentDescription`, focus border).
-   - Add `overflow = TextOverflow.Ellipsis` to `SettingsSelectCapsule` and `SettingsSelectMenu` labels.
-4. Docs: update `docs/desktop-settings.md` in place for scrim, left-bar nav highlight, natural row layout, and visible search box — MUST stay `<= 300` lines and preserve `**twelve sections**`, all 12 section titles, and the `Version` line (`DocClaimsTest`).
-5. Tests: update `DesktopSettingsStyleTest.kt`, `DesktopSettingsSurfaceTest.kt`, `SettingsSelectTest.kt`, `SettingsScrollPaneTest.kt`.
-
-DO NOT: add `Color(0x`, `.sp`, `fontSize =`, or `uppercase(` literals into `SettingsRows.kt`, `SettingsSections.kt`, or `SettingsSurface.kt` (`DesktopSettingsStyleTest`); exceed 300 lines in `docs/desktop-settings.md`.
-Verification: run `:desktop:test` on `DesktopSettingsStyleTest`, `DesktopSettingsSurfaceTest`, `SettingsSelectTest`, `SettingsScrollPaneTest`, `SettingsHelpTest`, plus `DocsGuardTest`, `DocClaimsTest`, `SourceStructureTest`; inspect `settings-appearance-dark.png`, `settings-appearance-light.png`; refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 130
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "settings"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-settings-pages"
 title = "Polish Settings pages (Colors, Shortcuts, Ring, Stylus presets, Navigation, Toolbar) and run full verification"
 description = """

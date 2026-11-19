@@ -43,6 +43,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -186,7 +187,15 @@ private fun SettingsSelectCapsule(
             .padding(start = 10.dp, end = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text, color = DesktopTheme.ink, style = DesktopTheme.body, maxLines = 1)
+        // The longest device name in the window is a select's answer: cut with an ellipsis instead of
+        // walking out of the capsule and over the label beside it.
+        Text(
+            text,
+            color = DesktopTheme.ink,
+            style = DesktopTheme.body,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
         Spacer(Modifier.width(6.dp))
         Canvas(Modifier.size(12.dp)) { drawChromeGlyph(ChromeGlyph.CHEVRON_DOWN, DesktopTheme.inkSecondary) }
     }
@@ -236,6 +245,7 @@ internal fun <T> SettingsSelectMenu(
                     color = if (chosen) DesktopTheme.accent else DesktopTheme.ink,
                     style = DesktopTheme.body,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

@@ -1,5 +1,6 @@
 package com.mobixournal.desktop.settings
-import com.mobixournal.desktop.tools.desktopTextFeedback
+import com.mobixournal.desktop.tools.DesktopButton
+import com.mobixournal.desktop.tools.DesktopButtonVariant
 import com.mobixournal.desktop.tools.DesktopTextAction
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.hoverFill
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -53,8 +55,8 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -149,7 +151,9 @@ internal fun SettingsRow(
                     Modifier
                 } else {
                     Modifier
-                        .hoverFill(RectangleShape)
+                        // The same 4 dp corner as the focus ring below: a row that lit as a rectangle and
+                        // framed as a rounded control was two shapes for one hover.
+                        .hoverFill(DesktopTheme.controlShape)
                         .then(if (checked != null) Modifier.toggleable(checked,
                             interactionSource = remember { MutableInteractionSource() }, indication = null,
                             role = Role.Checkbox, onValueChange = { press.value?.invoke() })
@@ -167,17 +171,13 @@ internal fun SettingsRow(
                     maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
         }
-        Spacer(Modifier.width(20.dp))
-        // The answer's side has a share of its own rather than "whatever is left": a control wider than
-        // the row (three long pills, once) took the whole width and squeezed the label into a column of
-        // single letters. A weighted box means the label always keeps its share, and the control fits or
-        // wraps inside its own.
-        Box(Modifier.weight(CONTROL_SHARE), contentAlignment = Alignment.CenterEnd) { control() }
+        Spacer(Modifier.width(16.dp))
+        // The answer takes **its own** width and nothing more, hugging its words at the row's right edge.
+        // The old split gave the control a fixed 45 % of the row whatever it held, which wrapped a two-line
+        // explanation beside an 18 dp checkbox and left a short select floating in air.
+        Box(contentAlignment = Alignment.CenterEnd) { control() }
     }
 }
-
-/** How the row splits between the name and the answer: the answer's share, against the label's 1. */
-private const val CONTROL_SHARE = 0.85f
 
 /**
  * **A command**, as a row: the whole width lights up and the word is in the accent, with **no control at
@@ -192,9 +192,14 @@ private const val CONTROL_SHARE = 0.85f
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun SettingsCommand(label: String, note: String? = null, onClick: () -> Unit) {
-    DesktopTextAction(label, onClick, style = DesktopTheme.body, tone = DesktopTheme.accent,
-        modifier = Modifier.fillMaxWidth().reportHelp(note))
-
+    Box(
+        Modifier.fillMaxWidth().reportHelp(note).padding(vertical = 4.dp),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        // The button's own 12 dp inset *is* the rows' ROW_INSET, so a command's label starts on the same
+        // column as the names above it; the text action's narrower inset had it four dp to their left.
+        DesktopButton(label, onClick, variant = DesktopButtonVariant.Secondary, style = DesktopTheme.body)
+    }
 }
 
 /**
@@ -256,6 +261,9 @@ internal fun SettingsNote(text: String) {
 /** A row's own horizontal inset inside its card, shared by its readouts too. */
 internal val ROW_INSET = 12.dp
 
+/** The steel under the selected index row: quiet enough that the accent stripe is the indicator. */
+private const val SELECTED_ROW_ALPHA = 0.50f
+
 /** How wide a slider draws inside a row — long enough to aim at, never the whole row. */
 private val SLIDER_WIDTH = 150.dp
 
@@ -295,7 +303,15 @@ internal fun SettingsSlider(
         set.value((value + direction * step).coerceIn(range.start, range.endInclusive))
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(format(value), color = DesktopTheme.ink, style = DesktopTheme.numeric)
+        Text(
+            format(value),
+            color = DesktopTheme.ink,
+            style = DesktopTheme.numeric,
+            maxLines = 1,
+            // A tabular floor: 5 % and 200 % are the same width, so the track beside the number never
+            // slides under the hand that is dragging it.
+            modifier = Modifier.widthIn(min = 48.dp),
+        )
         Spacer(Modifier.width(10.dp))
         Box(
             Modifier
@@ -336,30 +352,44 @@ internal fun SettingsSlider(
                 .pointerInput(range, step) { detectTapGestures { pickAt(it.x) } },
         ) {
             Canvas(Modifier.fillMaxSize()) {
-                val fraction = ((value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f)
-                val centreY = size.height / 2f
-                val trackHeight = 4.dp.toPx()
-                val radius = trackHeight / 2f
-                drawRoundRect(
-                    DesktopTheme.activeSlot,
-                    topLeft = Offset(0f, centreY - radius),
-                    size = Size(size.width, trackHeight),
-                    cornerRadius = CornerRadius(radius),
-                )
-                drawRoundRect(
-                    DesktopTheme.accent,
-                    topLeft = Offset(0f, centreY - radius),
-                    size = Size(size.width * fraction, trackHeight),
-                    cornerRadius = CornerRadius(radius),
-                )
-                drawCircle(
-                    color = if (focused) DesktopTheme.accent else DesktopTheme.inkSecondary,
-                    radius = if (pressed) 6.dp.toPx() else 5.dp.toPx(),
-                    center = Offset(size.width * fraction, centreY),
+                drawSliderTrack(
+                    fraction = ((value - range.start) / (range.endInclusive - range.start)).coerceIn(0f, 1f),
+                    focused = focused,
+                    pressed = pressed,
                 )
             }
         }
     }
+}
+
+/**
+ * The track, the accent fill and the knob.
+ *
+ * The knob's centre stops short of both ends by its own radius: at 0 % and 100 % it used to hang half
+ * outside the track, cut by the row it sits in.
+ */
+private fun DrawScope.drawSliderTrack(fraction: Float, focused: Boolean, pressed: Boolean) {
+    val centreY = size.height / 2f
+    val trackHeight = 4.dp.toPx()
+    val radius = trackHeight / 2f
+    drawRoundRect(
+        DesktopTheme.activeSlot,
+        topLeft = Offset(0f, centreY - radius),
+        size = Size(size.width, trackHeight),
+        cornerRadius = CornerRadius(radius),
+    )
+    drawRoundRect(
+        DesktopTheme.accent,
+        topLeft = Offset(0f, centreY - radius),
+        size = Size(size.width * fraction, trackHeight),
+        cornerRadius = CornerRadius(radius),
+    )
+    val knob = if (pressed) 6.dp.toPx() else 5.dp.toPx()
+    drawCircle(
+        color = if (focused) DesktopTheme.accent else DesktopTheme.inkSecondary,
+        radius = knob,
+        center = Offset((size.width * fraction).coerceIn(knob, (size.width - knob).coerceAtLeast(knob)), centreY),
+    )
 }
 
 /** Preset names use the shared unfilled text action; selection and keyboard focus remain visible. */
@@ -473,12 +503,23 @@ internal fun SettingsSectionRow(
         Modifier
             .fillMaxWidth()
             .heightIn(min = SettingsMetrics.INDEX_ROW_HEIGHT)
-            .desktopTextFeedback(picked = selected)
+            // **One** indicator: the accent stripe on the left edge is the selection, and the quiet steel
+            // under the row is its step. The picked state also carried the text recipe's underline, so a
+            // selected section drew an L around its own name.
+            .background(
+                if (selected) DesktopTheme.activeSlot.copy(alpha = SELECTED_ROW_ALPHA) else Color.Transparent,
+                PropertyControlShape,
+            )
             // The index is names only, so its sentence is the help line's too: what the section covers.
             .drawBehind {
                 if (selected) drawLine(DesktopTheme.accent, Offset(2.dp.toPx(), 8.dp.toPx()),
                     Offset(2.dp.toPx(), size.height - 8.dp.toPx()), strokeWidth = 2.dp.toPx())
             }
+            .border(
+                width = 1.dp,
+                color = if (focused) DesktopTheme.accent else Color.Transparent,
+                shape = PropertyControlShape,
+            )
             .onFocusChanged { focused = it.isFocused }
             .reportHelp(section.summary)
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)

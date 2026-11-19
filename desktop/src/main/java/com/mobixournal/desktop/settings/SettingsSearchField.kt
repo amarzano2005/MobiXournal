@@ -1,41 +1,26 @@
 package com.mobixournal.desktop.settings
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mobixournal.desktop.tools.DesktopTextField
 import com.mobixournal.design.ChromeGlyph
 
 /**
- * **The Settings search field**: a single unified search capsule in the panel's header.
+ * **The Settings search field**: the window's own field, in the panel's header.
  *
- * It filters sections and settings across the entire panel (including shortcut commands and keys).
- * An explicit text hover icon ensures the mouse pointer arrow does not disappear when moving over
- * the field, and an inline clear glyph allows dismissing the filter with a single click.
+ * It filters sections and settings across the whole panel, including shortcut commands and keys. It was a
+ * capsule of its own once — a fill and a bare `BasicTextField` — which on the dark desk drew its `panelField`
+ * tone at an alpha the rows behind it still read through, so the one control the reader has to find looked
+ * like a hole in the header. It is now [DesktopTextField]: the `panelField` fill with the `borderStrong`
+ * hairline, the accent border while it is typed in, the 12 sp text and placeholder, the pointer's text
+ * cursor, and a hoverable `×` that names itself *Clear search*.
+ *
+ * [DesktopTextField] also registers the field with the shell as a **typing** control, so a letter typed here
+ * is a letter and not the window's accelerator for a tool.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 internal fun SettingsSearchField(
     query: String,
@@ -43,60 +28,27 @@ internal fun SettingsSearchField(
     onFocus: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val focus = remember { FocusRequester() }
-    Row(
-        modifier
-            .height(SettingsMetrics.CONTROL_HEIGHT)
-            .background(DesktopTheme.panelField, PropertyControlShape)
-            .pointerHoverIcon(PointerIcon.Default)
-            .padding(horizontal = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Canvas(Modifier.size(14.dp)) {
-            drawChromeGlyph(
-                ChromeGlyph.SEARCH,
-                if (query.isNotBlank()) DesktopTheme.accent else DesktopTheme.inkMuted,
-            )
-        }
-        Spacer(Modifier.width(8.dp))
-        Box(
-            Modifier.weight(1f).pointerHoverIcon(PointerIcon.Text),
-            contentAlignment = Alignment.CenterStart,
-        ) {
-            if (query.isEmpty()) {
-                Text(
-                    "Search settings…",
-                    color = DesktopTheme.inkMuted,
-                    style = DesktopTheme.label,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+    val clear: (() -> Unit)? = if (query.isEmpty()) null else { { onQuery("") } }
+    DesktopTextField(
+        value = query,
+        onValueChange = onQuery,
+        placeholder = "Search settings…",
+        modifier = modifier,
+        height = SettingsMetrics.CONTROL_HEIGHT,
+        typing = true,
+        description = "Search settings",
+        onFocusChange = onFocus,
+        onClear = clear,
+        clearDescription = "Clear search",
+        leadingIcon = {
+            // The magnifier wears the accent while it is narrowing something: the field's answer, at rest
+            // and in the panel's own colour.
+            Canvas(Modifier.size(14.dp)) {
+                drawChromeGlyph(
+                    ChromeGlyph.SEARCH,
+                    if (query.isNotBlank()) DesktopTheme.accent else DesktopTheme.inkMuted,
                 )
             }
-            BasicTextField(
-                value = query,
-                onValueChange = onQuery,
-                textStyle = DesktopTheme.body.copy(color = DesktopTheme.ink),
-                singleLine = true,
-                cursorBrush = SolidColor(DesktopTheme.accent),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focus)
-                    .onFocusChanged { onFocus(it.isFocused) },
-            )
-        }
-        if (query.isNotEmpty()) {
-            Spacer(Modifier.width(4.dp))
-            Box(
-                Modifier
-                    .size(18.dp)
-                    .pointerHoverIcon(PointerIcon.Hand)
-                    .clickable { onQuery("") },
-                contentAlignment = Alignment.Center,
-            ) {
-                Canvas(Modifier.size(10.dp)) {
-                    drawChromeGlyph(ChromeGlyph.CLOSE, DesktopTheme.inkMuted)
-                }
-            }
-        }
-    }
+        },
+    )
 }

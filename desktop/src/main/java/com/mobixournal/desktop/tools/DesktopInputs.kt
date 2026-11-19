@@ -126,6 +126,8 @@ internal fun DesktopTextField(
     focusRequester: FocusRequester? = null,
     /** The field's spoken name, for a field whose value alone does not say what it edits. */
     description: String? = null,
+    /** What the owner must do when the field takes or leaves the keyboard — a search that arms a filter. */
+    onFocusChange: ((Boolean) -> Unit)? = null,
     onClear: (() -> Unit)? = null,
     /** The clear cross's spoken name, for a field whose clear says more than "Clear" (`"Clear search"`). */
     clearDescription: String = "Clear",
@@ -158,6 +160,7 @@ internal fun DesktopTextField(
                 focused = it.isFocused
                 WindowKeys.focusControl(owner, it.isFocused)
                 if (typing) WindowKeys.focusField(owner, it.isFocused)
+                onFocusChange?.invoke(it.isFocused)
             }
             .padding(horizontal = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),

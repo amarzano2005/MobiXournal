@@ -21,7 +21,11 @@ class DesktopTextFeedbackContractTest {
     private val textOwners = mapOf(
         "tools/InspectorControls.kt" to listOf("ChoiceRow", "SectionCard"),
         "tools/ScaleneDialogs.kt" to listOf("StepButton", "PresetChip", "TriangleSumRow"),
-        "settings/SettingsRows.kt" to listOf("SettingsTextAction", "SettingsCommand", "SettingsPill", "SettingsSectionRow"),
+        // The Settings rail row and the command row are no longer text labels: the rail's selection is one
+        // static steel fill under one accent stripe (`SettingsSectionRow`), and a command is the window's
+        // own button (`SettingsCommand`). Both used to pair an accent word with an underline, and on the
+        // rail that pair drew an L around the selected section's name.
+        "settings/SettingsRows.kt" to listOf("SettingsTextAction", "SettingsPill"),
         "shell/PageSetup.kt" to listOf("SetupChip"),
         "sheet/PageSelection.kt" to listOf("PageSelectionBar"),
         "shell/HeaderAudioPill.kt" to listOf("SpeedButton"),
@@ -48,6 +52,29 @@ class DesktopTextFeedbackContractTest {
                 }
             }
         }
+    }
+
+    /** A function's body, from its `fun name(` to the first closing brace at column 0. */
+    private fun body(text: String, name: String): String {
+        val start = Regex("fun (?:[A-Za-z]+\\.)?" + name + "\\(").find(text)!!.range.first
+        val end = text.indexOf("\n}", start).let { if (it < 0) text.length else it }
+        return text.substring(start, end)
+    }
+
+    @Test fun theSettingsRailAndCommandUseTheirOwnRecipes() {
+        val rows = File(source, "settings/SettingsRows.kt").readText()
+        assertTrue(
+            "the selected section is one stripe, not a stripe plus an underline",
+            !body(rows, "SettingsSectionRow").contains("desktopTextFeedback"),
+        )
+        assertTrue(
+            "and its quiet step is the steel slot under the row",
+            body(rows, "SettingsSectionRow").contains("DesktopTheme.activeSlot"),
+        )
+        assertTrue(
+            "a settings command is the window's button, on the rows' own inset",
+            body(rows, "SettingsCommand").contains("DesktopButton("),
+        )
     }
 
     @Test fun theTwoCommandsDelegateToTheFourVariantPrimitive() {
