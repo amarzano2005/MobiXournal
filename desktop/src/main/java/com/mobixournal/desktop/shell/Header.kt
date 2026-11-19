@@ -1,8 +1,10 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.tools.DismissGuard
 import com.mobixournal.desktop.tools.FloatingSurface
+import com.mobixournal.desktop.tools.DesktopIconButton
+import com.mobixournal.desktop.tools.bandDivider
 import com.mobixournal.desktop.tools.bandSurface
-import com.mobixournal.desktop.tools.glassCapsule
+import com.mobixournal.desktop.tools.BandEdge
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.settings.DesktopSettingsState
@@ -23,45 +25,48 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.input.pointer.PointerEventType
-import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.design.DesignTokens
 
 /**
  * The window's **header**: the menu, the tab strip, and the file commands on its right.
  *
- * The band carries the two things the mobile bar does, in the same order — the overflow menu on the
- * left and the actions that are used constantly on the right — and the strip between them. What the
- * mobile bar puts there is **undo, redo and the file actions** (its photo is the reference); the window
- * has the same four, with Save drawn as a floppy and the PDF export as a page of words, because a
- * window with no touch targets has to say what a button is by its picture alone.
+ * The band is a flat workstation's top rule (`docs/interface-contract.md` §1): one opaque tone, one
+ * hairline under it and **no glass** — the capsule soup that used to stand here put a rim and a lift
+ * around every glyph, which read as nine objects where the band should read as one tool. What stands on
+ * it now is a row of 28 dp icon commands, grouped by what they act on and separated by a 1 dp hairline
+ * rather than by a box: the document's doors, the search field, the history, the transport and the two
+ * file commands.
  *
  * The *placement* chooser this band used to end with is gone (`docs/desktop-workstation.md`): moving the
  * strips is a setting, and a setting belongs in the Interface section rather than in the chrome it moves.
  */
-/**
- * The gap **either side** of a group on the band: the search field's (the document capsule on one side, the
- * history pair on the other) and the history pair's own on the audio side — one number, so a group reads as
- * its own object instead of as the tail of whatever stands beside it.
- */
-private val HEADER_GROUP_GAP = 12.dp
+internal val HEADER_EDGE = 8.dp
+
+/** The air between two commands of one group: a pair reads as a pair, not as one wide control. */
+internal val HEADER_ITEM_GAP = 4.dp
+
+/** The air either side of a group's dividing hairline, so the line is a seam and not a border. */
+internal val HEADER_GROUP_GAP = 8.dp
+
+/** One header command's box: the token's 28 dp of the band's 40, with 6 dp of air above and below. */
+internal val HEADER_CONTROL = DesignTokens.DESKTOP_HEADER_BUTTON_DP.dp
+
+/** The glyph inside that box, drawn at the weight the catalogue's own paths carry. */
+internal val HEADER_GLYPH = 16.dp
 
 @Composable
 internal fun Header(
@@ -95,15 +100,9 @@ internal fun Header(
     onPenParameters: () -> Unit = {},
     /** The settings the menu's Pen block changes, so its pressure rows act on the open window. */
     penPolicy: DesktopSettingsState? = null,
-    /**
-     * The window's audio, or null in a band that has no audio — the render tests draw the pre-audio
-     * header, so their coordinates stay the four file and history capsules.
-     */
+    /** The window's audio, or null in a band with none — the render tests draw the pre-audio header. */
     audio: DesktopAudioSession? = null,
-    /**
-     * The pill's Play also picks the tablet's **Play object**, since the tool strip carries no slot for
-     * it (`docs/audio.md`): a tap on the page then replays from the point touched.
-     */
+    /** The pill's Play also arms the tablet's **Play object**, which the tool strip has no slot for. */
     onAudioTap: () -> Unit = {},
     /** The search field's text, its two steps and its dismissal — the field stands on the band, always. */
     onSearch: (String) -> Unit = {},
@@ -112,11 +111,7 @@ internal fun Header(
     onSearchClose: () -> Unit = {},
     /** The pages' menu on the band: the tablet's page section, through [PageMenuPanel]'s rows. */
     pages: PageMenuActions = PageMenuActions(),
-    /**
-     * The **Layers** door, inside the same capsule as Pages and to its right: the tablet's layer manager
-     * ([LayersPanel]), so a page's stack is one click from the band on a desk as it is from the rail on a
-     * tablet.
-     */
+    /** The **Layers** door beside Pages: the tablet's layer manager ([LayersPanel]), one click away. */
     layers: LayerMenuActions = LayerMenuActions(),
 ) {
     val tab = tabs.active
@@ -125,7 +120,8 @@ internal fun Header(
             .fillMaxWidth()
             .height(DesktopTheme.headerHeight)
             .bandSurface()
-            .padding(horizontal = 10.dp),
+            .bandDivider(BandEdge.BOTTOM)
+            .padding(horizontal = HEADER_EDGE),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HeaderMenu(
@@ -142,12 +138,10 @@ internal fun Header(
             onExportSvg = onExportSvg,
             onExportPng = onExportPng,
             onImportPdf = onImportPdf,
-            onToggleSidebar = onToggleSidebar,
-            onSettings = onSettings,
-            onPenParameters = onPenParameters,
-            penPolicy = penPolicy,
+            onToggleSidebar = onToggleSidebar, onSettings = onSettings,
+            onPenParameters = onPenParameters, penPolicy = penPolicy,
         )
-        Spacer(Modifier.width(10.dp))
+        HeaderDivider()
         TabStrip(
             tabs = tabs,
             onActivate = onActivate,
@@ -156,172 +150,93 @@ internal fun Header(
             onNew = onNew,
             modifier = Modifier.weight(1f),
         )
-        HeaderSearchSlot(tab, pages, layers, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
-        // The history pair sits **halfway** between the field and the audio capsule: one gap on each
-        // side, the same one, so the two steps read as their own group rather than as the field's tail.
-        Spacer(Modifier.width(HEADER_GROUP_GAP))
+        if (tab != null) {
+            HeaderDivider()
+            HeaderDocumentDoors(pages, layers)
+            HeaderDivider()
+            HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
+        }
+        HeaderDivider()
         HeaderHistory(tab, onUndo, onRedo)
-        Spacer(Modifier.width(HEADER_GROUP_GAP))
-        HeaderAudioSlot(audio, tabs, onAudioTap)
+        if (audio != null) {
+            HeaderDivider()
+            HeaderAudioPill(audio = audio, tab = { tabs.active }, onAudioTap = onAudioTap)
+        }
+        HeaderDivider()
         HeaderFileCommands(tab, saving, onSave, onExportPdf)
     }
 }
 
 /**
- * The two **file commands** on the band's right, in the tablet's colours: Save in the accent and the PDF
- * export in the document red, because they were both chrome ink here and the one command that writes a PDF
- * then looked like the history steps beside it (`docs/ui-modernization.md`).
+ * The **one line** between two groups of the band: a 1 dp hairline in the band's own ink, standing the
+ * height of a glyph, with the same air on either side.
+ *
+ * It replaces the capsule that used to hold a pair together: a group is a seam of the band now, and a
+ * box around it was a second surface the flat contract does not have (`docs/interface-contract.md` §1).
  */
 @Composable
-private fun HeaderFileCommands(
-    tab: DesktopTab?,
-    saving: Boolean,
-    onSave: () -> Unit,
-    onExportPdf: () -> Unit,
-) {
-    // A write says so **on the control**: the floppy gives way to an arc going round once per
-    // `SavingSpin.TURN_MS`, drawn in the glyph's own box so the two commands beside it do not move. It is
-    // dimmed when the tab has nothing left to write, which is the same tone every unavailable command wears.
-    val turn = rememberSavingTurn(saving)
-    HeaderGlyph(
-        active = false,
-        enabled = tab?.canSave == true,
-        colour = DesktopTheme.accent,
-        onClick = onSave,
-    ) { color ->
-        if (saving) drawSavingArc(color, turn.value) else drawChromeGlyph(ChromeGlyph.SAVE, color)
-    }
-    Spacer(Modifier.width(6.dp))
-    HeaderGlyph(
-        active = false,
-        enabled = tab != null,
-        colour = DesktopTheme.documentRed,
-        onClick = onExportPdf,
-    ) { color -> drawChromeGlyph(ChromeGlyph.PDF, color) }
+private fun HeaderDivider() {
+    Spacer(Modifier.width(HEADER_GROUP_GAP))
+    Box(
+        Modifier
+            .width(1.dp)
+            .height(16.dp)
+            .background(DesktopTheme.hairline),
+    )
+    Spacer(Modifier.width(HEADER_GROUP_GAP))
 }
 
 /**
- * The band's two document controls: the **document capsule** — Pages and, to its right, Layers — and the
- * **search field**, which stands there always.
+ * The band's two **document doors**: Pages — add, remove, step, format, paper — and, beside it, the
+ * page's **Layers** manager.
  *
- * The field used to be a magnifier that opened it, and a magnifier is a second thing to learn for a door
- * `Ctrl+F` already names; a field that is simply on the band takes the band's spare width beside the tabs
- * and moves neither the tabs nor the file commands when it is used (`docs/desktop-ui-layout.md`). The
- * capsule stands on its left, because the page is what the reader is looking at: adding, removing or
- * stepping one is a command of the frame, and the strip keeps the tools.
+ * They were one glass capsule with no seam between the halves; on the flat band they are two icon
+ * commands in one group, which is the tablet's arrangement read without a second surface: the group's
+ * hairline says what they act on, and the 4 dp between the buttons says they are two commands, not one
+ * wide one (`docs/interface-contract.md` §6).
  */
 @Composable
-private fun androidx.compose.foundation.layout.RowScope.HeaderSearchSlot(
-    tab: DesktopTab?,
-    pages: PageMenuActions,
-    layers: LayerMenuActions,
-    onSearch: (String) -> Unit,
-    onSearchNext: () -> Unit,
-    onSearchPrevious: () -> Unit,
-    onSearchClose: () -> Unit,
-) {
-    if (tab != null) {
-        Spacer(Modifier.width(10.dp))
-        HeaderDocumentCapsule(pages, layers)
-        // The same gap the field keeps on its history side: the field is a group of its own, not the
-        // capsule's tail, so the two distances either side of it are one number.
-        Spacer(Modifier.width(HEADER_GROUP_GAP))
-        HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
-    }
+private fun HeaderDocumentDoors(pages: PageMenuActions, layers: LayerMenuActions) {
+    HeaderDoor(
+        enabled = pages.canManage,
+        glyph = ChromeGlyph.DESCRIPTION,
+        description = "Pages",
+    ) { close -> PageMenuPanel(pages, close) }
+    Spacer(Modifier.width(HEADER_ITEM_GAP))
+    HeaderDoor(
+        enabled = layers.canManage,
+        glyph = ChromeGlyph.LAYERS,
+        description = "Layers",
+    ) { close -> LayersPanel(layers, close) }
 }
 
 /**
- * The **document capsule**: one capsule with the two doors that act on the page's frame — **Pages** on the
- * left, its **Layers** manager on the right.
+ * One **door** of that group: an icon command with its own picked fill and its own menu, anchored under
+ * the button so Pages opens where Pages is.
  *
- * It was Pages alone on a 36 dp capsule, and the layer commands had no door at all on the band (a layer
- * could be hidden from the sidebar and nothing else could be done to it). Widening the capsule is the
- * tablet's own arrangement read literally — its rail puts Layers beside Pages — without a second capsule
- * the reader has to learn: both doors sit in **the header's own pill**, at the size every other command on
- * the band is drawn at, and the shared surface and corner are what make one object of them. No hairline
- * stands between the two slots: a seam inside a pill reads as two shrunken buttons in a box, which is what
- * a divider between them looked like (`docs/interface-contract.md` §1, §3).
- *
- * The menu a half opens is anchored **under that half**, so Pages opens where Pages is and Layers opens
- * where Layers is, and each half keeps its own open state and its own dismissal — one control that opens
- * a surface is also the control that closes it.
+ * A disabled door keeps its glyph in the muted ink and takes no pointer at all — a click on it is not a
+ * command that did nothing.
  */
-@Composable
-private fun HeaderDocumentCapsule(pages: PageMenuActions, layers: LayerMenuActions) {
-    val anyEnabled = pages.canManage || layers.canManage
-    // An unavailable pair on paper is **its two muted glyphs alone**, the rule one disabled header control
-    // already follows: a capsule that cannot be pressed would be the grey patch the owner saw on the band.
-    val surface = if (!anyEnabled && DesktopTheme.isLight) {
-        Modifier.clip(RoundedCornerShape(DesktopTheme.headerControlSize / 2))
-    } else {
-        Modifier.glassCapsule(
-            cornerRadius = DesktopTheme.headerControlSize / 2,
-            fill = DesktopTheme.control,
-            shadow = DesktopTheme.bandShadow,
-        )
-    }
-    Row(Modifier.height(DesktopTheme.headerControlSize).then(surface)) {
-        HeaderDoor(
-            enabled = pages.canManage,
-            glyph = ChromeGlyph.DESCRIPTION,
-            menu = { close -> PageMenuPanel(pages, close) },
-        )
-        HeaderDoor(
-            enabled = layers.canManage,
-            glyph = ChromeGlyph.LAYERS,
-            menu = { close -> LayersPanel(layers, close) },
-        )
-    }
-}
-
-/**
- * One **door** of that capsule: a glyph with its own hover step, its own picked fill and its own menu.
- *
- * The lit plate is the header's own **control slot** — [DesktopTheme.headerControlSize], the size every
- * other capsule on the band lights at — rather than a plate inset inside it: drawn 4 dp smaller than its
- * neighbours a door read as a smaller button than the undo beside it, and with no hairline left in the
- * pill there is nothing for the inset to avoid (`docs/interface-contract.md` §6). A disabled door keeps its
- * glyph, in the muted ink, and takes no pointer at all — a click on it is not a command that did nothing.
- */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun HeaderDoor(
     enabled: Boolean,
     glyph: ChromeGlyph,
+    description: String,
     menu: @Composable (close: () -> Unit) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    var hovered by remember { mutableStateOf(false) }
     // The click that closes the menu must not open it again (see [DismissGuard]).
     val guard = remember { DismissGuard() }
-    val density = LocalDensity.current
-    val drop = with(density) { (DesktopTheme.headerControlSize + 4.dp).roundToPx() }
-    val fill = when {
-        open && enabled -> DesktopTheme.activeSlot
-        hovered && enabled -> DesktopTheme.hoverSlot
-        else -> Color.Transparent
-    }
+    val drop = with(LocalDensity.current) { (HEADER_CONTROL + 4.dp).roundToPx() }
     Box {
-        Box(
-            Modifier
-                .size(DesktopTheme.headerControlSize)
-                .onPointerEvent(PointerEventType.Enter) { hovered = true }
-                .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .pointerInput(enabled, open) {
-                    if (enabled) {
-                        detectTapGestures {
-                            if (open) open = false else if (guard.mayOpen(Unit)) open = true
-                        }
-                    }
-                },
-            contentAlignment = Alignment.Center,
+        DesktopIconButton(
+            description = description,
+            onClick = { if (open) open = false else if (guard.mayOpen(Unit)) open = true },
+            size = HEADER_CONTROL,
+            enabled = enabled,
+            picked = open,
         ) {
-            Box(
-                Modifier
-                    .size(DesktopTheme.headerControlSize)
-                    .background(fill, DesktopTheme.capsuleShape),
-            )
-            Canvas(Modifier.size(DesktopTheme.headerGlyphSize)) {
+            Canvas(Modifier.size(HEADER_GLYPH)) {
                 drawChromeGlyph(glyph, if (enabled) DesktopTheme.chromeInk else DesktopTheme.inkMuted)
             }
         }
@@ -343,85 +258,75 @@ private fun HeaderDoor(
 /** The two history steps, which answer "what did I just do" rather than "where does this go". */
 @Composable
 private fun HeaderHistory(tab: DesktopTab?, onUndo: () -> Unit, onRedo: () -> Unit) {
-    HeaderGlyph(
-        active = false,
-        enabled = tab?.canUndo == true,
-        onClick = onUndo,
-    ) { color -> drawChromeGlyph(ChromeGlyph.UNDO, color) }
-    Spacer(Modifier.width(6.dp))
-    HeaderGlyph(
-        active = false,
-        enabled = tab?.canRedo == true,
-        onClick = onRedo,
-    ) { color -> drawChromeGlyph(ChromeGlyph.REDO, color) }
+    HeaderCommand("Undo", tab?.canUndo == true, shortcut = "Ctrl+Z", onClick = onUndo) { color ->
+        drawChromeGlyph(ChromeGlyph.UNDO, color)
+    }
+    Spacer(Modifier.width(HEADER_ITEM_GAP))
+    HeaderCommand("Redo", tab?.canRedo == true, shortcut = "Ctrl+Shift+Z", onClick = onRedo) { color ->
+        drawChromeGlyph(ChromeGlyph.REDO, color)
+    }
 }
 
 /**
- * The tablet's audio capsule, in its own place: immediately **left of Save**, because the three buttons
- * act on the document the file command is about to write. A band with no session draws nothing.
+ * The two **file commands** on the band's right: Save in the accent and the PDF export in the document
+ * red, because they are the two acts that write, and chrome ink made them look like the history beside
+ * them (`docs/ui-modernization.md`).
  */
 @Composable
-private fun androidx.compose.foundation.layout.RowScope.HeaderAudioSlot(
-    audio: DesktopAudioSession?,
-    tabs: DesktopTabs,
-    onAudioTap: () -> Unit,
+private fun HeaderFileCommands(
+    tab: DesktopTab?,
+    saving: Boolean,
+    onSave: () -> Unit,
+    onExportPdf: () -> Unit,
 ) {
-    audio ?: return
-    HeaderAudioPill(audio = audio, tab = { tabs.active }, onAudioTap = onAudioTap)
-    Spacer(Modifier.width(6.dp))
+    // A write says so **on the control**: the floppy gives way to an arc going round once per
+    // `SavingSpin.TURN_MS`, drawn in the glyph's own box so the command beside it does not move. It is
+    // dimmed when the tab has nothing left to write, which is the tone every unavailable command wears.
+    val turn = rememberSavingTurn(saving)
+    HeaderCommand(
+        "Save",
+        tab?.canSave == true,
+        shortcut = "Ctrl+S",
+        colour = DesktopTheme.accent,
+        onClick = onSave,
+    ) { color ->
+        if (saving) drawSavingArc(color, turn.value) else drawChromeGlyph(ChromeGlyph.SAVE, color)
+    }
+    Spacer(Modifier.width(HEADER_ITEM_GAP))
+    HeaderCommand(
+        "Export PDF",
+        tab != null,
+        shortcut = "Ctrl+E",
+        colour = DesktopTheme.documentRed,
+        onClick = onExportPdf,
+    ) { color -> drawChromeGlyph(ChromeGlyph.PDF, color) }
 }
 
 /**
- * A header control: one of the catalogue's glyphs on a **capsule of the header's own glass** — the
- * tablet's icon buttons beside the dock, at the desktop's size.
+ * One **glyph command** of the band: a 28 dp icon button with its English tooltip and its accelerator,
+ * and the contract's colour rule in one place — the named colour while the command is live, the chrome's
+ * ink for everything else, and the muted ink when it cannot run.
  *
- * [enabled] is what an empty history or a clean document looks like: the capsule stays (the band is not
- * redesigned by state) and the glyph goes muted, the same tone the menu's disabled rows wear. A disabled
- * control takes no pointer at all, so a click on it is not a command that did nothing.
+ * [colour] is what a command that wears one of the two named tones passes (Save's accent, the PDF
+ * export's document red); null keeps the chrome's ink.
  */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-internal fun HeaderGlyph(
-    active: Boolean,
-    enabled: Boolean = true,
-    /** A command that wears one of the **named** colours (Save, PDF); null keeps the chrome's ink. */
+private fun HeaderCommand(
+    description: String,
+    enabled: Boolean,
+    shortcut: String? = null,
     colour: Color? = null,
     onClick: () -> Unit,
-    draw: DrawScope.(androidx.compose.ui.graphics.Color) -> Unit,
+    draw: DrawScope.(Color) -> Unit,
 ) {
-    var hovered by remember { mutableStateOf(false) }
-    // Two states, two fills: the picked steel for an open menu, the **hover step** for a resting
-    // pointer, never the picked fill for a mere hover (`docs/interface-contract.md` §6).
-    val fill = when {
-        active && enabled -> DesktopTheme.activeSlot
-        hovered && enabled -> DesktopTheme.hoverSlot
-        else -> DesktopTheme.control
-    }
-    // On paper an unavailable command is **its glyph alone**: a capsule that cannot be pressed is a
-    // shape on the band rather than an object, and a pair of them read as the grey patch the owner
-    // saw where the history arrows are (2026-11-02). On black the capsule stays — there its drawn rim
-    // is the only thing that marks a disabled control at all, and the fill is the band's own tone.
-    val surface = if (!enabled && DesktopTheme.isLight) {
-        Modifier.clip(RoundedCornerShape(DesktopTheme.headerControlSize / 2))
-    } else {
-        Modifier.glassCapsule(
-            cornerRadius = DesktopTheme.headerControlSize / 2,
-            fill = fill,
-            shadow = DesktopTheme.bandShadow,
-        )
-    }
-    Box(
-        Modifier
-            .size(DesktopTheme.headerControlSize)
-            .then(surface)
-            .onPointerEvent(PointerEventType.Enter) { hovered = true }
-            .onPointerEvent(PointerEventType.Exit) { hovered = false }
-            .pointerInput(enabled, active) { if (enabled) detectTapGestures { onClick() } },
-        contentAlignment = Alignment.Center,
+    DesktopIconButton(
+        description = description,
+        onClick = onClick,
+        size = HEADER_CONTROL,
+        enabled = enabled,
+        shortcut = shortcut,
     ) {
-        Canvas(Modifier.size(DesktopTheme.headerGlyphSize)) {
-            // The chrome ink, lit or not: on the tablet a header glyph is white and only its capsule
-            // changes tone when it is active.
+        Canvas(Modifier.size(HEADER_GLYPH)) {
             draw(if (enabled) colour ?: DesktopTheme.chromeInk else DesktopTheme.inkMuted)
         }
     }

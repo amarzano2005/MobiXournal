@@ -6,6 +6,10 @@ import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.shell.HEADER_CONTROL
+import com.mobixournal.desktop.shell.HEADER_EDGE
+import com.mobixournal.desktop.shell.HEADER_GROUP_GAP
+import com.mobixournal.desktop.shell.HEADER_ITEM_GAP
 import com.mobixournal.desktop.shell.Header
 
 import androidx.compose.runtime.snapshots.Snapshot
@@ -34,9 +38,9 @@ import org.junit.rules.TemporaryFolder
  *
  * They are the commands the keys and the menu already reach (`Ctrl+Z`, `Ctrl+S`, `Ctrl+E`), so this is
  * the wiring and not the commands: a headless scene draws the real band, a real pointer press lands on
- * each capsule in turn, and what the button does is counted. The coordinates are the layout's own —
- * a 10 dp edge, four 36 dp capsules with the two groups' gaps — which is also the check that the
- * cluster is where the band puts it rather than somewhere the artist guessed.
+ * each command in turn, and what the button does is counted. The coordinates are the layout's own —
+ * an 8 dp edge, four 28 dp icon commands with the groups' hairlines between them — which is also the
+ * check that the cluster is where the band puts it rather than somewhere the artist guessed.
  *
  * The band's own height is `DesktopThemeTest`'s; what is proved here is that the controls live **inside**
  * it (a press at their y reaches them, at that height) and that a disabled one is not a command.
@@ -135,7 +139,7 @@ class DesktopHeaderTest {
 
         for (index in 0..3) {
             val centre = capsuleCentre(width, index)
-            val half = DesktopTheme.headerControlSize.value / 2f
+            val half = HEADER_CONTROL.value / 2f
             val glyphPixels = (centre - half + 2f).toInt()..<(centre + half - 2f).toInt()
             // Ink is **white or one of the two named colours**: Save is the accent and the PDF export the
             // document red on this band, as on the tablet, and a "bright pixel" measure saw only the
@@ -161,7 +165,8 @@ class DesktopHeaderTest {
 
         val width = 900
         val centre = capsuleCentre(width, 3)
-        val probeX = (centre - 15f).toInt()
+        // Inside the command's own 28 dp box and clear of its 16 dp glyph.
+        val probeX = (centre - 10f).toInt()
         val probeY = DesktopTheme.headerHeight.value.toInt() / 2
 
         // A fresh scene per state, as `ToolStripsTest` measures a slot: an `Enter` on a scene nothing has
@@ -250,16 +255,16 @@ class DesktopHeaderTest {
     }
 
     /**
-     * The centre of capsule [index] counted from the window's right edge: 0 is the PDF export, then Save,
-     * redo and undo — the order the band lays them out, read backwards.
+     * The centre of command [index] counted from the window's right edge: 0 is the PDF export, then Save,
+     * redo and undo — the order the band lays them out, read backwards. The group between the file pair
+     * and the history pair is its two 8 dp gaps plus the 1 dp hairline they stand on either side of.
      */
     private fun capsuleCentre(width: Int, index: Int, y: Boolean = false): Float {
         if (y) return DesktopTheme.headerHeight.value / 2f
-        val size = DesktopTheme.headerControlSize.value
-        val edge = HEADER_EDGE_DP
-        val gap = 6f
-        val group = 12f
-        val right = (width - edge).toFloat()
+        val size = HEADER_CONTROL.value
+        val gap = HEADER_ITEM_GAP.value
+        val group = HEADER_GROUP_GAP.value * 2 + 1f
+        val right = (width - HEADER_EDGE.value).toFloat()
         return when (index) {
             0 -> right - size / 2f
             1 -> right - size - gap - size / 2f
@@ -324,8 +329,5 @@ class DesktopHeaderTest {
         const val REDO = 1
         const val SAVE = 2
         const val EXPORT = 3
-
-        /** The band's own side padding (`Header`). */
-        const val HEADER_EDGE_DP = 10f
     }
 }

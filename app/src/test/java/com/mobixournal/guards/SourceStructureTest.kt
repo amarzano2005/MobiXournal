@@ -112,10 +112,8 @@ class SourceStructureTest {
         "format/json/JsonParser.kt#parse",
         "ui/AppSettings.kt#load",
         "ui/BackupSection.kt#BackupSection",
-        // Two lines each, and the lines are parameters: **Export As** is one more command on each of the two
-        // rows that carry the menu's doors (the shell's header and the menu itself).
+        // Two lines of parameters: **Export As** is one more command on the row that carries the menu's doors.
         "desktop/shell/DesktopShellView.kt#DesktopShell",
-        "desktop/shell/Header.kt#Header",
     )
 
     @Test

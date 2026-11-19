@@ -7,6 +7,10 @@ import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.shell.DesktopLayers
 import com.mobixournal.desktop.shell.DesktopPages
 import com.mobixournal.desktop.shell.DesktopTabs
+import com.mobixournal.desktop.shell.HEADER_CONTROL
+import com.mobixournal.desktop.shell.HEADER_EDGE
+import com.mobixournal.desktop.shell.HEADER_GROUP_GAP
+import com.mobixournal.desktop.shell.HEADER_ITEM_GAP
 import com.mobixournal.desktop.shell.Header
 
 import androidx.compose.runtime.Composable
@@ -21,7 +25,6 @@ import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.scene.ComposeScenePointer
 import androidx.compose.ui.unit.Density
-import com.mobixournal.design.DesignTokens
 import com.mobixournal.format.mobix.SyntheticNotebook
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
@@ -45,8 +48,8 @@ import org.junit.rules.TemporaryFolder
  * lands on**. The picture is a check too — the widened capsule has to show *two* glyphs, because a door with
  * no art reads as nothing between two rims.
  *
- * The band's arithmetic is the layout's own (a 10 dp edge, 36 dp capsules, the two groups' 12 dp gaps and the
- * 284 dp search field), so a capsule that drifted fails here rather than in the owner's eyes.
+ * The band's arithmetic is the layout's own (an 8 dp edge, 28 dp icon commands, the groups' hairline seams
+ * and the 200 dp search field), so a door that drifted fails here rather than in the owner's eyes.
  */
 @OptIn(ExperimentalComposeUiApi::class)
 class DesktopLayersTest {
@@ -162,9 +165,9 @@ class DesktopLayersTest {
         File("build/desktop-render/header-document-capsule.png").apply { parentFile?.mkdirs() }.writeBytes(png)
         val image = ImageIO.read(ByteArrayInputStream(png))
         val right = capsuleRight(width)
-        val half = DesktopTheme.headerControlSize.value / 2f
-        // No hairline stands between the two slots, so the pages door is exactly the left half.
-        val pagesCentre = right - 2 * DesktopTheme.headerControlSize.value + half
+        val half = HEADER_CONTROL.value / 2f
+        // One item gap stands between the two commands, so Pages is the pair's left box.
+        val pagesCentre = right - 2 * HEADER_CONTROL.value + HEADER_ITEM_GAP.value + half
         val layersCentre = right - half
         for ((name, centre) in listOf("pages" to pagesCentre, "layers" to layersCentre)) {
             val inked = ((centre - half + 2f).toInt()..<(centre + half - 2f).toInt()).sumOf { x ->
@@ -181,7 +184,7 @@ class DesktopLayersTest {
         val scene = ImageComposeScene(width, 420, Density(1f)) { band(tabs, pages, layers) }
         try {
             val rest = frame(scene)
-            val x = capsuleRight(width) - DesktopTheme.headerControlSize.value / 2f
+            val x = capsuleRight(width) - HEADER_CONTROL.value / 2f
             val y = DesktopTheme.headerHeight.value / 2f
             tap(scene, x, y)
             val opened = frame(scene)
@@ -240,12 +243,12 @@ class DesktopLayersTest {
     }
 
     /**
-     * The capsule's right edge, counted from the window's right: the edge, the PDF and Save capsules, the two
-     * groups' gaps, the history pair, the search field the capsule stands beside, and the **same gap** the
-     * field keeps on its other side — the two distances either side of the field are one number.
+     * The Layers door's right edge, counted from the window's right: the edge, the PDF and Save commands,
+     * one seam, the history pair, one seam, the search field, and the seam the document pair stands
+     * behind — every group separated by two 8 dp gaps and a 1 dp hairline.
      */
-    private fun capsuleRight(width: Int): Float = width.toFloat() - HEADER_EDGE_DP - 4 * CONTROL -
-        2 * GROUP_GAP - 2 * GAP - SEARCH_FIELD_WIDTH - GROUP_GAP
+    private fun capsuleRight(width: Int): Float = width.toFloat() - HEADER_EDGE.value - 2 * CONTROL -
+        GAP - SEAM - 2 * CONTROL - GAP - SEAM - SEARCH_FIELD_WIDTH - SEAM
 
     /** A tap, on a clock that only ever moves forward (Compose drops an event older than the last one). */
     private fun tap(scene: ImageComposeScene, x: Float, y: Float) {
@@ -286,17 +289,16 @@ class DesktopLayersTest {
         /** Anything at or above this tone is a glyph stroke: the chrome ink is pure white. */
         const val INK_FLOOR = 0x909090
 
-        /** The band's own side padding (`Header`). */
-        const val HEADER_EDGE_DP = 10f
+        /** A header command's box, in dp — `Header.HEADER_CONTROL`. */
+        const val CONTROL = 28f
 
-        /** A header control's capsule, in dp — `HEADER_CONTROL_SIZE_DP`. */
-        const val CONTROL = DesignTokens.HEADER_CONTROL_SIZE_DP
+        /** The air between two commands of one group (`Header.HEADER_ITEM_GAP`). */
+        const val GAP = 4f
 
-        /** The gap either side of a group, and the air between two capsules of one group. */
-        const val GROUP_GAP = 12f
-        const val GAP = 6f
+        /** A group's seam: two 8 dp gaps around the 1 dp hairline (`Header.HEADER_GROUP_GAP`). */
+        val SEAM = HEADER_GROUP_GAP.value * 2 + 1f
 
         /** The band's always-on search field (`HeaderSearch.SEARCH_FIELD_WIDTH`). */
-        const val SEARCH_FIELD_WIDTH = 284f
+        const val SEARCH_FIELD_WIDTH = 200f
     }
 }

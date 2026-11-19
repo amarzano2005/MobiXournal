@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.ImeAction
@@ -55,7 +58,13 @@ internal fun DesktopTextField(
     height: Dp = 30.dp,
     singleLine: Boolean = true,
     leadingIcon: (@Composable () -> Unit)? = null,
+    /** A field that owns the keyboard when something else asks for it (`Ctrl+F`'s search field). */
+    focusRequester: FocusRequester? = null,
     onClear: (() -> Unit)? = null,
+    /** The clear cross's spoken name, for a field whose clear says more than "Clear" (`"Clear search"`). */
+    clearDescription: String = "Clear",
+    /** What the field keeps right of its value and left of its clear cross — a count, two steps. */
+    trailing: (@Composable RowScope.() -> Unit)? = null,
     onSubmit: (() -> Unit)? = null,
 ) {
     var focused by remember { mutableStateOf(false) }
@@ -104,11 +113,14 @@ internal fun DesktopTextField(
                     imeAction = if (onSubmit != null) ImeAction.Done else ImeAction.Default,
                 ),
                 keyboardActions = KeyboardActions(onDone = { onSubmit?.invoke() }),
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
             )
         }
+        trailing?.invoke(this)
         if (onClear != null && value.isNotEmpty()) {
-            DesktopIconButton(description = "Clear", onClick = onClear, size = 16.dp, tooltip = null) {
+            DesktopIconButton(description = clearDescription, onClick = onClear, size = 16.dp, tooltip = null) {
                 Canvas(Modifier.size(10.dp)) { drawChromeGlyph(ChromeGlyph.CLOSE, DesktopTheme.inkSecondary) }
             }
         }

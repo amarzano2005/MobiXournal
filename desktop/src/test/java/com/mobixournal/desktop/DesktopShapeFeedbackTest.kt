@@ -19,7 +19,8 @@ import org.junit.Test
  *   width and the card's own corner rounds the first and last of them.
  *
  * The step chevrons of the header's search field are pinned by name because they were the one interactive
- * control in the window with no answer to the pointer at all — the gap the shared rule found.
+ * control in the window with no answer to the pointer at all — the gap the shared rule found. On the flat
+ * band the answer is the 4 dp control corner the field itself wears, never a capsule.
  */
 class DesktopShapeFeedbackTest {
 
@@ -57,8 +58,8 @@ class DesktopShapeFeedbackTest {
         val body = body(header, "private fun SearchStepButton(")
         assertTrue("SearchStepButton is where the test expects it", body.isNotEmpty())
         assertTrue(
-            "the step must light its own capsule, and had no hover answer at all before",
-            body.contains("hoverFill(DesktopTheme.capsuleShape)"),
+            "the step must light its own control corner, and had no hover answer at all before",
+            body.contains("hoverFill(DesktopTheme.controlShape)"),
         )
     }
 

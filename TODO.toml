@@ -47,46 +47,6 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
-id = "desktop-ui-titlebar-header"
-title = "Blend native Windows title bar caption and rebuild Header as a flat 40 dp workstation bar"
-description = """
-Phase 2A of `desktop-ui-flat-workstation`. Depends on `desktop-ui-buttons-inputs`. Eliminate the empty 32 dp title-bar void and the 48 dp bubble-soup Header.
-
-Exact changes:
-1. `desktop/src/main/java/com/mobixournal/desktop/shell/DesktopTitleBar.kt` & `desktop/src/main/java/com/mobixournal/desktop/Main.kt`:
-   - Remove `suppressTitleBarCaption(hwnd)` and unused `UxTheme` / `TitleBarUser32` / `WTNCA_*` code so the native Windows title bar cleanly displays the caption text in `DesktopTheme.inkColourRef` on `DesktopTheme.bandColourRef` (preserving Snap Layouts, resize, and WinInk).
-   - In `Main.kt`, set `Window(title = ...)` reactively to `state.tabs.active?.let { "${it.label} — MobiXournal" } ?: "MobiXournal"`.
-2. `desktop/src/main/java/com/mobixournal/desktop/shell/Header.kt`:
-   - Height `DesktopTheme.headerHeight` (`40.dp`), `.bandSurface().bandDivider(BandEdge.BOTTOM)`, `padding(horizontal = 8.dp)` — zero shadows, zero `.glassCapsule(...)` wrappers.
-   - Replace every icon button (`HeaderMenu`, Pages & Layers doors, Undo, Redo, Save, Export PDF) with `DesktopIconButton(size = 28.dp)` carrying English tooltips + keyboard shortcuts (e.g. `"Menu"`, `"Pages"`, `"Layers"`, `"Undo"`, `"Redo"`, `"Save"`, `"Export PDF"`).
-   - Separate logical groups with `1.dp × 16.dp` vertical `DesktopTheme.hairline` dividers and symmetric `8.dp` gaps.
-   - Color rules: `documentRed` ONLY on the Export PDF icon; `accent` on enabled Save icon; `chromeInk` on all other enabled icons; `inkMuted` when disabled (no light-mode capsule disappearing mismatch).
-   - Keep `Header()` <= 100 lines if possible; if it drops `<= 100` lines, remove `"desktop/shell/Header.kt#Header"` from `SourceStructureTest.kt#longFunctions` (required by ratchet!).
-3. `desktop/src/main/java/com/mobixournal/desktop/shell/HeaderSearch.kt`:
-   - Migrate search box to `DesktopTextField(height = 28.dp, modifier = Modifier.width(200.dp))` (down from 284 dp so TabStrip has room!).
-   - `SearchStepButton`: use `DesktopTheme.controlShape` (`4.dp`), never `capsuleShape`.
-   - Clear `×`: `hoverFill(DesktopTheme.controlShape)` and `contentDescription = "Clear search"`.
-4. `desktop/src/main/java/com/mobixournal/desktop/shell/HeaderAudioPill.kt`:
-   - Flat `28.dp` container (`DesktopTheme.controlShape` `4.dp`, `DesktopTheme.control` fill + `1.dp` `DesktopTheme.hairline`, zero shadow/`glassRim`).
-   - Replace hand-drawn filled transport icons with consistent `1.5.dp` monoline stroke icons matching `ChromeGlyph`.
-   - Use `DesktopTheme.danger` consistently for recording active state (no dual `documentRed` + `danger` circles side by side).
-   - Wire `description` to `Modifier.semantics { contentDescription = description }` and tooltips on all transport buttons.
-5. Docs: update `docs/desktop-ui-layout.md` §1 for the flat `40 dp` Header and native title bar (`<= 300` lines).
-6. Tests: update `DesktopHeaderTest.kt`, `DesktopHeaderAudioTest.kt`, `DesktopLayersTest.kt`, `DesktopShapeFeedbackTest.kt`, `DesktopTitleBarTest.kt`, and `SourceStructureTest.kt` (if `Header` <= 100 lines).
-
-DO NOT: add `undecorated = true` to `Window`; keep any `.glassCapsule(` in `Header.kt`/`HeaderSearch.kt`/`HeaderAudioPill.kt`.
-Verification: run targeted `:desktop:test` on the 5 header/titlebar test classes + `DocsGuardTest` + `SourceStructureTest`; inspect regenerated `header-actions.png`, `header-audio.png`, `header-document-capsule.png`; refresh `:desktop:createDistributable`."""
-status = "active"
-level = "task"
-category = "refactor"
-urgency = "high"
-order = 40
-created = 2026-11-19
-tags = ["desktop", "ui", "p0", "header"]
-rebuild = false
-emulator_debug = false
-
-[[task]]
 id = "desktop-ui-tabstrip-status"
 title = "Make TabStrip scrollable with flat workstation tabs and declutter DesktopStatus"
 description = """

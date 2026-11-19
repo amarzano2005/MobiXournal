@@ -60,11 +60,11 @@ class DesktopHeaderAudioTest {
         }
 
         assertTrue("the pill changes what the band draws", changed > 200)
-        // Save is the last capsule before the PDF export: its 36 dp capsule starts 52 px before the right
-        // edge (10 dp margin + PDF capsule 36 + 6 gap). Nothing the pill adds may reach it.
+        // Save is the command before the PDF export: its 28 dp box starts 40 px before the right edge
+        // (8 dp margin + PDF box 28 + 4 gap). Nothing the pill adds may reach it.
         assertTrue(
             "the pill is left of Save (changed $leftmost..$rightmost of $SCENE_WIDTH)",
-            rightmost < SCENE_WIDTH - 52,
+            rightmost < SCENE_WIDTH - 40,
         )
     }
 

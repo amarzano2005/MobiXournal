@@ -16,6 +16,7 @@ import com.mobixournal.desktop.settings.drawSettingsGlyph
 import com.mobixournal.desktop.settings.glyph
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.tools.DismissGuard
+import com.mobixournal.desktop.tools.DesktopIconButton
 import com.mobixournal.desktop.tools.MenuSurface
 import com.mobixournal.desktop.tools.GlassPopup
 import com.mobixournal.desktop.tools.GlassPresence
@@ -112,14 +113,23 @@ internal fun HeaderMenu(
     val guard = remember { DismissGuard() }
     val density = LocalDensity.current
     Box {
-        HeaderGlyph(active = open, onClick = { open = !open && guard.mayOpen(MENU_TRIGGER) }) { color ->
-            drawChromeGlyph(ChromeGlyph.MENU, color)
+        // The band's flat command, not a capsule: the menu is the first icon of the header's row
+        // (`Header`), so it wears the same 28 dp box and answers the pointer the same way.
+        DesktopIconButton(
+            description = "Menu",
+            onClick = { open = !open && guard.mayOpen(MENU_TRIGGER) },
+            size = HEADER_CONTROL,
+            picked = open,
+        ) {
+            Canvas(Modifier.size(HEADER_GLYPH)) {
+                drawChromeGlyph(ChromeGlyph.MENU, if (open) DesktopTheme.accent else DesktopTheme.chromeInk)
+            }
         }
         GlassPresence(open) {
             GlassPopup(
                 // Air under the **glyph**, not under the band: `headerHeight` left the menu hanging a
                 // whole control's worth of space below the button (the band is taller than the button).
-                offset = with(density) { IntOffset(0, (DesktopTheme.headerControlSize + 4.dp).roundToPx()) },
+                offset = with(density) { IntOffset(0, (HEADER_CONTROL + 4.dp).roundToPx()) },
                 // A draft that was being named goes with the panel: a name field reopened by the next
                 // click would be a question the reader already walked away from.
                 onDismissRequest = {

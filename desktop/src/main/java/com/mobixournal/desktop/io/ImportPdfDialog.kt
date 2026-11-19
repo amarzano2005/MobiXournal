@@ -43,13 +43,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.pointer.pointerInput
@@ -102,11 +106,18 @@ internal fun ImportPdfDialog(
     BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         val width = ImportCardLayout.cardWidth(maxWidth.value).dp
         val stacked = ImportCardLayout.stacked(maxWidth.value, LocalDensity.current.fontScale)
+        // The card takes the keyboard when it opens, so a modal answer is the **first** thing Tab reaches:
+        // the band behind it is a row of tab stops too, and walking it before every dialog was a keyboard
+        // reader's detour through chrome that the card has nothing to do with.
+        val card = remember { FocusRequester() }
+        LaunchedEffect(Unit) { runCatching { card.requestFocus() } }
         Column(
             // The caller's modifier lands on the card itself, so a harness can measure it and a host can
             // style it without reaching through the centring box.
             modifier
                 .width(width)
+                .focusRequester(card)
+                .focusable()
                 .heightIn(max = (maxHeight - ImportCardLayout.EDGE_DP.dp * 2).coerceAtLeast(0.dp))
                 .glassSpring()
                 .glassSurface()

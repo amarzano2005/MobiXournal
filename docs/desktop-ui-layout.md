@@ -27,15 +27,12 @@ scaling a mobile touch interface up produces clumsy, oversized controls. The win
 
 ### 1. Window layout & workspace panes
 - **Header band, 40 dp** (the token: it carries the tabs *and* the file commands): one glass tab per open
-  document (each keeps its page, zoom and fit), the `+` for another, and right **Pages and Layers** in one
-  capsule, the search field, **undo, redo, Save, PDF**. The field stands there always beside the tabs, so
-  using it never moves them or the file commands, and it keeps the **same gap either side** (12 dp to the
-  capsule and to the history pair), so it reads as a group of its own rather than the capsule's tail;
-  **Pages**, on its left, is the tablet's page section — add, remove, step, format, paper — and **Layers**, to
-  its right, the page's stack with the manager's edits (see [search.md](search.md),
-  [desktop-workstation.md](desktop-workstation.md)). Both doors are the header's own 36 dp pill, each in a
-  slot of that size, with **no seam between them**: the divider that used to stand there made two shrunken
-  buttons out of one object. The tool strip ends with its last tool.
+  document (each keeps its page, zoom and fit), the `+` for another, and right of them the document's two
+  doors — **Pages** and **Layers** —, the 200 dp search field, **undo, redo, Save, PDF**. Every command is
+  a 28 dp icon button with an English tooltip and its accelerator; the groups are separated by a 1 dp
+  hairline with 8 dp of air on either side, never by a capsule (§1 of the contract). **Pages** is the
+  tablet's page section — add, remove, step, format, paper — **Layers** the page's stack with the manager's
+  edits; the strip ends with its last tool ([search.md](search.md), [desktop-workstation.md](desktop-workstation.md)).
 - **Collapsible navigation sidebar (`Ctrl+B`)**: one sidebar, two views chosen by a persistent **Pages /
   Bookmarks** switch that each tab remembers. **Pages** holds the thumbnails, the current page's layers (with an
   eye per layer that hides it without writing to the document) and the search results; it opens itself only
@@ -104,9 +101,11 @@ spoke it takes four rules, and the parity work of 2026-10-22 put them all in the
 - **A band is chrome, a capsule is an object.** The header, status bar, sidebar and the strips' lanes take
 the opaque band tone and **no shadow**; the rail is a **52 dp capsule in a 64 dp lane** (6 dp of side air,
 8 above and below), the ribbon a 48 dp capsule in a 56 dp band, each on the surface tone with the family's
-rim, and a header control is that capsule at 36 dp. Separation is tone plus `Modifier.bandDivider`'s 1 dp
-hairline — a flat workstation has no lift to lose to eight-bit rounding. The ink is the shared tokens'
-(`interface-contract.md` §2 owns the colours).
+  rim, and a header command is a 28 dp icon in that band's row. Separation is tone plus
+  `Modifier.bandDivider`'s 1 dp hairline — a flat workstation has no lift to lose to eight-bit rounding. The
+  ink is the shared tokens' (`interface-contract.md` §2 owns the colours). The native Windows caption is the
+  system's again: `Window(title = …)` names the document in front and DWM paints that caption in the band's
+  tone and the chrome ink, so Snap Layouts, the window menu and the taskbar preview keep their caption.
 - **One icon set.** The tool glyphs come from `ToolGlyphCatalogue` (`mobix-core`), plain geometry on the
 24-unit grid that the tablet turns into an `ImageVector` and the window draws into a `DrawScope`. Neither
 shell keeps a set of its own — the tablet's deep circuit, gate, bond and variant vectors were transcribed

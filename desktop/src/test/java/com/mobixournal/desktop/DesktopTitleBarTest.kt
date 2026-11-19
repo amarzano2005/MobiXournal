@@ -4,7 +4,9 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 
 import com.mobixournal.design.DesignTokens
+import java.io.File
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /**
@@ -38,6 +40,18 @@ class DesktopTitleBarTest {
         )
     }
 
+    /**
+     * The caption is the **system's** again: hiding it left an empty 32 dp void above the flat header, and
+     * took Snap Layouts, the window menu and the taskbar preview's title with it. The window names the
+     * document instead, and DWM paints that caption in the band's own tone and ink.
+     */
+    @Test
+    fun `the native caption is not suppressed`() {
+        val source = File(root(), "shell/DesktopTitleBar.kt").readText()
+        assertFalse("the title bar must draw its own caption text", source.contains("suppressTitleBarCaption"))
+        assertFalse("and keep its window icon", source.contains("WTNCA_"))
+    }
+
     @Test
     fun `a colour reaches Win32 in COLORREF order`() {
         assertEquals("#RRGGBB 0x123456 becomes 0x563412", 0x563412, DesktopTheme.colourRef(0x123456))
@@ -47,5 +61,17 @@ class DesktopTitleBarTest {
             0xFFFFFF,
             DesktopTheme.colourRef(DesignTokens.CHROME_INK_DARK_RGB),
         )
+    }
+
+    /** `desktop/src/main/java/com/mobixournal/desktop`, found from wherever the test is run. */
+    private fun root(): File {
+        var dir: File? = File(".").absoluteFile
+        while (dir != null) {
+            if (File(dir, "AGENTS.md").isFile && File(dir, "docs").isDirectory) {
+                return File(dir, "desktop/src/main/java/com/mobixournal/desktop")
+            }
+            dir = dir.parentFile
+        }
+        error("no repository root above ${File(".").absolutePath}: this test must run inside the repo")
     }
 }

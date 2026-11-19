@@ -195,9 +195,11 @@ fun main(args: Array<String>) {
             // composition focus can silence them (`WindowKeys` owns the rule).
             onPreviewKeyEvent = { event -> WindowKeys.handle(event) },
             state = rememberWindowState(width = 1100.dp, height = 1000.dp),
-            // Sets title and icon so the Windows taskbar preview card identifies the window as MobiXournal,
-            // while DesktopTitleBar keeps the native Windows title bar text cleanly blended with the caption.
-            title = "MobiXournal",
+            // The caption names the document in front — `Notebook.mobix — MobiXournal` — and falls back to
+            // the product's own name on the entry screen. It is read from the tabs' state, so a switch, a
+            // rename or a Save As moves it without this composition asking. DesktopTitleBar paints that
+            // caption in the band's own ink and tone, so the native bar and the header are one surface.
+            title = state.tabs.active?.let { "${it.title} \u2014 MobiXournal" } ?: "MobiXournal",
             icon = appIcon(),
         ) {
             // The caption carries the tabs and nothing else, so its own corner wears no picture: the

@@ -1,7 +1,6 @@
 package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.tools.DesktopTextAction
-import com.mobixournal.desktop.tools.glassCapsule
-import com.mobixournal.desktop.tools.glassRim
+import com.mobixournal.desktop.tools.StripPill
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopTabAudio
@@ -14,6 +13,7 @@ import com.mobixournal.desktop.sheet.number
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,9 +43,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -55,11 +60,12 @@ import java.util.Locale
  * The window's **audio pill**: the tablet's capsule of three round buttons, sitting in the header
  * immediately **left of Save**.
  *
- * The shape is mobile's on purpose (`AudioMiniCapsule` is the reference): one glass capsule holding a
- * microphone/stop, a pause and a play, in that order, each a circle that fills with its own state colour
- * — red while the microphone is open, amber while it is paused mid-take, the accent while a clip sounds.
- * The window adds only what a mouse needs: a hover step, a tooltip-free time readout beside the buttons,
- * and a level bar under the take's time so a silent microphone is visible before the take is over.
+ * The shape is mobile's on purpose (`AudioMiniCapsule` is the reference): one pill holding a
+ * microphone/stop, a pause and a play, in that order, each a button that fills with its own state colour
+ * — `danger` while the microphone is open, the accent while a clip sounds — and on the flat band that
+ * pill is the `control` tone with one hairline, not a glass capsule. The window adds only what a mouse
+ * needs: a hover step, a tooltip on every transport button, a time readout beside them, and a level bar
+ * under the take's time so a silent microphone is visible before the take is over.
  *
  * What the buttons **do** is [DesktopAudioSession]'s, not this file's: record/stop starts or finalises a
  * `.wav` in the store, pause mutes **that take** (the tablet's second button does nothing else:
@@ -92,26 +98,15 @@ internal fun HeaderAudioPill(
     val sound = audio.of(tab())
 
     Row(
-        // On **paper** the pill keeps its buttons and its **rim**, and nothing else: the band behind it is
-        // already the sheet's white, so the control's white fill drew a white box round them. On black the
-        // capsule stays — there it is what lifts the transport off the band.
+        // A flat control (`docs/interface-contract.md` §1, §6): the `control` tone, the 4 dp corner and
+        // **one hairline** as its whole edge. The glass capsule's rim and lift are gone — on this band a
+        // second surface around the transport was the last box left over from the capsule header.
         modifier
-            .height(DesktopTheme.headerControlSize)
-            .then(
-                if (DesktopTheme.isLight) {
-                    // No fill and no lift on paper — but the family's **drawn edge** stays: the rim is what
-                    // keeps the transport an object in the chrome once the white box behind it is gone.
-                    Modifier.glassRim(cornerRadius = DesktopTheme.headerControlSize / 2)
-                } else {
-                    Modifier.glassCapsule(
-                        cornerRadius = DesktopTheme.headerControlSize / 2,
-                        fill = DesktopTheme.control,
-                        shadow = DesktopTheme.bandShadow,
-                    )
-                },
-            )
-            .padding(horizontal = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
+            .height(HEADER_CONTROL)
+            .background(DesktopTheme.control, DesktopTheme.controlShape)
+            .border(1.dp, DesktopTheme.hairline, DesktopTheme.controlShape)
+            .padding(horizontal = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TransportButtons(audio, tab, sound, onAudioTap)
@@ -147,7 +142,7 @@ private fun TransportButtons(
             },
             // Another tab's take owns the one microphone: this document may not open a second one.
             enabled = !sound.takeElsewhere,
-            fill = if (recording) DesktopTheme.documentRed else Color.Transparent,
+            fill = if (recording) DesktopTheme.danger else Color.Transparent,
             tint = if (recording) Color.White else DesktopTheme.chromeInk,
             onClick = { audio.toggleRecord(tab()) },
         ) { colour, size ->
@@ -162,12 +157,10 @@ private fun TransportButtons(
             // **Recording only** — the tablet's rule. A clip's pause is the play button's, so no two
             // buttons ever offer the same act (which is what left two pause marks side by side).
             enabled = recording,
-            fill = if (paused && recording) DesktopTheme.accent else if (recording && !paused) DesktopTheme.danger else Color.Transparent,
-            tint = when {
-                (recording && !paused) || (paused && recording) -> Color.White
-                recording -> DesktopTheme.chromeInk
-                else -> DesktopTheme.inkMuted
-            },
+            // One red for a take that is running, never two: the record button and this one used to wear
+            // `documentRed` and `danger` side by side, which read as two different states.
+            fill = if (recording && !paused) DesktopTheme.danger else Color.Transparent,
+            tint = if (recording) Color.White else DesktopTheme.chromeInk,
             onClick = { audio.toggleRecordPause(tab()) },
         ) { colour, size ->
             // A **resume-recording** mark is the record dot, not the play triangle: a triangle here
@@ -225,7 +218,7 @@ private fun androidx.compose.foundation.layout.RowScope.TransportReadout(
         Spacer(Modifier.width(2.dp))
         Text(
             text = time ?: "",
-            color = if (recording) DesktopTheme.documentRed else DesktopTheme.inkSecondary,
+            color = if (recording) DesktopTheme.danger else DesktopTheme.inkSecondary,
             style = DesktopTheme.numeric,
         )
     }
@@ -317,8 +310,8 @@ private fun PillScrubber(audio: DesktopAudioSession, tab: DesktopTab?, sound: De
 }
 
 /**
- * One round button of the pill, at the tablet's 24 dp — the same target the phone's capsule draws, with
- * the window's hover step added (`docs/interface-contract.md` §6: a hover is not a pick).
+ * One transport button: a 24 dp target in the pill with the window's hover step, its tooltip after the
+ * strips' 350 ms, and its spoken name (`docs/interface-contract.md` §6: a hover is not a pick).
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -331,23 +324,38 @@ private fun PillButton(
     draw: DrawScope.(Color, Float) -> Unit,
 ) {
     var hovered by remember { mutableStateOf(false) }
+    var tooltipUp by remember { mutableStateOf(false) }
+    LaunchedEffect(hovered) {
+        tooltipUp = false
+        if (hovered) {
+            delay(TOOLTIP_DELAY_MS)
+            tooltipUp = true
+        }
+    }
     val background = when {
         fill != Color.Transparent -> fill
         hovered && enabled -> DesktopTheme.hoverSlot
         else -> Color.Transparent
     }
-    Box(
-        Modifier
-            .size(26.dp)
-            .clip(CircleShape)
-            .background(background)
-            .onPointerEvent(PointerEventType.Enter) { hovered = true }
-            .onPointerEvent(PointerEventType.Exit) { hovered = false }
-            .pointerInput(enabled, description) { if (enabled) detectTapGestures { onClick() } },
-        contentAlignment = Alignment.Center,
-    ) {
-        Canvas(Modifier.size(16.dp)) {
-            draw(if (enabled) tint else DesktopTheme.inkMuted, size.minDimension)
+    Box {
+        Box(
+            Modifier
+                .size(TRANSPORT_BUTTON)
+                .clip(DesktopTheme.controlShape)
+                .background(background)
+                .onPointerEvent(PointerEventType.Enter) { hovered = true }
+                .onPointerEvent(PointerEventType.Exit) { hovered = false }
+                .pointerInput(enabled, description) { if (enabled) detectTapGestures { onClick() } }
+                .semantics { contentDescription = description },
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(Modifier.size(16.dp)) {
+                draw(if (enabled) tint else DesktopTheme.inkMuted, size.minDimension)
+            }
+        }
+        if (tooltipUp && hovered) {
+            val gap = with(LocalDensity.current) { TRANSPORT_BUTTON.roundToPx() } + TOOLTIP_OFFSET_PX
+            StripPill(label = description, accent = "", offset = IntOffset(0, gap))
         }
     }
 }
@@ -373,75 +381,94 @@ internal fun formatTime(ms: Int): String {
 
 // --- the transport's own marks ---------------------------------------------------------------------
 //
-// Four small drawings, on the button's own 16 dp box: a microphone (body, cradle, stand), a stop square,
-// a record dot, two pause bars and a play triangle. They are drawn here rather than added to the glyph
-// catalogue because they are the **transport's** marks on two round buttons whose sizes are stated in
-// one place, not tool faces the two toolbars must agree on.
+// The transport's five marks are drawn here rather than added to the glyph catalogue because they are
+// the **transport's** on buttons whose sizes are stated in one place, not tool faces the two toolbars
+// must agree on. They are **monoline**: one stroke of [ICON_STROKE] of the box on every mark, with round
+// caps and joins, so the microphone, the stop, the pause and the play all read at the weight the
+// catalogue's chrome paths draw at. The record dot is the one filled mark — a ring would read as
+// "unavailable" where a take is running.
+
+/** The transport's pen: 1.5 dp of a 16 dp box, the weight the catalogue's chrome paths carry. */
+private const val ICON_STROKE = 0.09f
+
+/** How long a transport button waits under the pointer before its tooltip speaks. */
+private const val TOOLTIP_DELAY_MS = 350L
+
+/** How far under a transport button its tooltip hangs, in pixels. */
+private const val TOOLTIP_OFFSET_PX = 6
+
+/** One transport button's own box: 24 dp inside the 28 dp pill. */
+private val TRANSPORT_BUTTON = 24.dp
+
+/** The one stroke every monoline mark wears. */
+private fun iconStroke(size: Float) =
+    Stroke(width = size * ICON_STROKE, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
 private fun DrawScope.drawMicrophone(colour: Color, size: Float) {
-    val bodyWidth = size * 0.34f
-    val bodyTop = size * 0.08f
-    val bodyBottom = size * 0.62f
+    val stroke = iconStroke(size)
     drawRoundRect(
         color = colour,
-        topLeft = Offset((size - bodyWidth) / 2f, bodyTop),
-        size = Size(bodyWidth, bodyBottom - bodyTop),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(bodyWidth / 2f),
+        topLeft = Offset(size * 0.36f, size * 0.10f),
+        size = Size(size * 0.28f, size * 0.44f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(size * 0.14f),
+        style = stroke,
     )
     drawArc(
         color = colour,
         startAngle = 0f,
         sweepAngle = 180f,
         useCenter = false,
-        topLeft = Offset(size * 0.18f, size * 0.30f),
-        size = Size(size * 0.64f, size * 0.56f),
-        style = Stroke(width = size * 0.10f),
+        topLeft = Offset(size * 0.24f, size * 0.28f),
+        size = Size(size * 0.52f, size * 0.40f),
+        style = stroke,
     )
     drawLine(
         colour,
+        Offset(size / 2f, size * 0.70f),
         Offset(size / 2f, size * 0.86f),
-        Offset(size / 2f, size * 0.98f),
-        strokeWidth = size * 0.10f,
+        strokeWidth = size * ICON_STROKE,
+        cap = StrokeCap.Round,
     )
 }
 
 private fun DrawScope.drawRecordDot(colour: Color, size: Float) {
-    drawCircle(colour, radius = size * 0.28f, center = Offset(size / 2f, size / 2f))
+    drawCircle(colour, radius = size * 0.26f, center = Offset(size / 2f, size / 2f))
 }
 
 private fun DrawScope.drawRecordStop(colour: Color, size: Float) {
     drawRoundRect(
         color = colour,
-        topLeft = Offset(size * 0.24f, size * 0.24f),
-        size = Size(size * 0.52f, size * 0.52f),
+        topLeft = Offset(size * 0.26f, size * 0.26f),
+        size = Size(size * 0.48f, size * 0.48f),
         cornerRadius = androidx.compose.ui.geometry.CornerRadius(size * 0.10f),
+        style = iconStroke(size),
     )
 }
 
 private fun DrawScope.drawPauseBars(colour: Color, size: Float) {
-    val barWidth = size * 0.18f
-    val top = size * 0.20f
-    val height = size * 0.60f
-    drawRoundRect(
-        color = colour,
-        topLeft = Offset(size * 0.26f, top),
-        size = Size(barWidth, height),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f),
+    val stroke = size * ICON_STROKE
+    drawLine(
+        colour,
+        Offset(size * 0.36f, size * 0.22f),
+        Offset(size * 0.36f, size * 0.78f),
+        strokeWidth = stroke,
+        cap = StrokeCap.Round,
     )
-    drawRoundRect(
-        color = colour,
-        topLeft = Offset(size * 0.56f, top),
-        size = Size(barWidth, height),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(barWidth / 2f),
+    drawLine(
+        colour,
+        Offset(size * 0.64f, size * 0.22f),
+        Offset(size * 0.64f, size * 0.78f),
+        strokeWidth = stroke,
+        cap = StrokeCap.Round,
     )
 }
 
 private fun DrawScope.drawPlayTriangle(colour: Color, size: Float) {
     val path = Path().apply {
-        moveTo(size * 0.32f, size * 0.16f)
-        lineTo(size * 0.86f, size * 0.50f)
-        lineTo(size * 0.32f, size * 0.84f)
+        moveTo(size * 0.38f, size * 0.20f)
+        lineTo(size * 0.80f, size * 0.50f)
+        lineTo(size * 0.38f, size * 0.80f)
         close()
     }
-    drawPath(path, colour)
+    drawPath(path, colour, style = iconStroke(size))
 }
