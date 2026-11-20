@@ -28,9 +28,11 @@ import com.mobixournal.desktop.tools.selectTool
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -80,11 +82,29 @@ internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: De
             val placement = state.prefs.stripPlacement
             val railOnLeft = state.prefs.railSide == RailSide.LEFT
             Column(Modifier.weight(1f).fillMaxHeight()) {
-                if (placement.showsRibbon) StripRibbon(state)
+                AnimatedVisibility(
+                    visible = placement.showsRibbon,
+                    enter = expandVertically(tween(150)) + fadeIn(tween(150)),
+                    exit = shrinkVertically(tween(120)) + fadeOut(tween(120)),
+                ) {
+                    StripRibbon(state)
+                }
                 Row(Modifier.weight(1f).fillMaxWidth()) {
-                    if (placement.showsRail && railOnLeft) StripRail(state, canvasEdge = BandEdge.END)
+                    AnimatedVisibility(
+                        visible = placement.showsRail && railOnLeft,
+                        enter = expandHorizontally(tween(150)) + fadeIn(tween(150)),
+                        exit = shrinkHorizontally(tween(120)) + fadeOut(tween(120)),
+                    ) {
+                        StripRail(state, canvasEdge = BandEdge.END)
+                    }
                     WorkspaceCanvas(state, tab, tablet)
-                    if (placement.showsRail && !railOnLeft) StripRail(state, canvasEdge = BandEdge.START)
+                    AnimatedVisibility(
+                        visible = placement.showsRail && !railOnLeft,
+                        enter = expandHorizontally(tween(150)) + fadeIn(tween(150)),
+                        exit = shrinkHorizontally(tween(120)) + fadeOut(tween(120)),
+                    ) {
+                        StripRail(state, canvasEdge = BandEdge.START)
+                    }
                 }
             }
             if (state.prefs.inspectorPolicy != InspectorPolicy.NEVER) {

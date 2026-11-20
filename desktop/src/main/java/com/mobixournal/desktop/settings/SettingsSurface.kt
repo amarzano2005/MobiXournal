@@ -144,7 +144,9 @@ internal fun SettingsSurface(
                                         fadeOut(tween(80)) using SizeTransform(clip = false)
                                 },
                             ) { section ->
-                                DesktopSettingPage(policy, palette, section)
+                                Column(Modifier.fillMaxWidth()) {
+                                    DesktopSettingPage(policy, palette, section)
+                                }
                             }
                         }
                     }
