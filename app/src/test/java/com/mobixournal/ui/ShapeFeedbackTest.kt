@@ -46,12 +46,12 @@ class ShapeFeedbackTest {
             ".clip(RoundedCornerShape(8.dp))",
             ".clickable(onClick = onClick)",
         ),
-        // A menu pane: the click is taken *inside* the pane's clip, so it lights the pane's corner.
+        // A menu file tile: the click is taken *after* the clip, so it lights the tile's corner.
         Control(
-            "EditorOverflowMenu.kt",
-            "private fun GlassPane(",
-            ".clip(shape)",
-            "Modifier.clickable(",
+            "EditorOverflowViews.kt",
+            "private fun CompactFileTile(",
+            ".clip(RoundedCornerShape(16.dp))",
+            ".clickable(enabled = enabled, onClick = onClick)",
         ),
         // The entry screen's door: a capsule drawn inside a bare row, so the row has to be cut to the
         // capsule before the click or the press lights a rectangle around the button.

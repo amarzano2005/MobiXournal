@@ -10,8 +10,7 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 **Chrome (`ui/`).** `EditorScreen` is the one editor screen: a top bar (`EditorTopBar`) with undo/redo
 icon buttons, a quick **Export PDF** button on wide windows (compact windows keep it in the overflow menu) and a one-tap **Save** button after it (Save
 outermost, i.e. under the thumb), and a
-**☰ overflow menu** (`DropdownMenu`) holding Open, Import PDF, Export PDF, Save, Save As, **Export As**
-(whose own card asks PNG, SVG or `.pmobix`), Pen diagnostics, and Settings; a **Main Toolbar `SideToolbar`** with core drawing tool slots and pop-up panels; a secondary toolbar (`TopBarToolsRow`) for geometric figures and STEM tools embedded in the top bar. Both toolbars follow the modern design system floating glass capsule style.
+**☰ overflow menu** (`ToolbarMenu` Command Sheet, bottom-anchored on compact phones and anchored popover on tablets) holding a live document hero card, a **Document** view (New, Open, Save As, Import PDF, and an inline **Export & Share** drill-down for PDF, PNG, SVG, and `.pmobix`), a **Pen & View** view (pressure-curve preset cards, Finger drawing, Focus mode, Toolbar side, and Pen diagnostics), and a footer for Pen Tuning and Settings; a **Main Toolbar `SideToolbar`** with core drawing tool slots and pop-up panels; a secondary toolbar (`TopBarToolsRow`) for geometric figures and STEM tools embedded in the top bar. Both toolbars follow the modern design system floating glass capsule style.
 
 There is **one layout**, and each bar has one job. The Main Toolbar is the vertical docked capsule
 (Left or Right, per `ToolbarPosition`) of **writing tools only**: pen, highlighter, eraser, pan, select,

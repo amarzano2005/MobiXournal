@@ -1,39 +1,28 @@
 package com.mobixournal.ui
 
-import com.mobixournal.ui.theme.PillTextInset
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.NoteAdd
-import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Draw
-import androidx.compose.material.icons.outlined.FileOpen
-import androidx.compose.material.icons.outlined.Image
-import androidx.compose.material.icons.outlined.Menu
-import androidx.compose.material.icons.outlined.PictureAsPdf
-import androidx.compose.material.icons.outlined.Save
-import androidx.compose.material.icons.outlined.SaveAs
-import androidx.compose.material.icons.outlined.Settings
-import androidx.compose.material.icons.outlined.Tune
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,176 +36,147 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.PopupPositionProvider
 import com.mobixournal.design.ChromeGlyph
-import com.mobixournal.ui.theme.DocumentRed
-import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
+private enum class SheetTab { DOCUMENT, STUDIO }
+private enum class SheetView { DOCUMENT, STUDIO, EXPORT }
+
+private const val COMPACT_SHEET_BREAKPOINT_DP = 600
+
 /**
- * One **glass pane** of the overflow menu — a miniature of the toolbars' capsule.
- *
- * The menu's actions used to be plain `OutlinedButton`s and `FilterChip`s, which on a frosted menu read
- * as flat Material controls lying on the glass rather than as panes cut from it. A pane borrows the
- * recipe the dock and the rail are built from — and the *window's* own menu chips: the band's glass
- * fill (`rememberGlassSurfaceColor`, white on paper), a small cast shadow it has room to throw inside
- * the panel (the bar itself carries 6 dp), and the family's hairline rim ([floatingRim]). No gradient
- * of its own: the desktop's chips are separated from the panel by their edge and their lift, and a
- * sheen invented here was a second material inside one menu. So a menu row looks like chrome the app
- * already has, only smaller.
- *
- * [wash] is an optional tint laid over the glass (a selected preset), [padding] the inner breathing
- * room; everything else about the pane is fixed, so no row of the menu can invent its own glass.
+ * Anchors the Command Sheet to the bottom-center of the window on compact phone screens so the
+ * primary controls sit within easy thumb reach.
+ */
+private class BottomSheetPopupPositionProvider(
+    private val bottomMarginPx: Int,
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val x = ((windowSize.width - popupContentSize.width) / 2).coerceAtLeast(0)
+        val y = (windowSize.height - popupContentSize.height - bottomMarginPx).coerceAtLeast(0)
+        return IntOffset(x, y)
+    }
+}
+
+@Composable
+internal fun rememberSheetSurfaceColor(): Color {
+    val isDark = chromeIsDark()
+    return rememberChromeInk().copy(alpha = if (isDark) 0.06f else 0.045f)
+}
+
+/**
+ * EditorTopBar adapter that wires [OverflowMenu] to [EditorUiState], [PaneState], [TabsUiState]
+ * and [AppSettings] without inflating `EditorRegions.kt`.
  */
 @Composable
-private fun GlassPane(
-    modifier: Modifier = Modifier,
-    corner: Dp = 16.dp,
-    shadowElevation: Dp = 3.dp,
-    padding: PaddingValues = PaddingValues(vertical = 9.dp, horizontal = PillTextInset),
-    wash: Color? = null,
-    /**
-     * The pane's own click, applied **after** the clip — a ripple is drawn by the node that owns it, so a
-     * `clickable` hung on the caller's modifier lit a rectangle around a 10-16 dp corner instead of the
-     * pane. [enabled] is passed with it so a disabled pane keeps its glass and loses only the hit area.
-     */
-    onClick: (() -> Unit)? = null,
-    enabled: Boolean = true,
-    content: @Composable BoxScope.() -> Unit,
+internal fun EditorOverflowMenu(
+    ui: EditorUiState,
+    pane: PaneState,
+    stripTabs: TabsUiState,
+    settings: AppSettings?,
+    onSettingsChange: ((AppSettings) -> Unit)?,
+    onOpen: () -> Unit,
+    onNewTab: () -> Unit,
+    onSave: () -> Unit,
+    onImportPdf: () -> Unit,
+    onExportPagePng: () -> Unit,
+    onExportPageSvg: () -> Unit,
+    onSavePortableCopy: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(corner)
-    Box(
-        modifier = modifier
-            .shadow(shadowElevation, shape)
-            .clip(shape)
-            // Inside the clip, so a tap or a hover lights the pane and not the box around it.
-            .then(
-                if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick)
-                else Modifier,
-            )
-            // The window's chip fill — the band's own glass, white on paper — not the panel's floating
-            // fill under a gradient invented here: on both shells a pane is separated from the panel it
-            // sits in by its rim and its small lift, exactly as `hoverCapsule` does on the desktop.
-            .background(rememberGlassSurfaceColor())
-            .then(if (wash != null) Modifier.background(wash) else Modifier)
-            .floatingRim(corner)
-            .padding(padding),
-        contentAlignment = Alignment.Center,
-        content = content,
+    OverflowMenu(
+        isReadOnly = pane.isReadOnly,
+        canSave = stripTabs.canSave,
+        documentTitle = stripTabs.titles.getOrNull(stripTabs.activeIndex) ?: "Untitled",
+        pageLabel = "Page ${pane.currentPage + 1} of ${pane.pageCount}",
+        hasUnsavedChanges = stripTabs.unsaved.getOrNull(stripTabs.activeIndex) == true,
+        fullPage = ui.fullPage,
+        settings = settings,
+        onSelectPenPreset = { preset ->
+            if (settings != null && onSettingsChange != null) {
+                val updated = settings.copy(
+                    selectedPenPresetId = preset.id,
+                    minimumPressure = preset.minimumPressure,
+                    pressureMultiplier = preset.pressureMultiplier,
+                )
+                onSettingsChange(updated)
+                pane.surface?.applySettings(updated)
+            }
+        },
+        onOpen = onOpen,
+        onNewTab = onNewTab,
+        onSave = onSave,
+        onSaveAs = { ui.showSaveAs = true },
+        onImportPdf = onImportPdf,
+        onExportPdf = { ui.exportPdfOpen = true },
+        onExportPagePng = onExportPagePng,
+        onExportPageSvg = onExportPageSvg,
+        onSavePortableCopy = onSavePortableCopy,
+        onExportAs = { ui.exportAsOpen = true },
+        onToggleFullPage = { ui.fullPage = !ui.fullPage },
+        onToggleFingerDraws = {
+            if (settings != null && onSettingsChange != null) {
+                val updated = settings.copy(fingerDraws = !settings.fingerDraws)
+                onSettingsChange(updated)
+                pane.surface?.applySettings(updated)
+            }
+        },
+        onToggleToolbarPosition = {
+            if (settings != null && onSettingsChange != null) {
+                val next = if (settings.toolbarPosition == ToolbarPosition.LEFT) {
+                    ToolbarPosition.RIGHT
+                } else {
+                    ToolbarPosition.LEFT
+                }
+                onSettingsChange(settings.copy(toolbarPosition = next))
+            }
+        },
+        onSettings = { ui.showSettings = true },
+        penDiagnostics = ui.penDiagnostics,
+        onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
+        onOpenPenParameters = { ui.showPenParametersDialog = true },
     )
 }
 
 /**
- * A pane carrying a glyph and a label — the PDF and page-export actions.
+ * The top-bar overflow ("hamburger") menu: opens a compact **Command Sheet** with a live document
+ * hero card, two clean views (**Document** and **Pen & View**), an inline **Export & Share**
+ * drill-down, and a compact footer for **Pen Tuning** and **Settings**.
  *
- * The tint is the caller's: [DocumentRed] for the two PDF actions, the primary accent for the page
- * exports. A disabled pane fades its ink instead of dropping the glass, so the row keeps its shape.
- */
-@Composable
-private fun GlassActionButton(
-    icon: ImageVector,
-    label: String,
-    tint: Color,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    onClick: () -> Unit,
-) {
-    // A disabled action keeps its **ink role**, not a Material alpha: the window's menu greys the mark
-    // rather than fading the pane, so a row that cannot act keeps the shape of the rows around it.
-    val ink = if (enabled) tint else MaterialTheme.colorScheme.onSurfaceVariant
-    GlassPane(modifier = modifier, onClick = onClick, enabled = enabled) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = ink,
-                modifier = Modifier.size(16.dp),
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                label,
-                style = MaterialTheme.typography.labelMedium,
-                color = ink,
-            )
-        }
-    }
-}
-
-/**
- * A **glass preset chip**: the pen presets wear the same pane as the PDF actions rather than a Material
- * [androidx.compose.material3.FilterChip], so the menu has one kind of button all the way down.
- *
- * The live preset is the one the accent writes and the one the accent washes, so "which pen am I
- * holding" is readable without hunting for a check mark.
- */
-@Composable
-private fun GlassPresetChip(
-    name: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    val ink = if (selected) MaterialTheme.colorScheme.primary else rememberChromeInk()
-    GlassPane(
-        corner = 10.dp,
-        shadowElevation = 2.dp,
-        padding = PaddingValues(horizontal = PillTextInset, vertical = 6.dp),
-        wash = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else null,
-        onClick = onClick,
-    ) {
-        Text(
-            name,
-            style = MaterialTheme.typography.labelMedium,
-            color = ink,
-            maxLines = 1,
-        )
-    }
-}
-
-/**
- * The **rule between two parts of the menu** — the file/PDF actions, the pen, the app.
- *
- * A Material [HorizontalDivider] was invisible here: its outline variant is darker than the glass it
- * would sit on, so the menu read as one undivided column. This is the chrome's own hairline instead,
- * feathered to nothing at both ends the way the panel's rim is, so it separates the parts without
- * turning into a box edge.
- */
-@Composable
-private fun MenuRule() {
-    val ink = rememberChromeInk().copy(alpha = 0.22f)
-    val clear = ink.copy(alpha = 0f)
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .height(1.dp)
-            .background(Brush.horizontalGradient(listOf(clear, ink, clear))),
-    )
-}
-
-/**
- * The top-bar overflow ("hamburger") menu: the glass button that opens it and the panel itself —
- * compact quick file actions, the PDF row, **Export As** (PNG, SVG, `.pmobix`), the pen subsection, and
- * Settings.
- *
- * It is a region of its own, which is why it lives here rather than in `EditorRegions`: everything it
- * shows arrives as an argument or a callback, and nothing in the editor reaches into it.
+ * On compact phone widths it anchors at the bottom for one-handed thumb reach; on tablets it
+ * anchors as a floating glass popover below the ☰ button.
  */
 @Composable
 internal fun OverflowMenu(
     isReadOnly: Boolean = false,
-    /** Whether Save has anything to write — a document the file already holds greys out (`TabsUiState.canSave`). */
     canSave: Boolean = true,
+    documentTitle: String = "Untitled",
+    pageLabel: String = "",
+    hasUnsavedChanges: Boolean = false,
+    fullPage: Boolean = false,
     settings: AppSettings?,
     onSelectPenPreset: (PenPreset) -> Unit,
     onOpen: () -> Unit,
@@ -227,276 +187,466 @@ internal fun OverflowMenu(
     onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
-    /** **Export As ▸ .pmobix**: a second file with the bytes this one only names inside it. */
     onSavePortableCopy: () -> Unit = {},
-    /**
-     * **Export As**: raises the screen's own card (`ExportAsHost`), where PNG, SVG and `.pmobix` are asked.
-     * The flag is `EditorUiState`'s, not this panel's: a menu's window is torn down with the menu, so a
-     * card composed inside it would leave the moment the chip's click closed the panel.
-     */
     onExportAs: () -> Unit = {},
+    onToggleFullPage: () -> Unit = {},
+    onToggleFingerDraws: () -> Unit = {},
+    onToggleToolbarPosition: () -> Unit = {},
     onSettings: () -> Unit,
     penDiagnostics: Boolean,
     onTogglePenDiagnostics: () -> Unit,
     onOpenPenParameters: () -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
+    var activeTab by remember { mutableStateOf(SheetTab.DOCUMENT) }
+    var inExport by remember { mutableStateOf(false) }
 
-    val isDark = chromeIsDark()
-    val glassColor = rememberGlassSurfaceColor()
-    val hairlineColor = ModernTheme.hairlineBorder(isDark)
+    val isCompact = LocalConfiguration.current.screenWidthDp < COMPACT_SHEET_BREAKPOINT_DP
+    val density = LocalDensity.current
+    val bottomProvider = remember(density, isCompact) {
+        if (isCompact) BottomSheetPopupPositionProvider(with(density) { 12.dp.roundToPx() }) else null
+    }
+
     Box {
-        Surface(
-            shape = CircleShape,
-            color = glassColor,
-            tonalElevation = 0.dp,
-            shadowElevation = 4.dp,
-            modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
-        ) {
-            IconButton(
-                onClick = { open = true },
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    ChromeGlyph.MENU.imageVector(),
-                    contentDescription = "Menu",
-                    tint = rememberChromeInk(),
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-        }
+        OverflowTriggerButton(
+            expanded = open,
+            onClick = {
+                inExport = false
+                open = true
+            },
+        )
         ToolbarMenu(
             expanded = open,
-            onDismissRequest = { open = false },
-            modifier = Modifier.widthIn(min = 280.dp, max = 320.dp),
+            onDismissRequest = {
+                open = false
+                inExport = false
+            },
+            positionProvider = bottomProvider,
+            modifier = overflowMenuModifier(isCompact),
         ) {
-            // Quick File Actions
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-            ) {
-                MenuQuickAction(
-                    icon = ChromeGlyph.NEW.imageVector(),
-                    label = "New",
-                    onClick = { open = false; onNewTab() },
-                    modifier = Modifier.weight(1f),
-                )
-                MenuQuickAction(
-                    icon = ChromeGlyph.OPEN.imageVector(),
-                    label = "Open",
-                    onClick = { open = false; onOpen() },
-                    modifier = Modifier.weight(1f),
-                )
-                MenuQuickAction(
-                    icon = ChromeGlyph.SAVE.imageVector(),
-                    label = "Save",
-                    enabled = !isReadOnly && canSave,
-                    onClick = { open = false; onSave() },
-                    modifier = Modifier.weight(1f),
-                )
-                MenuQuickAction(
-                    icon = ChromeGlyph.SAVE_AS.imageVector(),
-                    label = "Save As",
-                    enabled = !isReadOnly,
-                    onClick = { open = false; onSaveAs() },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            // PDF Actions
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                GlassActionButton(
-                    icon = ChromeGlyph.PDF.imageVector(),
-                    label = "Import PDF",
-                    tint = DocumentRed,
-                    enabled = !isReadOnly,
-                    onClick = { open = false; onImportPdf() },
-                    modifier = Modifier.weight(1f),
-                )
-                GlassActionButton(
-                    icon = ChromeGlyph.PDF.imageVector(),
-                    label = "Export PDF",
-                    tint = DocumentRed,
-                    enabled = !isReadOnly,
-                    onClick = { open = false; onExportPdf() },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            // **Export As**: its three answers are a question of their own ("as what?"), so they open a
-            // card over the sheet rather than unfolding inside this panel — a menu that unfolds is still
-            // a menu, and the export is a decision.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 2.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                GlassActionButton(
-                    icon = ChromeGlyph.EXPORT.imageVector(),
-                    label = "Export As",
-                    tint = MaterialTheme.colorScheme.primary,
-                    enabled = !isReadOnly,
-                    onClick = { open = false; onExportAs() },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            MenuRule()
-
-            // Pen Subsection: the heading is the chrome's own ink, with the section's glyph beside it,
-            // and the pen-parameters button on the far end in the same ink.
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 2.dp),
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        Icons.Outlined.Draw,
-                        contentDescription = null,
-                        tint = rememberChromeInk(),
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        "Pen",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = rememberChromeInk(),
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(
-                        onClick = { open = false; onOpenPenParameters() },
-                        modifier = Modifier.size(32.dp),
-                    ) {
-                        Icon(
-                            Icons.Outlined.Tune,
-                            contentDescription = "Pen settings",
-                            tint = rememberChromeInk(),
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                }
-                if (settings != null && settings.penPresets.isNotEmpty()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .padding(vertical = 2.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        settings.penPresets.forEach { preset ->
-                            GlassPresetChip(
-                                name = preset.name,
-                                selected = preset.id == settings.selectedPenPresetId,
-                                onClick = {
-                                    open = false
-                                    onSelectPenPreset(preset)
-                                },
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(4.dp))
-                }
-                // No horizontal padding of its own: the row's glyph sits on the same left edge as the
-                // **Pen** heading's glyph above it, so the section reads as one column. Its ink stays
-                // the secondary grey it has always been — this row is a setting, not the heading.
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable {
-                            open = false
-                            onTogglePenDiagnostics()
-                        }
-                        .padding(vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        Icons.Outlined.BugReport,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp),
-                        tint = if (penDiagnostics) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        if (penDiagnostics) "Hide pen diagnostics" else "Pen diagnostics",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (penDiagnostics) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        modifier = Modifier.weight(1f),
-                    )
-                    if (penDiagnostics) {
-                        Icon(
-                            Icons.Outlined.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                }
-            }
-
-            MenuRule()
-
-            // Settings
-            DropdownMenuItem(
-                text = { Text("Settings", color = rememberChromeInk()) },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Settings, contentDescription = null, tint = rememberChromeInk())
+            OverflowSheetBody(
+                isCompact = isCompact,
+                isReadOnly = isReadOnly,
+                documentTitle = documentTitle,
+                pageLabel = pageLabel,
+                hasUnsavedChanges = hasUnsavedChanges,
+                fullPage = fullPage,
+                settings = settings,
+                penDiagnostics = penDiagnostics,
+                activeTab = activeTab,
+                inExport = inExport,
+                onSelectTab = { tab ->
+                    activeTab = tab
+                    inExport = false
                 },
-                onClick = { open = false; onSettings() },
+                onOpenExport = { inExport = true },
+                onBackFromExport = { inExport = false },
+                onDismiss = {
+                    open = false
+                    inExport = false
+                },
+                onNewTab = onNewTab,
+                onOpen = onOpen,
+                onSaveAs = onSaveAs,
+                onImportPdf = onImportPdf,
+                onExportPdf = onExportPdf,
+                onExportPagePng = onExportPagePng,
+                onExportPageSvg = onExportPageSvg,
+                onSavePortableCopy = onSavePortableCopy,
+                onSelectPenPreset = onSelectPenPreset,
+                onToggleFingerDraws = onToggleFingerDraws,
+                onToggleFullPage = onToggleFullPage,
+                onToggleToolbarPosition = onToggleToolbarPosition,
+                onTogglePenDiagnostics = onTogglePenDiagnostics,
+                onOpenPenParameters = onOpenPenParameters,
+                onSettings = onSettings,
             )
         }
     }
 }
 
 @Composable
-private fun MenuQuickAction(
-    icon: ImageVector,
-    label: String,
+private fun OverflowTriggerButton(
+    expanded: Boolean,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
 ) {
-    val ink = if (enabled) rememberChromeInk() else MaterialTheme.colorScheme.onSurfaceVariant
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(vertical = 6.dp, horizontal = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    val glassColor = rememberGlassSurfaceColor()
+    val tint = if (expanded) MaterialTheme.colorScheme.primary else rememberChromeInk()
+    Surface(
+        shape = CircleShape,
+        color = glassColor,
+        tonalElevation = 0.dp,
+        shadowElevation = 4.dp,
+        modifier = Modifier
+            .padding(horizontal = 2.dp)
+            .floatingRim(18.dp),
     ) {
-        Icon(
-            icon,
-            contentDescription = label,
-            modifier = Modifier.size(22.dp),
-            tint = ink,
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.size(36.dp),
+        ) {
+            Icon(
+                ChromeGlyph.MENU.imageVector(),
+                contentDescription = "Menu",
+                tint = tint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun OverflowSheetBody(
+    isCompact: Boolean,
+    isReadOnly: Boolean,
+    documentTitle: String,
+    pageLabel: String,
+    hasUnsavedChanges: Boolean,
+    fullPage: Boolean,
+    settings: AppSettings?,
+    penDiagnostics: Boolean,
+    activeTab: SheetTab,
+    inExport: Boolean,
+    onSelectTab: (SheetTab) -> Unit,
+    onOpenExport: () -> Unit,
+    onBackFromExport: () -> Unit,
+    onDismiss: () -> Unit,
+    onNewTab: () -> Unit,
+    onOpen: () -> Unit,
+    onSaveAs: () -> Unit,
+    onImportPdf: () -> Unit,
+    onExportPdf: () -> Unit,
+    onExportPagePng: () -> Unit,
+    onExportPageSvg: () -> Unit,
+    onSavePortableCopy: () -> Unit,
+    onSelectPenPreset: (PenPreset) -> Unit,
+    onToggleFingerDraws: () -> Unit,
+    onToggleFullPage: () -> Unit,
+    onToggleToolbarPosition: () -> Unit,
+    onTogglePenDiagnostics: () -> Unit,
+    onOpenPenParameters: () -> Unit,
+    onSettings: () -> Unit,
+) {
+    val currentView = when {
+        inExport -> SheetView.EXPORT
+        activeTab == SheetTab.STUDIO -> SheetView.STUDIO
+        else -> SheetView.DOCUMENT
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        if (isCompact) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 36.dp, height = 4.dp)
+                        .clip(CircleShape)
+                        .background(rememberChromeInk().copy(alpha = 0.22f)),
+                )
+            }
+        }
+        DocumentHeroCard(
+            title = documentTitle,
+            pageLabel = pageLabel,
+            hasUnsavedChanges = hasUnsavedChanges,
+            isReadOnly = isReadOnly,
+            onExportClick = onOpenExport,
         )
-        Spacer(Modifier.height(4.dp))
-        Text(
-            label,
-            style = MaterialTheme.typography.labelSmall,
-            maxLines = 1,
-            color = ink,
+        if (!inExport) {
+            SheetModeSwitcher(activeTab = activeTab, onSelectTab = onSelectTab)
+        }
+        OverflowSheetContent(
+            currentView = currentView,
+            isReadOnly = isReadOnly,
+            fullPage = fullPage,
+            settings = settings,
+            penDiagnostics = penDiagnostics,
+            onOpenExport = onOpenExport,
+            onBackFromExport = onBackFromExport,
+            onDismiss = onDismiss,
+            onNewTab = onNewTab,
+            onOpen = onOpen,
+            onSaveAs = onSaveAs,
+            onImportPdf = onImportPdf,
+            onExportPdf = onExportPdf,
+            onExportPagePng = onExportPagePng,
+            onExportPageSvg = onExportPageSvg,
+            onSavePortableCopy = onSavePortableCopy,
+            onSelectPenPreset = onSelectPenPreset,
+            onToggleFingerDraws = onToggleFingerDraws,
+            onToggleFullPage = onToggleFullPage,
+            onToggleToolbarPosition = onToggleToolbarPosition,
+            onTogglePenDiagnostics = onTogglePenDiagnostics,
+        )
+        SheetFooterRow(
+            onPenTuning = { onDismiss(); onOpenPenParameters() },
+            onSettings = { onDismiss(); onSettings() },
         )
     }
+}
+
+@Composable
+private fun OverflowSheetContent(
+    currentView: SheetView,
+    isReadOnly: Boolean,
+    fullPage: Boolean,
+    settings: AppSettings?,
+    penDiagnostics: Boolean,
+    onOpenExport: () -> Unit,
+    onBackFromExport: () -> Unit,
+    onDismiss: () -> Unit,
+    onNewTab: () -> Unit,
+    onOpen: () -> Unit,
+    onSaveAs: () -> Unit,
+    onImportPdf: () -> Unit,
+    onExportPdf: () -> Unit,
+    onExportPagePng: () -> Unit,
+    onExportPageSvg: () -> Unit,
+    onSavePortableCopy: () -> Unit,
+    onSelectPenPreset: (PenPreset) -> Unit,
+    onToggleFingerDraws: () -> Unit,
+    onToggleFullPage: () -> Unit,
+    onToggleToolbarPosition: () -> Unit,
+    onTogglePenDiagnostics: () -> Unit,
+) {
+    AnimatedContent(
+        targetState = currentView,
+        transitionSpec = { fadeIn() togetherWith fadeOut() },
+        label = "OverflowSheetView",
+    ) { view ->
+        when (view) {
+            SheetView.DOCUMENT -> DocumentTabView(
+                isReadOnly = isReadOnly,
+                onNewTab = { onDismiss(); onNewTab() },
+                onOpen = { onDismiss(); onOpen() },
+                onSaveAs = { onDismiss(); onSaveAs() },
+                onImportPdf = { onDismiss(); onImportPdf() },
+                onOpenExport = onOpenExport,
+            )
+            SheetView.STUDIO -> StudioTabView(
+                settings = settings,
+                fullPage = fullPage,
+                penDiagnostics = penDiagnostics,
+                onSelectPenPreset = { preset ->
+                    onSelectPenPreset(preset)
+                    onDismiss()
+                },
+                onToggleFingerDraws = onToggleFingerDraws,
+                onToggleFullPage = {
+                    onToggleFullPage()
+                    onDismiss()
+                },
+                onToggleToolbarPosition = onToggleToolbarPosition,
+                onTogglePenDiagnostics = {
+                    onTogglePenDiagnostics()
+                    onDismiss()
+                },
+            )
+            SheetView.EXPORT -> ExportDrilldownView(
+                isReadOnly = isReadOnly,
+                onBack = onBackFromExport,
+                onExportPdf = { onDismiss(); onExportPdf() },
+                onExportPng = { onDismiss(); onExportPagePng() },
+                onExportSvg = { onDismiss(); onExportPageSvg() },
+                onSavePortable = { onDismiss(); onSavePortableCopy() },
+            )
+        }
+    }
+}
+
+@Composable
+private fun DocumentHeroCard(
+    title: String,
+    pageLabel: String,
+    hasUnsavedChanges: Boolean,
+    isReadOnly: Boolean,
+    onExportClick: () -> Unit,
+) {
+    val ink = rememberChromeInk()
+    val accent = MaterialTheme.colorScheme.primary
+    val formatBadge = remember(title, isReadOnly) {
+        when {
+            isReadOnly -> "Read-only"
+            title.endsWith(".xopp", ignoreCase = true) -> ".xopp"
+            title.endsWith(".pdf", ignoreCase = true) -> ".pdf"
+            else -> ".mobix"
+        }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(rememberSheetSurfaceColor())
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        MiniPageThumbnail(ink = ink, accent = accent)
+        Spacer(Modifier.width(10.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (hasUnsavedChanges) {
+                    Spacer(Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .clip(CircleShape)
+                            .background(accent),
+                    )
+                }
+            }
+            Spacer(Modifier.height(2.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Text(
+                    text = formatBadge,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ink.copy(alpha = 0.78f),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(ink.copy(alpha = 0.10f))
+                        .padding(horizontal = 6.dp, vertical = 1.dp),
+                )
+                if (pageLabel.isNotEmpty()) {
+                    Text(
+                        text = pageLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ink.copy(alpha = 0.58f),
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(accent.copy(alpha = 0.14f))
+                .clickable(enabled = !isReadOnly, onClick = onExportClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                ChromeGlyph.EXPORT.imageVector(),
+                contentDescription = "Export and share",
+                tint = if (isReadOnly) ink.copy(alpha = 0.35f) else accent,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun MiniPageThumbnail(ink: Color, accent: Color) {
+    Canvas(
+        modifier = Modifier
+            .size(width = 34.dp, height = 42.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(ink.copy(alpha = 0.08f)),
+    ) {
+        val ruleColor = ink.copy(alpha = 0.16f)
+        val strokeColor = accent.copy(alpha = 0.85f)
+        for (i in 1..3) {
+            val y = size.height * (i * 0.24f)
+            drawLine(ruleColor, Offset(5f, y), Offset(size.width - 5f, y), strokeWidth = 1.2f)
+        }
+        val path = Path().apply {
+            moveTo(size.width * 0.18f, size.height * 0.62f)
+            cubicTo(
+                size.width * 0.38f, size.height * 0.25f,
+                size.width * 0.62f, size.height * 0.78f,
+                size.width * 0.82f, size.height * 0.42f,
+            )
+        }
+        drawPath(path, strokeColor, style = Stroke(width = 2.4f, cap = StrokeCap.Round))
+    }
+}
+
+@Composable
+private fun SheetModeSwitcher(
+    activeTab: SheetTab,
+    onSelectTab: (SheetTab) -> Unit,
+) {
+    val ink = rememberChromeInk()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(rememberSheetSurfaceColor())
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        SheetTabPill(
+            label = "Document",
+            icon = ChromeGlyph.PDF.imageVector(),
+            selected = activeTab == SheetTab.DOCUMENT,
+            ink = ink,
+            onClick = { onSelectTab(SheetTab.DOCUMENT) },
+            modifier = Modifier.weight(1f),
+        )
+        SheetTabPill(
+            label = "Pen & View",
+            icon = Icons.Outlined.Draw,
+            selected = activeTab == SheetTab.STUDIO,
+            ink = ink,
+            onClick = { onSelectTab(SheetTab.STUDIO) },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun SheetTabPill(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    ink: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val pillBg = if (selected) ink.copy(alpha = 0.14f) else Color.Transparent
+    val contentColor = if (selected) ink else ink.copy(alpha = 0.58f)
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(pillBg)
+            .clickable(onClick = onClick)
+            .padding(vertical = 7.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = contentColor,
+        )
+    }
+}
+
+private fun overflowMenuModifier(isCompact: Boolean): Modifier = if (isCompact) {
+    Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 12.dp)
+        .widthIn(max = 420.dp)
+        .navigationBarsPadding()
+} else {
+    Modifier.widthIn(min = 312.dp, max = 340.dp)
 }

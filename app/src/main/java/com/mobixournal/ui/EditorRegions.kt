@@ -309,36 +309,19 @@ fun EditorTopBar(
                     // (`SaveControl`, the tablet's half of `SavingSpin`).
                     SaveControl(enabled = !pane.isReadOnly && stripTabs.canSave, onSave = onSave)
                 }
-                OverflowMenu(
-                    isReadOnly = pane.isReadOnly,
+                EditorOverflowMenu(
+                    ui = ui,
+                    pane = pane,
+                    stripTabs = stripTabs,
                     settings = settings,
-                    onSelectPenPreset = { preset ->
-                        if (settings != null && onSettingsChange != null) {
-                            val updated = settings.copy(
-                                selectedPenPresetId = preset.id,
-                                minimumPressure = preset.minimumPressure,
-                                pressureMultiplier = preset.pressureMultiplier,
-                            )
-                            onSettingsChange(updated)
-                            pane.surface?.applySettings(updated)
-                        }
-                    },
+                    onSettingsChange = onSettingsChange,
                     onOpen = onOpen,
                     onNewTab = onNewTab,
                     onSave = onSave,
-                    canSave = stripTabs.canSave,
-                    onSaveAs = { ui.showSaveAs = true },
                     onImportPdf = onImportPdf,
-                    onExportPdf = { ui.exportPdfOpen = true },
                     onExportPagePng = onExportPagePng,
                     onExportPageSvg = onExportPageSvg,
                     onSavePortableCopy = onSavePortableCopy,
-                    // The card is the screen's, not the panel's: a menu's window dies with the menu.
-                    onExportAs = { ui.exportAsOpen = true },
-                    onSettings = { ui.showSettings = true },
-                    penDiagnostics = ui.penDiagnostics,
-                    onTogglePenDiagnostics = { ui.penDiagnostics = !ui.penDiagnostics },
-                    onOpenPenParameters = { ui.showPenParametersDialog = true },
                 )
                 if (settings != null && !railOnLeft && !ui.fullPage) {
                     Spacer(Modifier.width(SideToolbarModernTotalWidth))

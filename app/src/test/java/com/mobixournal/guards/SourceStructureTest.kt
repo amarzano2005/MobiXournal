@@ -38,7 +38,8 @@ class SourceStructureTest {
         // shared document an editing pane hands its mirror, both passed straight through to the canvas.
         // +8 deliberate: a pane with no document draws the entry screen instead of a dead canvas, so its
         // focus gesture is declared once and used by both branches.
-        "ui/EditorRegions.kt" to 1759,
+        // -34: EditorOverflowMenu adapter moved the OverflowMenu wiring out of EditorTopBar.
+        "ui/EditorRegions.kt" to 1725,
         // +5 deliberate: the editable page window it owns (pageSource / pageWindow / resetPageWindow).
         // +3 deliberate: the background resolver a paged `.mobix` reads through (its setter lives in
         // CanvasPageSource.kt, beside the page source it belongs to).
@@ -96,7 +97,6 @@ class SourceStructureTest {
      * is a candidate for extraction; none of them may grow.
      */
     private val longFunctions = setOf(
-        "ui/EditorOverflowMenu.kt#OverflowMenu",
         "ui/EditorRegions.kt#TopBarToolsRow",
         "ui/EditorRegions.kt#SearchControls",
         "ui/EditorRegions.kt#EditorTopBar",
