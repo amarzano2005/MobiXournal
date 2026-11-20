@@ -72,8 +72,8 @@ object AboutLinks {
  * entry to find, because the two questions a reader arrives with here — *which build is this* and *where
  * do I say something about it* — are asked at the same moment. Its shape is deliberately not the other
  * pages': a hero that names the app and the version and carries the update check beside a compact GitHub
- * door, a pair of action cards aimed at GitHub's issue forms with *Copy app details* under them, and one
- * card holding the credits and the licence behind two disclosures.
+ * door, a pair of action cards aimed at GitHub's issue forms with *Copy app details* in a card under them,
+ * and one card holding the credits and the licence behind two disclosures.
  *
  * The doors go to the repository's **issue forms** (`ProjectLinks`, `.github/ISSUE_TEMPLATE`) rather than
  * to a blank issue box: the form asks for the build and the platform in fields, and the answer lands
@@ -87,10 +87,10 @@ fun AboutSection() {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     }
 
-    // The version line **is** the update check: the number is the one row the command answers about, so a
-    // tap on the hero asks GitHub and the sentence under it is the state — there is no separate "Updates"
-    // group to find. "Already the latest" also raises a notification at the bottom, because an answer
-    // printed only inside the card is an answer the reader may never see (`docs/updates.md`).
+    // The sentence under the number is the check's state and the button under it is the command: nothing on
+    // the card is a hidden hit area, so reading the build never starts a network check. "Already the latest"
+    // also raises a notification at the bottom, because an answer printed only inside the card is an answer
+    // the reader may never see (`docs/updates.md`).
     var askedHere by remember { mutableStateOf(false) }
     LaunchedEffect(AppUpdates.phase) {
         if (askedHere && AppUpdates.phase == UpdatePhase.UP_TO_DATE) {
@@ -124,16 +124,20 @@ fun AboutSection() {
     Spacer(Modifier.height(SettingsGroupGap))
     SettingsGroupTitle("Tell the project")
     ProjectDoors(open)
-    // The facts a report asks for sit **under the doors they are pasted into**, not in a card of their
-    // own: the reader copies them to write one of the two reports above, and the button says what it did
-    // on the press itself — `Copied` for a moment, then back to the command.
-    OutlinedButton(
-        onClick = { copied = copyAppDetails(context) },
-        modifier = Modifier.settingsActionPill(top = 8.dp, bottom = 0.dp),
-    ) {
-        Icon(ChromeGlyph.COPY.imageVector(), contentDescription = null, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(if (copied) "Copied" else "Copy app details")
+    // The facts a report asks for sit **under the doors they are pasted into**, in a card of their own so
+    // the pill has the card's edge to sit against instead of floating a few dp wider than every other
+    // pill on the page. The press itself is the whole answer — `Copied` for a moment, then back to the
+    // command — so there is no toast over it saying the same thing twice.
+    Spacer(Modifier.height(SettingsHeaderGap))
+    SettingsCard {
+        OutlinedButton(
+            onClick = { copied = copyAppDetails(context) },
+            modifier = Modifier.settingsActionPill(),
+        ) {
+            Icon(ChromeGlyph.COPY.imageVector(), contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(if (copied) "Copied" else "Copy app details")
+        }
     }
 
     Spacer(Modifier.height(SettingsGroupGap))
@@ -184,7 +188,9 @@ private fun appDetails(): String = buildString {
  * Hand [appDetails] to the clipboard and say whether it worked.
  *
  * A device without a clipboard service is told so rather than failing quietly: the row is a command, and a
- * command that does nothing when pressed reads as a broken page.
+ * command that does nothing when pressed reads as a broken page. A **successful** copy says nothing here —
+ * the row turns to `Copied` itself, and a toast on top of that was the same answer twice, one of them
+ * already on its way out.
  */
 private fun copyAppDetails(context: Context): Boolean {
     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
@@ -193,7 +199,6 @@ private fun copyAppDetails(context: Context): Boolean {
         return false
     }
     clipboard.setPrimaryClip(ClipData.newPlainText("MobiXournal app details", appDetails()))
-    Toast.makeText(context, "App details copied.", Toast.LENGTH_SHORT).show()
     return true
 }
 
@@ -310,6 +315,12 @@ private fun BuildIdentity(
 /**
  * One **door** on the page: a glyph, its name and one sentence saying where it goes.
  *
+ * It wears the list's own grammar — [SectionGlyph]'s tinted disc with the glyph at 20 dp, and the chevron a
+ * [SectionRow] ends with — so a card here reads as something that opens rather than a panel of text, and
+ * the mark is the same size it is on every other settings page. The glyph and the chevron share a header
+ * row above the words instead of standing beside them: two of these sit side by side in half the width of
+ * a phone, and a disc in the text column would leave the title a few characters wide.
+ *
  * A card rather than a row because the doors are this page's main business; the glyph is the shared
  * chrome catalogue's, so the picture is the same on the window's page. The **card itself** is the control
  * ([SettingsCard]'s `onClick`), not a row inside it: a reader aims at the whole shape, and the card is the
@@ -331,12 +342,15 @@ private fun DoorCard(
                 .fillMaxWidth()
                 .padding(vertical = settingsCellInset(reach)),
         ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp),
-            )
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                SectionGlyph(icon)
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Spacer(Modifier.height(10.dp))
             Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(

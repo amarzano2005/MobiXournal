@@ -40,11 +40,11 @@ licence. The groups are the same areas the window calls sections — a setting y
 findable on the other by its subject, not by its name.
 
 **About** is a page of its own on both shells, and not shaped like the other settings pages: a header
-card names the build — tap it to ask GitHub whether it is the latest, and *Copy app details* puts the
-version, your Android release and your device on the clipboard — then two buttons open the project's
-GitHub issue forms, one for a problem and one for an idea. Paste the copied details into the report: the
-build is the part that makes a problem reproducible, and the forms are plain GitHub, so anything you
-already have open there is one tap away.
+card names the build and carries the commands — *Check for updates* asks GitHub whether it is the latest,
+and *Copy app details* puts the version, your Android release and your device on the clipboard — then two
+door cards open the project's GitHub issue forms, one for a problem and one for an idea. Paste the copied
+details into the report: the build is the part that makes a problem reproducible, and the forms are plain
+GitHub, so anything you already have open there is one tap away.
 
 Two lists are arranged by hand. On either shell, drag a swatch's handle in the Colors page to change the
 palette's order — every picker, the Ring and the colour shortcuts follow it. In the window's Toolbar page,
