@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -110,7 +111,8 @@ fun AboutSection() {
         version = "${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})",
         status = AppUpdates.statusLine(),
         platform = platformLine(),
-        onClick = {
+        checking = AppUpdates.phase == UpdatePhase.CHECKING,
+        onCheck = {
             askedHere = true
             AppUpdates.offerOrCheck(context)
         },
@@ -122,6 +124,8 @@ fun AboutSection() {
 
     Spacer(Modifier.height(SettingsGroupGap))
     SettingsGroup("App details") {
+        // The card is ordered **what I do, where I go, what I owe**: the two actions first, then the
+        // disclosure pair — the legal text is the last thing a reader needs, not the thing between them.
         LinkRow(
             "Copy app details",
             note = if (copied) {
@@ -130,6 +134,11 @@ fun AboutSection() {
                 "Version, Android release and device — the three facts a report asks for."
             },
         ) { copied = copyAppDetails(context) }
+        SettingsDivider()
+        LinkRow(
+            "Open the project on GitHub",
+            note = "Source code, release downloads, and every report already filed.",
+        ) { open(AboutLinks.SOURCE) }
         SettingsDivider()
         // The credits and the licence are long, and neither is what a reader came for: a disclosure keeps
         // them one tap away instead of spending half the page on text that is read once.
@@ -153,11 +162,6 @@ fun AboutSection() {
             )
             LinkRow("Read the GPL v2 License") { open(AboutLinks.LICENSE) }
         }
-        SettingsDivider()
-        LinkRow(
-            "Open the project on GitHub",
-            note = "Source code, release downloads, and every report already filed.",
-        ) { open(AboutLinks.SOURCE) }
     }
 }
 
@@ -224,50 +228,61 @@ private fun ProjectDoors(open: (String) -> Unit) {
 }
 
 /**
- * The page's **hero**: the app's own mark, its name, the build in hand and the machine it is on.
+ * The page's **hero**: the app's own mark, its name, the build in hand, the machine it is on — and the
+ * **Check for updates** button, in the same card as the number it asks about.
  *
- * The whole card is the update check, because the number is the question the command answers. It is a card
- * like the rest of the screen — same fill, same 20 dp corner — but its content is laid out as an identity
- * card rather than a settings row, which is what makes the page read as *about this build* at a glance.
+ * The card used to be the command, with the build number as its hit area. That was invisible: a reader had
+ * to guess the number was tappable, and a tap meant for reading started a network check. The sentence under
+ * the version still reports the state ([com.mobixournal.update.AppUpdates.statusLine]), the button says what
+ * the sentence is about, and while a check runs the button is disabled and reads *Checking…* rather than
+ * looking pressable and doing nothing.
  */
 @Composable
-private fun BuildIdentity(version: String, status: String, platform: String, onClick: () -> Unit) {
+private fun BuildIdentity(
+    version: String,
+    status: String,
+    platform: String,
+    checking: Boolean,
+    onCheck: () -> Unit,
+) {
     val reach = LocalSettingsCardInset.current
     SettingsCard {
-        Row(
-            modifier = Modifier
-                .fullBleedRow(reach)
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = reach, vertical = settingsCellInset(reach)),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Image(
-                painter = painterResource(R.drawable.ic_splash_logo),
-                contentDescription = null,
-                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)),
-            )
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text("MobiXournal", style = MaterialTheme.typography.titleMedium)
-                Text(
-                    version,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 2.dp),
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = settingsCellInset(reach))) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    painter = painterResource(R.drawable.ic_splash_logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)),
                 )
-                Text(
-                    status,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-                Text(
-                    platform,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("MobiXournal", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        version,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                    Text(
+                        status,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                    Text(
+                        platform,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+            }
+            Button(
+                onClick = onCheck,
+                enabled = !checking,
+                modifier = Modifier.settingsActionPill(top = 12.dp, bottom = 0.dp),
+            ) {
+                Text(if (checking) "Checking…" else "Check for updates")
             }
         }
     }

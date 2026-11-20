@@ -38,9 +38,9 @@ report the failure — on the About line, and on the pill when the reader asked 
 ## When the check runs, and what it says
 
 - **At launch**, once per process, silently: the answer only surfaces when it is *newer*.
-- **From About**, on request: the **version line itself is the button** — the tablet's build number is
-  tappable (`AboutSection.kt`) and the window's row is a command row (`SettingsSections.kt`) — and it reports
-  the result either way: the version already in hand, the newer one, or the failure. "Already the latest" is
+- **From About**, on request: an explicit **Check for updates** button sits under the build number on the
+  tablet (`AboutSection.kt`) and the window's row is a command row (`AboutSettings.kt`) — and it reports the
+  result either way: the version already in hand, the newer one, or the failure. "Already the latest" is
   also **announced at the bottom**, as a notification on the tablet and as a pill over the page in the
   window, because an answer that lives only inside a settings card is one a reader can tap and never see.
 - Nothing is sent about the reader or the document. It is a GET of a public page, and no identifier of the
