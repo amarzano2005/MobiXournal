@@ -39,6 +39,7 @@ import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeInk
+import com.mobixournal.ui.theme.rememberPopupPanelColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberToolbarColor
 
@@ -297,7 +298,7 @@ private fun ToolGroupButton(
         // Only a group with something to choose wears the chevron; a single-member slot is a plain
         // button and must not look like it opens a menu.
         if (members.size > 1) MenuChevron()
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = rememberPopupPanelColor()) {
             ToolGroupPicker(group, members, selected) { picked -> onPick(picked); open = false }
         }
     }

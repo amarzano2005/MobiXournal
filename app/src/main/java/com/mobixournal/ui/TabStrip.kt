@@ -415,7 +415,7 @@ private fun TabChipMenu(
     onMove: () -> Unit,
     onMirror: () -> Unit,
 ) {
-    ToolbarMenu(expanded = expanded, onDismissRequest = onDismiss) {
+    ToolbarMenu(expanded = expanded, onDismissRequest = onDismiss, fill = com.mobixournal.ui.theme.rememberPopupPanelColor()) {
         DropdownMenuItem(
             text = { Text(labels.move) },
             onClick = { onDismiss(); onMove() },

@@ -376,7 +376,7 @@ private fun RowScope.ContentsRowTitle(
                 .fillMaxWidth()
                 .combinedClickable(onClick = { if (row.hasDestination) onClick() }, enabled = true, onLongClick = { fullTitle = true }),
         )
-        ToolbarMenu(expanded = fullTitle, onDismissRequest = { fullTitle = false }) {
+        ToolbarMenu(expanded = fullTitle, onDismissRequest = { fullTitle = false }, fill = com.mobixournal.ui.theme.rememberPopupPanelColor()) {
             Text(
                 row.title.ifBlank { "Bookmark" },
                 style = MaterialTheme.typography.bodyMedium,
@@ -447,7 +447,7 @@ private fun ContentsRowMenu(
                 modifier = Modifier.size(18.dp),
             )
         }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = com.mobixournal.ui.theme.rememberPopupPanelColor()) {
             if (onRename != null) {
                 DropdownMenuItem(
                     text = { Text("Rename") },

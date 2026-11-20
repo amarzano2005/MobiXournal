@@ -47,6 +47,7 @@ import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberChromeInk
+import com.mobixournal.ui.theme.rememberPopupPanelColor
 
 /**
  * The rail's **Colour & size** slot: the whole stroke story in one place, in the two parts a stroke
@@ -113,7 +114,7 @@ fun ColorSizeRailSlot(
                 ColorSizePopup(style) { open -> SlotChevron(open, slot) }
             }
         }
-        ToolbarMenu(expanded = editing in colors.indices, onDismissRequest = { editing = -1 }) {
+        ToolbarMenu(expanded = editing in colors.indices, onDismissRequest = { editing = -1 }, fill = rememberPopupPanelColor()) {
             val index = editing
             if (index in colors.indices) {
                 MenuHeading("${colorOwner.label} favourite ${index + 1}")

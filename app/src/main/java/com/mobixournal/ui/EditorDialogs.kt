@@ -203,7 +203,7 @@ fun FontFamilyPicker(family: String, onFamily: (String) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         TextButton(onClick = { open = true }) { Text(family) }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = com.mobixournal.ui.theme.rememberPopupPanelColor()) {
             for (f in TEXT_FAMILIES) {
                 DropdownMenuItem(text = { Text(f) }, onClick = { onFamily(f); open = false })
             }

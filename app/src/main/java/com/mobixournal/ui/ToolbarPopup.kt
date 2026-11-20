@@ -65,6 +65,7 @@ import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
+import com.mobixournal.ui.theme.rememberPopupPanelColor
 
 /**
  * The touch-target square every rail slot occupies, tool buttons and popup buttons alike. Icons are
@@ -629,7 +630,7 @@ internal fun ToolbarPopupButton(
                 modifier = Modifier.size(slotSize / 2),
             )
         }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = rememberPopupPanelColor()) {
             if (heading != null) MenuHeading(heading)
             content { open = false }
         }
@@ -653,7 +654,7 @@ internal fun ToolbarPopupButton(
     var open by remember { mutableStateOf(false) }
     Box {
         face { open = !open }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = rememberPopupPanelColor()) {
             if (heading != null) MenuHeading(heading)
             content { open = false }
         }

@@ -162,6 +162,7 @@ private fun MicCapsuleButton(audio: AudioUiState, isDark: Boolean) {
         ToolbarMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
+            fill = com.mobixournal.ui.theme.rememberPopupPanelColor(),
         ) {
             AudioCapsuleMenuContent(audio = audio, onDismiss = { showMenu = false })
         }

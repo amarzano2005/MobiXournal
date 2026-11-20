@@ -436,6 +436,7 @@ private fun SpeedSelectorPill(
         ToolbarMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
+            fill = com.mobixournal.ui.theme.rememberPopupPanelColor(),
         ) {
             speeds.forEach { speed ->
                 androidx.compose.material3.DropdownMenuItem(

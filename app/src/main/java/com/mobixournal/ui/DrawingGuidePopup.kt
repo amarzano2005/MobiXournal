@@ -38,6 +38,7 @@ import com.mobixournal.design.ToolGlyph
 import com.mobixournal.design.ToolGlyphCatalogue
 import com.mobixournal.render.GuideKind
 import com.mobixournal.ui.theme.rememberChromeInk
+import com.mobixournal.ui.theme.rememberPopupPanelColor
 
 /**
  * The guide chooser's faces, from the **shared** catalogue.
@@ -212,7 +213,7 @@ internal fun CompactGuidePopupButton(
                 modifier = Modifier.size(ToolIconSize),
             )
         }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = rememberPopupPanelColor()) {
             DrawingGuideMenuItems(selectedKind = kind, onKind = onKind, dismiss = { open = false })
         }
     }

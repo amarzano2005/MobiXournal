@@ -1125,7 +1125,7 @@ private fun CompactShapeKindButton(
                     .padding(end = 1.dp, bottom = 1.dp)
                     .size(10.dp),
             )
-            ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+            ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = com.mobixournal.ui.theme.rememberPopupPanelColor()) {
                 ToolVariantPicker(
                     heading = heading,
                     labels = kinds,
@@ -1211,7 +1211,7 @@ private fun CompactTopBarToolButton(
                     .size(10.dp),
             )
         }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = com.mobixournal.ui.theme.rememberPopupPanelColor()) {
             ToolGroupPicker(group, members, selected) { picked -> onPick(picked); open = false }
         }
     }

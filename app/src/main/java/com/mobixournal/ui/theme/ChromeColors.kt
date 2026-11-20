@@ -94,6 +94,10 @@ fun rememberGlassSurfaceColor(): Color = ModernTheme.bandSurface(chromeIsDark())
 @Composable
 fun rememberFloatingSurfaceColor(): Color = ModernTheme.floatingSurface(chromeIsDark())
 
+/** Near-solid panel fill (`0.97` alpha) for editor popups over bright or inked pages. */
+@Composable
+fun rememberPopupPanelColor(): Color = ModernTheme.settingsPanel(chromeIsDark())
+
 /**
  * The **chrome's own ink**: the colour every glyph and label inside a bar, the rail, a dock or a menu
  * is drawn in — white on the dark theme's glass, the dark surface ink (#1B212F) on the light theme's.

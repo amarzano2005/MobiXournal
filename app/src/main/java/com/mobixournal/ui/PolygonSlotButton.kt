@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobixournal.ui.theme.rememberChromeInk
+import com.mobixournal.ui.theme.rememberPopupPanelColor
 
 /**
  * The **Polygons slot**, whose menu is the polygon's side count.
@@ -102,7 +103,7 @@ internal fun PolygonSlotButton(
                     .size(10.dp),
             )
         }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = rememberPopupPanelColor()) {
             ToolVariantPicker(
                 heading = "Sides",
                 labels = POLYGON_SIDE_CHOICES.map { "$it" },

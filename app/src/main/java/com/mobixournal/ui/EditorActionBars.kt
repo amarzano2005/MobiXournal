@@ -165,7 +165,7 @@ private fun AlignMenu(
     var open by remember { mutableStateOf(false) }
     Box {
         BarIconButton("Align & distribute", ChromeGlyph.ALIGN_LEFT.imageVector()) { open = true }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = com.mobixournal.ui.theme.rememberPopupPanelColor()) {
             @Composable
             fun row(label: String, action: () -> Unit) {
                 DropdownMenuItem(
@@ -234,7 +234,7 @@ private fun RecolorMenu(onRecolor: (Int) -> Unit, palette: ColorPaletteState) {
     var editing by remember { mutableStateOf(false) }
     Box {
         BarIconButton("Recolour", ChromeGlyph.RECOLOUR.imageVector()) { open = true }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, tight = true) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, tight = true, fill = com.mobixournal.ui.theme.rememberPopupPanelColor()) {
             ColorPaletteRows(
                 selected = null,
                 palette = palette,
@@ -260,7 +260,7 @@ private fun ReWidthMenu(widthSlots: List<Float>, onReWidth: (Float) -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         BarIconButton("Width", ChromeGlyph.WIDTH.imageVector()) { open = true }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }) {
+        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = com.mobixournal.ui.theme.rememberPopupPanelColor()) {
             widthSlots.forEachIndexed { i, pt ->
                 DropdownMenuItem(
                     text = { Text("${PEN_WIDTH_LABELS[i]}  (${ptLabel(pt)} pt)") },
