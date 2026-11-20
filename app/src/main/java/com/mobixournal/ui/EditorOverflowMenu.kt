@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupPositionProvider
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeInk
@@ -82,10 +83,29 @@ private class BottomSheetPopupPositionProvider(
     }
 }
 
+private data class SheetPopupLayout(
+    val isCompact: Boolean,
+    val contentWidthPx: Int,
+    val positionProvider: PopupPositionProvider?,
+)
+
+@Composable
+private fun rememberSheetPopupLayout(): SheetPopupLayout {
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val isCompact = screenWidthDp < COMPACT_SHEET_BREAKPOINT_DP
+    val density = LocalDensity.current
+    return remember(density, screenWidthDp, isCompact) {
+        val widthDp = if (isCompact) (screenWidthDp.dp - 24.dp).coerceAtMost(420.dp) else 328.dp
+        val widthPx = with(density) { widthDp.roundToPx() }
+        val provider = if (isCompact) BottomSheetPopupPositionProvider(with(density) { 12.dp.roundToPx() }) else null
+        SheetPopupLayout(isCompact = isCompact, contentWidthPx = widthPx, positionProvider = provider)
+    }
+}
+
 @Composable
 internal fun rememberSheetSurfaceColor(): Color {
     val isDark = chromeIsDark()
-    return rememberChromeInk().copy(alpha = if (isDark) 0.06f else 0.045f)
+    return rememberChromeInk().copy(alpha = if (isDark) 0.08f else 0.055f)
 }
 
 /**
@@ -201,11 +221,9 @@ internal fun OverflowMenu(
     var activeTab by remember { mutableStateOf(SheetTab.DOCUMENT) }
     var inExport by remember { mutableStateOf(false) }
 
-    val isCompact = LocalConfiguration.current.screenWidthDp < COMPACT_SHEET_BREAKPOINT_DP
-    val density = LocalDensity.current
-    val bottomProvider = remember(density, isCompact) {
-        if (isCompact) BottomSheetPopupPositionProvider(with(density) { 12.dp.roundToPx() }) else null
-    }
+    val layout = rememberSheetPopupLayout()
+    val isCompact = layout.isCompact
+    val sheetFill = ModernTheme.settingsPanel(chromeIsDark())
 
     Box {
         OverflowTriggerButton(
@@ -221,8 +239,10 @@ internal fun OverflowMenu(
                 open = false
                 inExport = false
             },
-            positionProvider = bottomProvider,
-            modifier = overflowMenuModifier(isCompact),
+            positionProvider = layout.positionProvider,
+            contentWidthPx = layout.contentWidthPx,
+            fill = sheetFill,
+            modifier = if (isCompact) Modifier.navigationBarsPadding() else Modifier,
         ) {
             OverflowSheetBody(
                 isCompact = isCompact,
@@ -639,14 +659,4 @@ private fun SheetTabPill(
             color = contentColor,
         )
     }
-}
-
-private fun overflowMenuModifier(isCompact: Boolean): Modifier = if (isCompact) {
-    Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 12.dp)
-        .widthIn(max = 420.dp)
-        .navigationBarsPadding()
-} else {
-    Modifier.widthIn(min = 312.dp, max = 340.dp)
 }
