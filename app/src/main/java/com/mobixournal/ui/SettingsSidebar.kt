@@ -12,12 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Brush
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.TouchApp
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -130,19 +125,6 @@ internal fun SettingsSearchField(query: String, onQuery: (String) -> Unit, modif
         modifier = modifier.fillMaxWidth(),
     )
 }
-
-/**
- * The icon of each area, so the side menu is scannable by shape as well as by word — the same trick a
- * tablet's settings list uses. Declared here, next to the list that draws it, because it is a property
- * of *this menu*; nothing else renders an area.
- */
-private val SettingsArea.icon: ImageVector
-    get() = when (this) {
-        SettingsArea.INPUT -> Icons.Filled.TouchApp
-        SettingsArea.DRAWING -> Icons.Filled.Brush
-        SettingsArea.INTERFACE -> Icons.Filled.Tune
-        SettingsArea.APP -> Icons.Filled.Info
-    }
 
 /** One pill's height and the air around it: the list's step is the two added together. */
 internal val SettingsSidebarRowHeight: Dp = 48.dp
