@@ -29,14 +29,15 @@ internal fun AboutSettings() {
     SettingsGroup("MobiXournal Desktop") {
         SettingsReadout("Version", DESKTOP_VERSION)
         SettingsReadout("Reads and writes", ".xopp · .mobix")
-        // The check's own row. Its note is the panel's hover help, so the answer a reader needs after a tap
-        // — "you are on the latest version" — is the bottom pill the shell hosts, not this line
-        // (`docs/updates.md` owns the channel, the pill and both installers).
+        // The check and its answer, in the same place: the note is the panel's static help, and the line
+        // under the row is what the last check found — the version in hand, the newer one, or the failure.
+        // Nothing floats over the page for this (`docs/updates.md` owns the channel and both installers).
         SettingsCommand(
             label = "Check for updates",
-            note = DesktopUpdates.statusLine(),
+            note = "Asks GitHub whether a newer window is published.",
             onClick = { DesktopUpdates.offerOrCheck() },
         )
+        DesktopUpdates.answerLine()?.let { answer -> SettingsNote(answer) }
     }
     SettingsGroup("Tell the project") {
         SettingsCommand(

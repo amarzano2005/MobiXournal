@@ -101,16 +101,6 @@ object DesktopUpdates {
     var dialog by mutableStateOf(false)
         private set
 
-    /**
-     * The sentence the **bottom pill** prints, and only for a moment.
-     *
-     * The About row's own note is the panel's hover help, not a line of its own, so a check that reported
-     * nothing there looked like a dead command. This is the answer the reader asked for, drawn over the
-     * page the way the tablet's notification is (`docs/updates.md`).
-     */
-    var notice by mutableStateOf<String?>(null)
-        private set
-
     /** The download in flight, so **Cancel** can stop it instead of leaving it unseen. */
     private var downloadJob: Job? = null
 
@@ -130,44 +120,35 @@ object DesktopUpdates {
 
     /**
      * The launch check: silent unless it finds something newer, so a working window opens on its page — and
-     * no pill, because a reader who did not ask must not be told.
+     * no sentence under About's command, because a reader who did not ask must not be told.
      */
     fun checkOnLaunch() {
         if (asked) return
         asked = true
-        check(announce = false)
+        check()
     }
 
-    /** The About row's command — the same check, with the answer on the bottom pill either way. */
-    fun check(announce: Boolean = true) {
+    /** The About row's command — the same check, whose answer About prints under the row. */
+    fun check() {
         if (phase == UpdatePhase.CHECKING || phase == UpdatePhase.DOWNLOADING) return
         phase = UpdatePhase.CHECKING
         failure = null
-        if (announce) notice = "Checking for updates…"
         scope.launch {
             val found = runCatching { latest() }
             if (found.isFailure) {
                 phase = UpdatePhase.FAILED
                 failure = UpdateFailure.CHECK
-                if (announce) notice = statusLine()
                 return@launch
             }
             val offer = found.getOrNull()
             if (offer == null) {
                 phase = UpdatePhase.UP_TO_DATE
-                if (announce) notice = statusLine()
                 return@launch
             }
             release = offer
             phase = UpdatePhase.AVAILABLE
-            if (announce) notice = null
             dialog = true
         }
-    }
-
-    /** The pill's own timer: the sentence has been read, so it goes away. */
-    fun clearNotice() {
-        notice = null
     }
 
     /** The dialog's **Update now** / **Try again**: download the MSI and start Windows' installer on it. */
@@ -248,16 +229,25 @@ object DesktopUpdates {
         if (release != null) showDialog() else check()
     }
 
-    /** The one line About prints under its command — the same copy the card reads, in this shell's words. */
-    fun statusLine(): String = updateStatusLine(
-        phase = phase,
-        version = release?.version,
-        current = DESKTOP_VERSION,
-        failure = failure,
-        progress = progress,
-        totalBytes = totalBytes,
-        platform = UpdatePlatform.DESKTOP,
-    )
+    /**
+     * The answer the last check has, or null before one was asked — About's own line under its command.
+     *
+     * The window has no floating toast for this: the command and its answer sit in the same panel, because
+     * a sentence a reader asked for in About and found hovering at the bottom of the window was one that
+     * belonged to another surface.
+     */
+    fun answerLine(): String? {
+        if (phase == UpdatePhase.IDLE) return null
+        return updateStatusLine(
+            phase = phase,
+            version = release?.version,
+            current = DESKTOP_VERSION,
+            failure = failure,
+            progress = progress,
+            totalBytes = totalBytes,
+            platform = UpdatePlatform.DESKTOP,
+        )
+    }
 
     /**
      * The newer release, or null when this window already is the latest.

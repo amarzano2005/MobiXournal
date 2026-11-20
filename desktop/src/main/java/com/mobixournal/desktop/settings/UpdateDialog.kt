@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,14 +31,12 @@ import com.mobixournal.desktop.tools.DialogWidth
 import com.mobixournal.desktop.tools.GlassPresence
 import com.mobixournal.desktop.tools.PanelButton
 import com.mobixournal.desktop.tools.glassSpring
-import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.tools.rememberClosingValue
 import com.mobixournal.update.UpdateAction
 import com.mobixournal.update.UpdatePlatform
 import com.mobixournal.update.UpdateRelease
 import com.mobixournal.update.updateCardFor
 import com.mobixournal.update.updateProgressLine
-import kotlinx.coroutines.delay
 
 /**
  * The window's **update available** popup, over the page it arrived while the reader was using.
@@ -71,32 +67,6 @@ internal fun BoxScope.DesktopUpdatesHost() {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             if (release != null) UpdateDialog(release)
         }
-    }
-}
-
-/**
- * The **bottom pill**: the answer to *Check for updates* when there is no new version to offer.
- *
- * The About row's note is the panel's hover help rather than a line of its own, so "this is the latest
- * version" had nowhere to appear and the command looked dead. This is the tablet's notification in the
- * window's material (`docs/updates.md`): one quiet sentence over the page, gone after a few seconds.
- */
-@Composable
-internal fun BoxScope.DesktopUpdateNotice() {
-    val notice = DesktopUpdates.notice ?: return
-    LaunchedEffect(notice) {
-        delay(4_000)
-        DesktopUpdates.clearNotice()
-    }
-    Box(
-        Modifier
-            .align(Alignment.BottomCenter)
-            .padding(bottom = 36.dp)
-            .glassSpring()
-            .glassSurface()
-            .padding(horizontal = 18.dp, vertical = 10.dp),
-    ) {
-        Text(notice, color = DesktopTheme.ink, style = DesktopTheme.body)
     }
 }
 

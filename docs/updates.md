@@ -33,16 +33,18 @@ door and not the first. Only when both doors fail does the check report a failur
 answers `403` to an anonymous request once the calling IP has spent its sixty calls an hour, and a shared
 address reaches that without anyone doing anything unusual. Reading the refusal as *no update* told a reader
 on an older build that there was nothing to install while a newer release was published, so both shells
-report the failure — on the About line, and on the pill when the reader asked for the check.
+report the failure where they report every other answer: on About's own line under its command, and in the
+tablet's notification when the reader asked for the check.
 
 ## When the check runs, and what it says
 
 - **At launch**, once per process, silently: the answer only surfaces when it is *newer*.
 - **From About**, on request: an explicit **Check for updates** button sits under the build number on the
   tablet (`AboutSection.kt`) and the window's row is a command row (`AboutSettings.kt`) — and it reports the
-  result either way: the version already in hand, the newer one, or the failure. "Already the latest" is
-  also **announced at the bottom**, as a notification on the tablet and as a pill over the page in the
-  window, because an answer that lives only inside a settings card is one a reader can tap and never see.
+  result either way: the version already in hand, the newer one, or the failure. That answer is a
+  **persistent line under the command** on both shells — the tablet's notification and About's own sentence
+  in the window, which has no floating toast: the panel that asked the question is the panel that answers
+  it, and the sentence stays until the next check. The command's own note is static help, never the answer.
 - Nothing is sent about the reader or the document. It is a GET of a public page, and no identifier of the
   machine, the account or the open notebook travels with it.
 
