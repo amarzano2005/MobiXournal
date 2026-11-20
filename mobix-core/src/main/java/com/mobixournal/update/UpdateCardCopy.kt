@@ -3,6 +3,9 @@ package com.mobixournal.update
 import java.util.Locale
 import kotlin.math.roundToInt
 
+/** What a shell is doing about updates right now — About and the card read this one state. */
+enum class UpdatePhase { IDLE, CHECKING, UP_TO_DATE, AVAILABLE, DOWNLOADING, READY, FAILED }
+
 /**
  * Why the last attempt stopped. The card's body and the About row read their sentence from the same
  * mapping ([updateFailureSentence]), so a failure is worded once and cannot say two different things.
@@ -13,7 +16,7 @@ enum class UpdateFailure { CHECK, DOWNLOAD, INSTALL }
  * What the card's filled answer **does**. The phase decides which action it is; the label comes from the
  * action, so a button's wording and its behaviour cannot drift apart (`docs/updates.md`).
  */
-internal enum class UpdateAction {
+enum class UpdateAction {
     UPDATE_NOW,
     RETRY,
     INSTALL,
@@ -30,41 +33,45 @@ internal enum class UpdateAction {
 }
 
 /** The words the update card wears in one [UpdatePhase] — the only place any of them is written. */
-internal data class UpdateCardCopy(
+data class UpdateCardCopy(
     val title: String,
     val subtitle: String,
     val body: String?,
     /** The notes link's label, or null when the card is busy downloading or offering the install. */
     val notes: String?,
-    /** **Skip this version**, or null once it is skipped or the phase has no offer to skip. */
+    /** **Skip this version**, or null once it is skipped, when the shell has no skip, or with no offer. */
     val skip: String?,
     val primary: UpdateAction,
     val secondary: String?,
 )
 
-/** What the card says when the bytes are in hand and Android's installer has (or will) take over. */
-internal const val UPDATE_DOWNLOADED_SENTENCE = "The update is downloaded. Android's installer will finish it."
-
 /** What the card says when this build has been skipped and a newer one is not on the table. */
 internal const val UPDATE_SKIP_LABEL = "Skip this version"
 
 /**
- * What [phase] says about [version] on a build that carries [current].
+ * What [phase] says about [version] on a build that carries [current], for [platform].
  *
- * [failure] is [AppUpdates.failure] — the reason, never the sentence; [downloaded] is whether the APK
- * already arrived, which is what tells a failed **download** (ask again) from a failed **install** (the
- * bytes are here: hand them to Android again). [skippedVersion] hides the skip answer for the build the
- * reader already skipped, so the card does not offer a choice that would do nothing.
+ * The words and the action are the same in both shells, which is why they live here rather than in one of
+ * them: a tablet that said *Try again* where the window said *Retry* would be one product answering two
+ * ways. What a shell supplies is only the noun it owns — **Android's installer**, **Windows' installer** —
+ * plus its own controls, and [canSkip] because a shell that cannot remember a skip must not offer one.
+ *
+ * [failure] is the shell's own reason, never a sentence; [downloaded] is whether the artifact already
+ * arrived, which is what tells a failed **download** (ask again) from a failed **install** (the bytes are
+ * here: hand them to the platform's installer again). [skippedVersion] hides the skip answer for the build
+ * the reader already skipped, so the card does not offer a choice that would do nothing.
  */
-internal fun updateCardFor(
+fun updateCardFor(
     phase: UpdatePhase,
     version: String,
     current: String,
     failure: UpdateFailure?,
     downloaded: Boolean,
     skippedVersion: String?,
+    platform: UpdatePlatform,
+    canSkip: Boolean,
 ): UpdateCardCopy {
-    val skip = skipAnswerFor(version, skippedVersion)
+    val skip = skipAnswerFor(version, skippedVersion, canSkip)
     return when (phase) {
         UpdatePhase.DOWNLOADING -> UpdateCardCopy(
             title = "MobiXournal $version",
@@ -75,14 +82,14 @@ internal fun updateCardFor(
             primary = UpdateAction.CANCEL,
             secondary = null,
         )
-        UpdatePhase.READY -> downloadedCard(version, current, UPDATE_DOWNLOADED_SENTENCE)
+        UpdatePhase.READY -> downloadedCard(version, current, updateDownloadedSentence(platform))
         UpdatePhase.FAILED -> if (downloaded) {
-            downloadedCard(version, current, updateFailureSentence(UpdateFailure.INSTALL))
+            downloadedCard(version, current, updateFailureSentence(UpdateFailure.INSTALL, platform))
         } else {
             offerCard(
                 version = version,
                 current = current,
-                body = updateFailureSentence(failure ?: UpdateFailure.DOWNLOAD),
+                body = updateFailureSentence(failure ?: UpdateFailure.DOWNLOAD, platform),
                 skip = skip,
                 primary = UpdateAction.RETRY,
             )
@@ -120,12 +127,26 @@ private fun downloadedCard(version: String, current: String, body: String) = Upd
     secondary = "Later",
 )
 
+/** The installer this shell hands the artifact to, named the way each platform's reader names it. */
+private fun installer(platform: UpdatePlatform): String = when (platform) {
+    UpdatePlatform.ANDROID -> "Android's installer"
+    UpdatePlatform.DESKTOP -> "Windows' installer"
+}
+
+/** What the card says when the bytes are in hand and the platform's installer has (or will) take over. */
+internal fun updateDownloadedSentence(platform: UpdatePlatform): String =
+    "The update is downloaded. ${installer(platform)} will finish it."
+
 /** The one sentence a failure has, shared by the card's body and the About row. */
-internal fun updateFailureSentence(failure: UpdateFailure?): String = when (failure) {
+fun updateFailureSentence(failure: UpdateFailure?, platform: UpdatePlatform): String = when (failure) {
     UpdateFailure.CHECK -> "Could not check for updates. Check your connection and try again."
     UpdateFailure.DOWNLOAD -> "The download did not finish. Check your connection and try again."
-    UpdateFailure.INSTALL ->
-        "Android did not open its installer. Allow MobiXournal to install apps and try again."
+    UpdateFailure.INSTALL -> when (platform) {
+        UpdatePlatform.ANDROID ->
+            "Android did not open its installer. Allow MobiXournal to install apps and try again."
+        UpdatePlatform.DESKTOP ->
+            "Windows did not start the installer. Install asks it again for the downloaded package."
+    }
     null -> "Could not check for updates."
 }
 
@@ -133,29 +154,33 @@ internal fun updateFailureSentence(failure: UpdateFailure?): String = when (fail
  * The one line About prints under its command, read from the same copy as the card: the version in hand,
  * the newer one on offer, the download's share, or the failure's own sentence.
  */
-internal fun updateStatusLine(
+fun updateStatusLine(
     phase: UpdatePhase,
     version: String?,
     current: String,
     failure: UpdateFailure?,
     progress: Float,
     totalBytes: Long,
+    platform: UpdatePlatform,
 ): String = when (phase) {
-    UpdatePhase.IDLE -> "Tap to check for updates."
+    UpdatePhase.IDLE -> when (platform) {
+        UpdatePlatform.ANDROID -> "Tap to check for updates."
+        UpdatePlatform.DESKTOP -> "Checks the project's releases for a newer window."
+    }
     UpdatePhase.CHECKING -> "Checking for updates…"
     UpdatePhase.UP_TO_DATE -> "MobiXournal $current is the latest version."
     UpdatePhase.AVAILABLE -> version?.let { "Version $it is available." } ?: ""
     UpdatePhase.DOWNLOADING ->
         if (totalBytes > 0L) "Downloading ${(progress.coerceIn(0f, 1f) * 100f).roundToInt()}%" else "Downloading…"
-    UpdatePhase.READY -> UPDATE_DOWNLOADED_SENTENCE
-    UpdatePhase.FAILED -> updateFailureSentence(failure)
+    UpdatePhase.READY -> updateDownloadedSentence(platform)
+    UpdatePhase.FAILED -> updateFailureSentence(failure, platform)
 }
 
 /**
  * Whether the **launch** check may raise the card: never for a build the reader skipped, and never for
  * About's own command, which exists precisely to reopen an offer the reader asks for.
  */
-internal fun updateShouldInterrupt(fromLaunch: Boolean, version: String, skippedVersion: String?): Boolean =
+fun updateShouldInterrupt(fromLaunch: Boolean, version: String, skippedVersion: String?): Boolean =
     !fromLaunch || version != skippedVersion
 
 /**
@@ -165,15 +190,15 @@ internal fun updateShouldInterrupt(fromLaunch: Boolean, version: String, skipped
  * for the whole of such a download — so it says only that it is downloading, and the bar stays
  * indeterminate.
  */
-internal fun updateProgressLine(known: Boolean, fraction: Float, received: Long, total: Long): String {
+fun updateProgressLine(known: Boolean, fraction: Float, received: Long, total: Long): String {
     if (!known || total <= 0L) return "Downloading…"
     val percent = (fraction.coerceIn(0f, 1f) * 100f).roundToInt()
     return "$percent% · ${megabytes(received)} of ${megabytes(total)}"
 }
 
-private fun skipAnswerFor(version: String, skippedVersion: String?): String? =
-    if (version == skippedVersion) null else UPDATE_SKIP_LABEL
+private fun skipAnswerFor(version: String, skippedVersion: String?, canSkip: Boolean): String? =
+    if (canSkip && version != skippedVersion) UPDATE_SKIP_LABEL else null
 
-/** Bytes as the card shows them: one decimal of a megabyte, English decimal point whatever the device. */
+/** Bytes as the card shows them: one decimal of a megabyte, English decimal point whatever the machine. */
 private fun megabytes(bytes: Long): String =
     String.format(Locale.US, "%.1f MB", bytes.toDouble() / (1024.0 * 1024.0))

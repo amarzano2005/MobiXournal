@@ -59,24 +59,30 @@ the window's `glassSurface` — so it arrives and leaves on the glass spring ins
 over the page, and `ColorContractGuardTest` fails the build if the tablet's goes back to one
 ([`interface-contract.md`](interface-contract.md) owns that rule).
 
-**The tablet's card carries one primary answer at a time**, and the phase decides it. `UpdateCardCopy.kt`
-owns the words **and** the action each phase offers (`UpdateAction`); the dialog only performs the action and
-prints its label, so a button cannot say one thing and do another. The card is at most 420 dp wide, so a
-landscape slate reads a card rather than a panel with an empty half.
+**The words and the action live once, in `mobix-core`.** `UpdateCardCopy.kt` owns the sentence for every
+phase, the failure sentences and the action each phase offers (`UpdateAction`); a dialog only performs that
+action and prints its label, so a button cannot say one thing and do another. Both shells read the same copy
+and differ only in their material — the tablet's `Button`/`TextButton` on the floating card, the window's
+`PanelButton` on its opaque popup — and in the noun each platform owns: *Android's installer* and *Windows'
+installer*. A shell that cannot remember a skip is not offered one (`canSkip`), and the tablet's card is at
+most 420 dp wide, so a landscape slate reads a card rather than a panel with an empty half.
 
-| Phase | What the card says | The answers |
+| Phase | What the card says | The answers, in both shells |
 |---|---|---|
-| Available | the build, and the one in hand | **Update now** (filled), *Remind me later*, *Skip this version*, the notes |
-| Downloading | *Downloading the update* and a bar: `42% · 12.4 MB of 45.0 MB`; an indeterminate bar and no percentage when the server declared no length | **Cancel** |
-| Downloaded | *Update downloaded*, and the sentence the installer left | **Install** — asks Android's installer again for the APK in hand — and *Later* |
-| Failed, no bytes | the offer, with the failure's own sentence | **Try again** (a fresh download), *Remind me later*, *Skip this version*, the notes |
+| Available | the build, and the one in hand | **Update now** (filled), *Remind me later*, *Skip this version* (the tablet), the notes |
+| Downloading | *Downloading the update* and a bar: `42% · 12.4 MB of 45.0 MB`; an indeterminate bar and no percentage when the server declared no length | **Cancel** — a filled answer on the tablet, an ordinary one in the window |
+| Downloaded | *Update downloaded*, and the sentence the platform's installer left | **Install** — asks that installer again for the artifact in hand — and *Later* |
+| Failed, no bytes | the offer, with the failure's own sentence | **Try again** (a fresh download), *Remind me later*, *Skip this version* (the tablet), the notes |
 | Failed, bytes in hand | *Update downloaded*, with the installer's refusal | **Install** again, *Later* |
 
-**A download cannot be hidden.** While one runs the card ignores an outside tap and Back, because a
-transfer that continues with no surface is one the reader cannot see; **Cancel** stops it, deletes the half
-APK and puts the offer back, and a cancel that lands after the bytes are complete does nothing. Progress is
-a bar and a number — never a sentence and a disabled button saying the same thing twice — and a response
-without `Content-Length` says only that it is downloading instead of printing a percentage it does not have.
+**A download cannot be hidden.** While one runs the tablet's card ignores an outside tap and Back, and the
+window's card is a modal whose scrim already takes the click, because a transfer that continues with no
+surface is one the reader cannot see; **Cancel** stops it, deletes the half artifact and puts the offer back,
+and a cancel that lands after the bytes are complete does nothing. Closing the response body is what
+interrupts the blocked read in the window, and the cancelled attempt's own file name keeps it from touching
+the next one. Progress is a bar and a number — never a sentence and a disabled button saying the same thing
+twice — and a response without `Content-Length` says only that it is downloading, with an indeterminate
+bar, instead of printing a percentage it does not have.
 
 **Skip this version is the one answer that outlives the launch.** The version string is kept in the app's
 own preferences (`mobixournal_updates`, its own file like the bookmark and recents stores), and the launch
@@ -84,8 +90,11 @@ check stops raising the card for it — the release is still recorded, so About'
 whenever the reader asks. A newer release is a different string, so it is offered again; nothing has to
 clear the entry.
 
-The window's card keeps its own shape (the opaque popup surface, **Remind me later** and **Update now**) and
-its state sentence carries the same facts; the skip answer is the tablet's. The standing answers of an offer
+**The window's card is the same card in another material.** It reads the shared copy, so its phases,
+sentences and answers are the tablet's; it keeps the downloaded MSI, so **Install** starts `msiexec` again
+instead of fetching it twice, and **Try again** re-downloads after a transfer that stopped. **Skip this
+version is the tablet's, for now**: the window remembers no skipped build, so it does not offer an answer it
+could not honour and its launch check repeats the offer on every start. The standing answers of an offer
 are:
 
 - **Remind me later** closes the card. The offer stays on the About page, so the reader can come back to it
@@ -102,7 +111,8 @@ handed to the system installer through a read grant. `REQUEST_INSTALL_PACKAGES` 
 still shows its own prompt the first time, and the reader answers it. Nothing is installed silently.
 
 **Windows.** The MSI is streamed beside the system's temporary files and started with `msiexec`, the per-user
-package `docs/tools.md` builds. The window's own HTTP client lives in `java.net.http`, which the packaged app
+package `docs/tools.md` builds. The package stays there until the next download, so **Install** starts that
+same `msiexec` again without transferring it a second time. The window's own HTTP client lives in `java.net.http`, which the packaged app
 image must list as a **jlink module** (`desktop/build.gradle.kts`): the runtime jpackage builds from the
 classpath does not carry it, and a window shipped without it died at startup while every test passed on the
 full JDK. The window does **not** close itself while the installer is up: the MSI

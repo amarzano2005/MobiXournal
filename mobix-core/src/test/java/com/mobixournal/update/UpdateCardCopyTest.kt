@@ -8,7 +8,8 @@ import org.junit.Test
 
 /**
  * The update card's states, as words and as actions: one primary per phase, a skip answer that disappears
- * once it is taken, and a progress line that only states what the server declared.
+ * once it is taken (or when a shell cannot remember one), and a progress line that only states what the
+ * server declared. Both shells read this copy, so the platform is the only thing the words vary by.
  */
 class UpdateCardCopyTest {
 
@@ -17,6 +18,8 @@ class UpdateCardCopyTest {
         failure: UpdateFailure? = null,
         downloaded: Boolean = false,
         skipped: String? = null,
+        platform: UpdatePlatform = UpdatePlatform.ANDROID,
+        canSkip: Boolean = true,
     ) = updateCardFor(
         phase = phase,
         version = "2.3.0",
@@ -24,6 +27,8 @@ class UpdateCardCopyTest {
         failure = failure,
         downloaded = downloaded,
         skippedVersion = skipped,
+        platform = platform,
+        canSkip = canSkip,
     )
 
     @Test
@@ -49,6 +54,15 @@ class UpdateCardCopyTest {
     }
 
     @Test
+    fun `a shell that cannot remember a skip does not offer one`() {
+        val copy = card(UpdatePhase.AVAILABLE, platform = UpdatePlatform.DESKTOP, canSkip = false)
+
+        assertNull("the window has no skip to put away", copy.skip)
+        assertEquals("the offer is otherwise the tablet's", "Update now", copy.primary.label)
+        assertEquals("Remind me later", copy.secondary)
+    }
+
+    @Test
     fun `a download has one answer, and it is cancel`() {
         val copy = card(UpdatePhase.DOWNLOADING)
 
@@ -69,8 +83,20 @@ class UpdateCardCopyTest {
         assertEquals(UpdateAction.INSTALL, copy.primary)
         assertEquals("Install", copy.primary.label)
         assertEquals("Later", copy.secondary)
-        assertEquals(UPDATE_DOWNLOADED_SENTENCE, copy.body)
+        assertEquals(updateDownloadedSentence(UpdatePlatform.ANDROID), copy.body)
         assertNull(copy.skip)
+    }
+
+    @Test
+    fun `each shell names its own installer, never the other one`() {
+        val tablet = card(UpdatePhase.READY, downloaded = true)
+        val window = card(UpdatePhase.READY, downloaded = true, platform = UpdatePlatform.DESKTOP)
+
+        assertTrue("the tablet finishes with Android's installer", tablet.body!!.contains("Android's installer"))
+        assertFalse("and never promises Windows' one", tablet.body.contains("Windows"))
+        assertTrue("the window finishes with Windows' installer", window.body!!.contains("Windows' installer"))
+        assertFalse("and never promises Android's one", window.body.contains("Android"))
+        assertEquals("the two shells agree on everything else", tablet.subtitle, window.subtitle)
     }
 
     @Test
@@ -81,7 +107,7 @@ class UpdateCardCopyTest {
         assertEquals("Try again", copy.primary.label)
         assertEquals("Remind me later", copy.secondary)
         assertEquals("What's changed in 2.3.0", copy.notes)
-        assertEquals(updateFailureSentence(UpdateFailure.DOWNLOAD), copy.body)
+        assertEquals(updateFailureSentence(UpdateFailure.DOWNLOAD, UpdatePlatform.ANDROID), copy.body)
         assertEquals(UPDATE_SKIP_LABEL, copy.skip)
     }
 
@@ -93,7 +119,16 @@ class UpdateCardCopyTest {
         assertEquals(UpdateAction.INSTALL, copy.primary)
         assertNull("there is nothing left to download", copy.notes)
         assertNull(copy.skip)
-        assertEquals(updateFailureSentence(UpdateFailure.INSTALL), copy.body)
+        assertEquals(updateFailureSentence(UpdateFailure.INSTALL, UpdatePlatform.ANDROID), copy.body)
+    }
+
+    @Test
+    fun `the refused installer is worded for the shell that owns it`() {
+        val tablet = updateFailureSentence(UpdateFailure.INSTALL, UpdatePlatform.ANDROID)
+        val window = updateFailureSentence(UpdateFailure.INSTALL, UpdatePlatform.DESKTOP)
+
+        assertTrue("the tablet's readers are told what Android needs", tablet.contains("Allow MobiXournal to install apps"))
+        assertTrue("the window's readers are told Install asks again", window.startsWith("Windows did not start the installer"))
     }
 
     @Test
@@ -106,9 +141,35 @@ class UpdateCardCopyTest {
             failure = UpdateFailure.DOWNLOAD,
             progress = 0f,
             totalBytes = 0L,
+            platform = UpdatePlatform.ANDROID,
         )
 
         assertEquals(copy.body, line)
+    }
+
+    @Test
+    fun `each shell's idle line describes its own command`() {
+        val tablet = updateStatusLine(
+            phase = UpdatePhase.IDLE,
+            version = null,
+            current = "2.2.0",
+            failure = null,
+            progress = 0f,
+            totalBytes = 0L,
+            platform = UpdatePlatform.ANDROID,
+        )
+        val window = updateStatusLine(
+            phase = UpdatePhase.IDLE,
+            version = null,
+            current = "1.0.0",
+            failure = null,
+            progress = 0f,
+            totalBytes = 0L,
+            platform = UpdatePlatform.DESKTOP,
+        )
+
+        assertEquals("Tap to check for updates.", tablet)
+        assertEquals("Checks the project's releases for a newer window.", window)
     }
 
     @Test
@@ -145,6 +206,7 @@ class UpdateCardCopyTest {
                 failure = null,
                 progress = 0f,
                 totalBytes = 0L,
+                platform = UpdatePlatform.DESKTOP,
             ),
         )
     }

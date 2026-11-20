@@ -62,10 +62,14 @@ private fun UpdateCard(release: UpdateRelease) {
         failure = AppUpdates.failure,
         downloaded = AppUpdates.downloadedFile != null,
         skippedVersion = AppUpdates.skippedVersion,
+        platform = UpdatePlatform.ANDROID,
+        canSkip = true,
     )
     // The phase chose the action, so the phase *is* the action: a download is the one state with no
     // way out of it but Cancel, and it must not be dismissed.
     val downloading = copy.primary == UpdateAction.CANCEL
+    // Read once: `body` is another module's property, so it cannot be smart-cast where it is printed.
+    val body = copy.body
     val secondary = copy.secondary
     val dismiss: (@Composable () -> Unit)? = if (secondary == null) {
         null
@@ -87,8 +91,8 @@ private fun UpdateCard(release: UpdateRelease) {
                 Text(copy.subtitle, style = MaterialTheme.typography.bodyMedium)
                 if (downloading) {
                     UpdateProgress()
-                } else if (!copy.body.isNullOrBlank()) {
-                    Text(copy.body, style = MaterialTheme.typography.bodyMedium)
+                } else if (!body.isNullOrBlank()) {
+                    Text(body, style = MaterialTheme.typography.bodyMedium)
                 }
                 // The release's own page, read where it was written: the card never summarises the notes.
                 copy.notes?.let { label ->

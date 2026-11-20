@@ -20,9 +20,6 @@ import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** What the tablet is doing about updates right now — one state, read by About and by the dialog. */
-enum class UpdatePhase { IDLE, CHECKING, UP_TO_DATE, AVAILABLE, DOWNLOADING, READY, FAILED }
-
 /**
  * The tablet's **update check and its installer**, as one subject (`docs/updates.md`).
  *
@@ -227,6 +224,7 @@ object AppUpdates {
         failure = failure,
         progress = progress,
         totalBytes = totalBytes,
+        platform = UpdatePlatform.ANDROID,
     )
 
     /**
