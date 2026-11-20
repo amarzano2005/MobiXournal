@@ -25,6 +25,12 @@ import com.mobixournal.desktop.tools.bandSurface
 import com.mobixournal.desktop.tools.resized
 import com.mobixournal.desktop.tools.selectTool
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -64,7 +70,13 @@ import com.mobixournal.desktop.shell.search.showSearchHit
 internal fun PageWorkspace(state: DesktopShellState, tab: DesktopTab, tablet: DesktopTablet?) {
     CompositionLocalProvider(LocalNavigationState provides state.prefs.navigation) {
         Row(Modifier.fillMaxSize()) {
-            if (state.sidebarVisible) WorkspaceSidebar(state, tab)
+            AnimatedVisibility(
+                visible = state.sidebarVisible,
+                enter = expandHorizontally(tween(150)) + fadeIn(tween(150)),
+                exit = shrinkHorizontally(tween(120)) + fadeOut(tween(120)),
+            ) {
+                WorkspaceSidebar(state, tab)
+            }
             val placement = state.prefs.stripPlacement
             val railOnLeft = state.prefs.railSide == RailSide.LEFT
             Column(Modifier.weight(1f).fillMaxHeight()) {

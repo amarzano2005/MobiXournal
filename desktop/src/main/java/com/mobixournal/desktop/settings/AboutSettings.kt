@@ -1,5 +1,11 @@
 package com.mobixournal.desktop.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,8 +54,21 @@ internal fun AboutSettings() {
                 onClick = { copied = copyAppDetailsToClipboard() },
             ),
         )
-        DesktopUpdates.answerLine()?.let { answer -> SettingsAnswer(answer) }
-        if (copied) SettingsAnswer("Copied to the clipboard — paste it into your report.")
+        val updateAnswer = DesktopUpdates.answerLine()
+        AnimatedVisibility(
+            visible = updateAnswer != null,
+            enter = expandVertically(tween(140)) + fadeIn(tween(140)),
+            exit = shrinkVertically(tween(100)) + fadeOut(tween(100)),
+        ) {
+            updateAnswer?.let { SettingsAnswer(it) }
+        }
+        AnimatedVisibility(
+            visible = copied,
+            enter = expandVertically(tween(140)) + fadeIn(tween(140)),
+            exit = shrinkVertically(tween(100)) + fadeOut(tween(100)),
+        ) {
+            SettingsAnswer("Copied to the clipboard — paste it into your report.")
+        }
     }
     SettingsGroup("Tell the project", summary = "Each command opens the project's own page in your browser.") {
         SettingsCommandRow(

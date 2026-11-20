@@ -61,8 +61,13 @@ class DesktopSettingsSurfaceTest {
         }
         return try {
             Snapshot.sendApplyNotifications()
-            scene.render() // Let measured scroll extents reach the scrollbar before capturing.
-            val png = scene.render().encodeToData()!!.bytes
+            // Step the frame clock past GlassMotion's arrival so the settled panel and scrollbar are measured.
+            var nano = 0L
+            repeat(35) {
+                scene.render(nano)
+                nano += 16_000_000L
+            }
+            val png = scene.render(nano).encodeToData()!!.bytes
             File("build/desktop-render/$name.png").apply { parentFile?.mkdirs() }.writeBytes(png)
             val image = ImageIO.read(ByteArrayInputStream(png))
             IntArray(image.width * image.height).also {

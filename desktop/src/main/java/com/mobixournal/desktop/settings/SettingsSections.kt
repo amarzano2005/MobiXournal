@@ -15,6 +15,12 @@ import com.mobixournal.desktop.tools.DesktopButtonVariant
 import com.mobixournal.desktop.tools.FiguresSettings
 import com.mobixournal.desktop.tools.formatNumber
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -625,7 +631,13 @@ private fun BackupSettings(policy: DesktopSettingsState) {
                 onClick = { policy.pickBackupFile?.invoke(false) { file -> file?.let(policy::importBackup) } },
             ),
         )
-        policy.backupNotice?.let { SettingsAnswer(it) }
+        AnimatedVisibility(
+            visible = policy.backupNotice != null,
+            enter = expandVertically(tween(140)) + fadeIn(tween(140)),
+            exit = shrinkVertically(tween(100)) + fadeOut(tween(100)),
+        ) {
+            policy.backupNotice?.let { SettingsAnswer(it) }
+        }
     }
     // The one command that answers "start over": it is the backup page's own subject — a whole
     // configuration, in or out — so it asks for an explicit second click before wiping every section.
@@ -639,26 +651,39 @@ private fun BackupSettings(policy: DesktopSettingsState) {
                     onClick = { confirmingReset = true },
                 ),
             )
-        } else {
-            SettingsNote("This restores every setting to its factory default. Document files are not affected.")
-            SettingsCommandRow(
-                SettingsCommandAction(
-                    label = "Confirm reset",
-                    note = "Restore every setting to its factory default now.",
-                    variant = DesktopButtonVariant.Destructive,
-                    onClick = {
-                        policy.resetAllSettings()
-                        confirmingReset = false
-                    },
-                ),
-                SettingsCommandAction(
-                    label = "Cancel",
-                    note = "Keep your current settings.",
-                    onClick = { confirmingReset = false },
-                ),
-            )
         }
-        policy.resetNotice?.let { SettingsAnswer(it) }
+        AnimatedVisibility(
+            visible = confirmingReset,
+            enter = expandVertically(tween(140)) + fadeIn(tween(140)),
+            exit = shrinkVertically(tween(100)) + fadeOut(tween(100)),
+        ) {
+            Column {
+                SettingsNote("This restores every setting to its factory default. Document files are not affected.")
+                SettingsCommandRow(
+                    SettingsCommandAction(
+                        label = "Confirm reset",
+                        note = "Restore every setting to its factory default now.",
+                        variant = DesktopButtonVariant.Destructive,
+                        onClick = {
+                            policy.resetAllSettings()
+                            confirmingReset = false
+                        },
+                    ),
+                    SettingsCommandAction(
+                        label = "Cancel",
+                        note = "Keep your current settings.",
+                        onClick = { confirmingReset = false },
+                    ),
+                )
+            }
+        }
+        AnimatedVisibility(
+            visible = policy.resetNotice != null,
+            enter = expandVertically(tween(140)) + fadeIn(tween(140)),
+            exit = shrinkVertically(tween(100)) + fadeOut(tween(100)),
+        ) {
+            policy.resetNotice?.let { SettingsAnswer(it) }
+        }
     }
 }
 

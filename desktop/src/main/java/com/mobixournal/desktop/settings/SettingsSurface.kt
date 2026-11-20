@@ -1,12 +1,23 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.desktop.tools.BandEdge
+import com.mobixournal.desktop.tools.LocalGlassClosing
 import com.mobixournal.desktop.tools.PanelEdgeAir
 import com.mobixournal.desktop.tools.PointerOwnership
 import com.mobixournal.desktop.tools.bandDivider
+import com.mobixournal.desktop.tools.glassSpring
 import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.tools.LaneClose
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -28,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -92,12 +104,20 @@ internal fun SettingsSurface(
         val dy = policy.panelDy.coerceIn(-roomY, roomY)
         // A modal, drawn honestly: the page stays where it was (it is what the setting changes) and goes
         // under the scrim, so nothing behind the panel reads as a control the pointer could still reach.
-        Box(Modifier.fillMaxSize().background(DesktopTheme.scrim))
+        val closing = LocalGlassClosing.current
+        val scrimAlpha by animateFloatAsState(
+            targetValue = if (closing) 0f else 1f,
+            animationSpec = tween(
+                if (closing) DesignTokens.GlassMotion.FADE_OUT_MS else DesignTokens.GlassMotion.FADE_IN_MS,
+            ),
+        )
+        Box(Modifier.fillMaxSize().background(DesktopTheme.scrim.copy(alpha = DesktopTheme.scrim.alpha * scrimAlpha)))
         Column(
             Modifier
                 .offset { IntOffset(dx.roundToInt(), dy.roundToInt()) }
                 .width(panelWidth)
                 .height(panelHeight)
+                .glassSpring()
                 .glassSurface(fill = DesktopTheme.settingsPanel)
                 .pointerHoverIcon(PointerIcon.Default),
         ) {
@@ -117,7 +137,15 @@ internal fun SettingsSurface(
                         // The page is a column with a readable line length, not a surface that grows with
                         // the monitor: past 720 dp a label and its control stop belonging to each other.
                         Column(Modifier.widthIn(max = SettingsMetrics.PAGE_MAX_WIDTH)) {
-                            DesktopSettingPage(policy, palette, policy.shownSection)
+                            AnimatedContent(
+                                targetState = policy.shownSection,
+                                transitionSpec = {
+                                    (fadeIn(tween(120)) + slideInVertically(tween(120)) { 8 }) togetherWith
+                                        fadeOut(tween(80)) using SizeTransform(clip = false)
+                                },
+                            ) { section ->
+                                DesktopSettingPage(policy, palette, section)
+                            }
                         }
                     }
                 }

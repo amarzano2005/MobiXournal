@@ -8,6 +8,8 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.sheet.number
 import com.mobixournal.desktop.shell.search.find
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
@@ -601,6 +603,18 @@ internal fun SettingsSectionRow(
     onClick: () -> Unit,
 ) {
     var focused by remember { mutableStateOf(false) }
+    val rowFill by animateColorAsState(
+        if (selected) DesktopTheme.activeSlot.copy(alpha = SELECTED_ROW_ALPHA) else Color.Transparent,
+        tween(120),
+    )
+    val glyphInk by animateColorAsState(
+        if (selected) DesktopTheme.accent else DesktopTheme.inkSecondary,
+        tween(120),
+    )
+    val labelInk by animateColorAsState(
+        if (selected) DesktopTheme.accent else DesktopTheme.ink,
+        tween(120),
+    )
     Row(
         Modifier
             .fillMaxWidth()
@@ -608,10 +622,7 @@ internal fun SettingsSectionRow(
             // **One** indicator: the accent stripe on the left edge is the selection, and the quiet steel
             // under the row is its step. The picked state also carried the text recipe's underline, so a
             // selected section drew an L around its own name.
-            .background(
-                if (selected) DesktopTheme.activeSlot.copy(alpha = SELECTED_ROW_ALPHA) else Color.Transparent,
-                PropertyControlShape,
-            )
+            .background(rowFill, PropertyControlShape)
             // The index is names only, so its sentence is the help line's too: what the section covers.
             .drawBehind {
                 if (selected) drawLine(DesktopTheme.accent, Offset(2.dp.toPx(), 8.dp.toPx()),
@@ -631,17 +642,14 @@ internal fun SettingsSectionRow(
         // The section's own mark, from the catalogue both shells read: the same picture the tablet's
         // settings list shows, at the size the chrome's ink is drawn.
         Canvas(Modifier.size(16.dp)) {
-            drawSettingsGlyph(
-                section.glyph,
-                if (selected) DesktopTheme.accent else DesktopTheme.inkSecondary,
-            )
+            drawSettingsGlyph(section.glyph, glyphInk)
         }
         Spacer(Modifier.width(10.dp))
         // The name and its mark, and nothing else: the index is a list to scan, and the section's one
         // sentence belongs on the page it opens rather than under all ten names at once.
         Text(
             section.title,
-            color = if (selected) DesktopTheme.accent else DesktopTheme.ink,
+            color = labelInk,
             style = DesktopTheme.body,
             modifier = Modifier.weight(1f),
         )

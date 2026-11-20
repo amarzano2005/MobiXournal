@@ -143,7 +143,7 @@ internal fun DesktopShell(
             // changed — which is the point of changing it (`docs/interface-contract.md` — a surface that
             // comes and goes may lie over the page; only a band may not).
             WorkspaceBody(state, tablet, onOpenPicker)
-            if (state.prefs.open) SettingsSurface(state.prefs, state.paletteEditor)
+            GlassPresence(state.prefs.open) { SettingsSurface(state.prefs, state.paletteEditor) }
             FigureDialogHost(state)
         }
         StatusBar(
