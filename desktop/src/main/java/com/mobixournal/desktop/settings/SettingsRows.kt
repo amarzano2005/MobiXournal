@@ -243,7 +243,7 @@ internal fun SettingsCommandRow(
     spacing: Dp = 6.dp,
 ) {
     FlowRow(
-        modifier = Modifier.fillMaxWidth().padding(vertical = spacing),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = ROW_INSET, vertical = spacing),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
