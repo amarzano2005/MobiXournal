@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -15,6 +17,8 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -107,9 +111,22 @@ fun ColorSwatch(
     add: Boolean = false,
     compact: Boolean = false,
 ) {
-    val clickModifier = if (onLongClick != null)
-        Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick)
-    else Modifier.clickable(onClick = onClick)
+    val interactions = remember { MutableInteractionSource() }
+    val hovered by interactions.collectIsHoveredAsState()
+    val clickModifier = if (onLongClick != null) {
+        Modifier.combinedClickable(
+            interactionSource = interactions,
+            indication = androidx.compose.foundation.LocalIndication.current,
+            onClick = onClick,
+            onLongClick = onLongClick,
+        )
+    } else {
+        Modifier.clickable(
+            interactionSource = interactions,
+            indication = androidx.compose.foundation.LocalIndication.current,
+            onClick = onClick,
+        )
+    }
     val label = when {
         add -> "Add colour"
         color == null -> "Custom colour (not set)"
@@ -129,20 +146,24 @@ fun ColorSwatch(
             .then(clickModifier),
         contentAlignment = Alignment.Center,
     ) {
-        if (selected) {
+        if (selected || hovered) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .border(2.dp, outerRingColor, CircleShape),
+                    .border(
+                        2.dp,
+                        if (selected) outerRingColor else outerRingColor.copy(alpha = 0.55f),
+                        CircleShape,
+                    ),
             )
         }
         Box(
             modifier = Modifier
                 .size(
                     when {
-                        compact && selected -> 20.dp
+                        compact && (selected || hovered) -> 20.dp
                         compact -> 24.dp
-                        selected -> 24.dp
+                        selected || hovered -> 24.dp
                         else -> 28.dp
                     },
                 )

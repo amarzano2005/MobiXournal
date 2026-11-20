@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -207,26 +209,41 @@ private fun FavoriteSwatch(
     val isDark = chromeIsDark()
     val hairline = ModernTheme.hairlineBorder(isDark)
     val baseSize = minOf(width, height)
+    val interactions = remember { MutableInteractionSource() }
+    val hovered by interactions.collectIsHoveredAsState()
     Box(
         modifier = Modifier
             .size(width, height)
             // Before the clickable, so the ripple and the hover layer are drawn inside it: the feedback
             // belongs to the dot, not to the cell the dot is tapped in.
             .clip(DotCellShape)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .combinedClickable(
+                interactionSource = interactions,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            )
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        if (selected) {
+        if (selected || hovered) {
             Box(
                 modifier = Modifier
                     .size((baseSize - 2.dp).coerceAtLeast(MIN_DOT + 4.dp))
-                    .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape),
+                    .border(
+                        2.dp,
+                        if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.55f),
+                        CircleShape,
+                    ),
             )
         }
         Box(
             modifier = Modifier
-                .size(if (selected) (baseSize - 8.dp).coerceAtLeast(MIN_DOT) else (baseSize - DOT_INSET).coerceAtLeast(MIN_DOT))
+                .size(
+                    if (selected || hovered) (baseSize - 8.dp).coerceAtLeast(MIN_DOT)
+                    else (baseSize - DOT_INSET).coerceAtLeast(MIN_DOT),
+                )
                 .clip(CircleShape)
                 .background(Color(color))
                 .border(

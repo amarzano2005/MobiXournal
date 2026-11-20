@@ -165,6 +165,7 @@ internal fun DrawingSurfaceView.drawRadialHud(canvas: Canvas) {
     val density = resources.displayMetrics.density
     val slotRadius = RadialHud.SLOT_DIAMETER_DP * density / 2f
     val ringRadius = RadialHud.RING_RADIUS_DP * density
+    chrome.hudActive.strokeWidth = 2.5f * density
     canvas.drawCircle(open.cx, open.cy, ringRadius + slotRadius + HUD_AIR_DP * density, chrome.hudSurface)
     canvas.drawCircle(open.cx, open.cy, ringRadius, chrome.hudRim)
     for (index in 0 until count) {
