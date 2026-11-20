@@ -6,6 +6,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,14 +91,23 @@ internal fun AboutSettings() {
         )
     }
     SettingsGroup("Credits & License") {
-        SettingsNote(
-            "Continues NeXopp by Brian Monroe (bamonroe), licensed under GNU GPL v2 or later. " +
-                "Original portions copyright Brian Monroe.",
-        )
-        SettingsNote(
-            "Interoperable with Xournal++, which defines the .xopp format. " +
-                "Unofficial; not affiliated with or endorsed by Xournal++ authors.",
-        )
-        SettingsNote("Free software licensed under GNU General Public License v2 or later. Provided without warranty.")
+        SettingsRow(
+            label = "Lineage",
+            note = "Continues NeXopp by Brian Monroe (bamonroe). Original portions copyright Brian Monroe.",
+        ) {
+            Text("NeXopp", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
+        }
+        SettingsRow(
+            label = "Interoperability",
+            note = "Reads and writes the .xopp format. Unofficial; not affiliated with or endorsed by Xournal++ authors.",
+        ) {
+            Text("Xournal++", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
+        }
+        SettingsRow(
+            label = "License",
+            note = "Free software provided without warranty.",
+        ) {
+            Text("GNU GPL v2 or later", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
+        }
     }
 }
