@@ -97,7 +97,7 @@ fun FrameWindowScope.DesktopApp(
     }
     LaunchedEffect(Unit) { focus.requestFocus() }
     // The launch check, guarded: an offline machine must never cost the window (`docs/updates.md`).
-    LaunchedEffect(Unit) { runCatching { DesktopUpdates.checkOnLaunch() } }
+    LaunchedEffect(Unit) { runCatching { DesktopUpdates.checkOnLaunch(state.settings) } }
     windowKeyboard(focus, keyboardHeld, typing = state.textBox.box != null)
     // The system's title bar cannot be translucent, so it is painted the band's composited colour:
     // one surface from the top of the window down (`DesktopTitleBar`).

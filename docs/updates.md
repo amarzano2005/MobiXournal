@@ -71,10 +71,10 @@ most 420 dp wide, so a landscape slate reads a card rather than a panel with an 
 
 | Phase | What the card says | The answers, in both shells |
 |---|---|---|
-| Available | the build, and the one in hand | **Update now** (filled), *Remind me later*, *Skip this version* (the tablet), the notes |
+| Available | the build, and the one in hand | **Update now** (filled), *Remind me later*, *Skip this version*, the notes |
 | Downloading | *Downloading the update* and a bar: `42% · 12.4 MB of 45.0 MB`; an indeterminate bar and no percentage when the server declared no length | **Cancel** — a filled answer on the tablet, an ordinary one in the window |
 | Downloaded | *Update downloaded*, and the sentence the platform's installer left | **Install** — asks that installer again for the artifact in hand — and *Later* |
-| Failed, no bytes | the offer, with the failure's own sentence | **Try again** (a fresh download), *Remind me later*, *Skip this version* (the tablet), the notes |
+| Failed, no bytes | the offer, with the failure's own sentence | **Try again** (a fresh download), *Remind me later*, *Skip this version*, the notes |
 | Failed, bytes in hand | *Update downloaded*, with the installer's refusal | **Install** again, *Later* |
 
 **A download cannot be hidden.** While one runs the tablet's card ignores an outside tap and Back, and the
@@ -86,23 +86,23 @@ the next one. Progress is a bar and a number — never a sentence and a disabled
 twice — and a response without `Content-Length` says only that it is downloading, with an indeterminate
 bar, instead of printing a percentage it does not have.
 
-**Skip this version is the one answer that outlives the launch.** The version string is kept in the app's
-own preferences (`mobixournal_updates`, its own file like the bookmark and recents stores), and the launch
-check stops raising the card for it — the release is still recorded, so About's command reopens the offer
-whenever the reader asks. A newer release is a different string, so it is offered again; nothing has to
-clear the entry.
+**Skip this version is the one answer that outlives the launch.** The build's string is kept in the shell's
+own store — `mobixournal_updates`, a file of its own like the bookmark and recents stores, on the tablet;
+`update.skippedVersion` in `desktop.properties`, beside the window's other choices — and the launch check
+stops raising the card for it. The release is still recorded, so About's command reopens the offer whenever
+the reader asks. A newer release is a different string, so it is offered again; nothing has to clear the
+entry.
 
 **The window's card is the same card in another material.** It reads the shared copy, so its phases,
 sentences and answers are the tablet's; it keeps the downloaded MSI, so **Install** starts `msiexec` again
 instead of fetching it twice, and **Try again** re-downloads after a transfer that stopped. **Skip this
-version is the tablet's, for now**: the window remembers no skipped build, so it does not offer an answer it
-could not honour and its launch check repeats the offer on every start. The standing answers of an offer
-are:
+version** is the same permanent answer there: the string lands in `desktop.properties` and the launch check
+records the offer without raising the card. The standing answers of an offer are:
 
 - **Remind me later** closes the card. The offer stays on the About page, so the reader can come back to it
   without the check being made again.
-- **Skip this version** (the tablet) puts the build away for good: no card at the next launch, and the same
-  offer one tap away in About.
+- **Skip this version** puts the build away for good on both shells: no card at the next launch, and the
+  same offer one tap away in About.
 - **Update now** downloads that shell's artifact and hands it to the platform's installer. A failure says
   so instead of leaving the button pressed and silent.
 

@@ -11,6 +11,7 @@ import com.mobixournal.update.UpdatePlatform
 import com.mobixournal.update.UpdateRelease
 import com.mobixournal.update.isNewer
 import com.mobixournal.update.parseRelease
+import com.mobixournal.update.updateShouldInterrupt
 import com.mobixournal.update.updateStatusLine
 import java.io.File
 import java.io.InputStream
@@ -67,6 +68,9 @@ object DesktopUpdates {
     /** Once per process: launching the window asks GitHub one question, not one per About visit. */
     private var asked = false
 
+    /** The settings file a skip is written to, set once by the shell ([attach]). */
+    private var store: DesktopSettings? = null
+
     var phase by mutableStateOf(UpdatePhase.IDLE)
         private set
 
@@ -97,6 +101,10 @@ object DesktopUpdates {
     var failure by mutableStateOf<UpdateFailure?>(null)
         private set
 
+    /** The build the reader asked never to be offered again, or null; see [skipThisVersion]. */
+    var skippedVersion by mutableStateOf<String?>(null)
+        private set
+
     /** Whether the popup is up. **Remind me later** closes it and leaves [release] in hand. */
     var dialog by mutableStateOf(false)
         private set
@@ -120,16 +128,24 @@ object DesktopUpdates {
 
     /**
      * The launch check: silent unless it finds something newer, so a working window opens on its page — and
-     * no sentence under About's command, because a reader who did not ask must not be told.
+     * no sentence under About's command, because a reader who did not ask must not be told. A build the
+     * reader skipped is still recorded as the offer, but it does not raise the card.
+     *
+     * [settings] is where that skip lives: the shell hands over its one settings file here, so the first
+     * check of a start reads the answer the last one wrote (`update.skippedVersion`) before it decides.
      */
-    fun checkOnLaunch() {
+    fun checkOnLaunch(settings: DesktopSettings) {
+        store = settings
+        skippedVersion = settings.skippedUpdateVersion
         if (asked) return
         asked = true
-        check()
+        check(fromLaunch = true)
     }
 
     /** The About row's command — the same check, whose answer About prints under the row. */
-    fun check() {
+    fun check() = check(fromLaunch = false)
+
+    private fun check(fromLaunch: Boolean) {
         if (phase == UpdatePhase.CHECKING || phase == UpdatePhase.DOWNLOADING) return
         phase = UpdatePhase.CHECKING
         failure = null
@@ -147,7 +163,7 @@ object DesktopUpdates {
             }
             release = offer
             phase = UpdatePhase.AVAILABLE
-            dialog = true
+            dialog = updateShouldInterrupt(fromLaunch, offer.version, skippedVersion)
         }
     }
 
@@ -212,6 +228,18 @@ object DesktopUpdates {
     fun installNow() {
         val file = downloadedFile ?: return
         install(file)
+    }
+
+    /**
+     * The card's **Skip this version**: remember the build in the settings file and close, so the launch
+     * check stops raising this build. The release stays in hand, so About's command reopens the offer
+     * whenever the reader asks; a newer release is a different string and is offered again.
+     */
+    fun skipThisVersion() {
+        val version = release?.version ?: return
+        store?.skippedUpdateVersion = version
+        skippedVersion = version
+        dialog = false
     }
 
     /** The dialog's **Remind me later**: it goes away, and the offer stays on the About page. */

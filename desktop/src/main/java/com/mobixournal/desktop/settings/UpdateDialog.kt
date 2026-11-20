@@ -51,7 +51,8 @@ import com.mobixournal.update.updateProgressLine
  * without a percentage when it declared no length. It cannot be walked away from: the frame's scrim is the
  * blocker, and the only answer on the card is **Cancel**, which stops the transfer and puts the offer back.
  * A finished download keeps its MSI, so **Install** asks Windows' installer again instead of downloading it
- * twice, and a failure says so and offers **Try again**.
+ * twice, and a failure says so and offers **Try again**. **Skip this version** is the one answer that
+ * outlives the start: the build goes into `desktop.properties` and the launch check stops raising it.
  *
  * It is hosted by the shell rather than by Settings (`docs/updates.md`): the launch check runs whether or
  * not the settings surface is open, and a popup that needed the panel would be an offer the reader only
@@ -79,10 +80,9 @@ private fun UpdateDialog(release: UpdateRelease) {
         current = DESKTOP_VERSION,
         failure = DesktopUpdates.failure,
         downloaded = DesktopUpdates.downloadedFile != null,
-        skippedVersion = null,
+        skippedVersion = DesktopUpdates.skippedVersion,
         platform = UpdatePlatform.DESKTOP,
-        // The window keeps no skip list yet, so it must not offer an answer it cannot remember.
-        canSkip = false,
+        canSkip = true,
     )
     // The phase chose the action, so the phase *is* the action: a download is the one state with no
     // answer but Cancel, and Cancel is not this card's commit.
@@ -121,6 +121,16 @@ private fun UpdateDialog(release: UpdateRelease) {
             DesktopButton(
                 label = label,
                 onClick = { openPage(release.notesUrl) },
+                variant = DesktopButtonVariant.Ghost,
+            )
+        }
+        // The quietest answer, and the only one that is permanent: the launch check keeps it in
+        // `desktop.properties` and stops raising this build, while About still reopens the offer.
+        copy.skip?.let { label ->
+            Spacer(Modifier.height(6.dp))
+            DesktopButton(
+                label = label,
+                onClick = { DesktopUpdates.skipThisVersion() },
                 variant = DesktopButtonVariant.Ghost,
             )
         }
