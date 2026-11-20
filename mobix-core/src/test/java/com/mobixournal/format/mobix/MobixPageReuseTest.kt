@@ -1,5 +1,7 @@
 package com.mobixournal.format.mobix
 
+import com.mobixournal.audio.AudioRef
+import com.mobixournal.audio.withAudio
 import com.mobixournal.format.json.JsonWriter
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Document
@@ -411,6 +413,57 @@ class MobixPageReuseTest {
                 unidentified.pages[9],
                 identified.pages[9],
             )
+        }
+    }
+
+    @Test
+    fun aLoadedPageWithNewlyAvailableAudioIsRebuiltToBundleIt() {
+        val file = temp.newFile("audio-unbundled.mobix")
+        val audioName = "2026-11-20T14-49-03.ogg"
+        val audioBytes = "OggS-fake-opus-payload".toByteArray()
+        val basePages = SyntheticNotebook.pages(2)
+        val firstStroke = (basePages[0].layers[0].elements[0] as Stroke).withAudio(AudioRef(audioName, 0))
+        val page0 = basePages[0].copy(
+            layers = listOf(basePages[0].layers[0].copy(elements = listOf(firstStroke))) + basePages[0].layers.drop(1),
+        )
+        val docWithUnbundledAudio = Document(
+            pages = listOf(page0, basePages[1]),
+            documentId = "doc_audio_reuse",
+        )
+        // First save while recording is still in progress: audio provider returns null, so no asset is bundled.
+        FileOutputStream(file).use { out ->
+            MobixDocument.of(docWithUnbundledAudio, "1.4.0", now).encode(now, audio = { null }).let { plan ->
+                MobixContainer.save(plan.entries, out)
+            }
+        }
+
+        // Reopen and load page 0 (e.g. active page), then incremental-save once the recording is finished.
+        MobixPagedReader(MobixEntrySource.fromFile(file)).use { reader ->
+            val opened = MobixDocument.openPaged(reader, PageSource.of(reader)).toDocument()
+            // Materialise page 0 without editing it.
+            opened.pages[0]
+
+            val output = ByteArrayOutputStream()
+            MobixEntrySource.fromFile(file).use { source ->
+                MobixIncrementalSave.saveOver(
+                    source = source,
+                    document = opened,
+                    appVersion = "1.4.0",
+                    nowMillis = now + 1000,
+                    output = output,
+                    audio = { name -> if (name == audioName) MobixPayload.of(audioBytes) else null },
+                )
+            }
+
+            val resaved = output.toByteArray()
+            val entryNames = MobixContainer.open(ByteArrayInputStream(resaved)).entries.map { it.name }.toSet()
+            assertTrue(
+                "page 0 is rebuilt and bundles the newly available .ogg asset",
+                entryNames.any { it.startsWith("assets/aud_") && it.endsWith(".ogg") },
+            )
+            val reopened = openDocument(resaved)
+            val reloadedStroke = reopened.pages[0].layers[0].elements[0] as Stroke
+            assertNotNull("and the stroke now carries bundledAudio", reloadedStroke.bundledAudio)
         }
     }
 }

@@ -84,7 +84,7 @@ object MobixIncrementalSave {
         payloads: Map<String, MobixPayload> = emptyMap(),
     ): MobixIncrementalSaveStats {
         val previous = MobixManifest.read(source)
-        val reuse = MobixPageReuse.of(document.pages, source, canvasMode, previous)
+        val reuse = MobixPageReuse.of(document.pages, source, canvasMode, previous, audio)
         val mobix = MobixDocument.of(
             document = document,
             appVersion = appVersion,

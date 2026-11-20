@@ -3,6 +3,8 @@ package com.mobixournal.format.mobix
 import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.EditedPages
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.audioRef
 import com.mobixournal.format.model.withIdentity
 import com.mobixournal.format.model.withIdentityOn
 
@@ -92,6 +94,7 @@ class MobixPageReuse private constructor(
             /** The mode the write will claim: it decides what a part's entry name has to be. */
             canvasMode: CanvasMode = CanvasMode.PAGINATED,
             previous: MobixManifest? = MobixManifest.read(source),
+            audio: (String) -> MobixPayload? = { null },
         ): MobixPageReuse {
             val (base, edited) = sourceView(pages) ?: return none
             val parts = base.backing.sourceParts() ?: return none
@@ -105,10 +108,28 @@ class MobixPageReuse private constructor(
                 if (!entryMatches(part, index, canvasMode)) continue
                 if (part.entry !in source.entryNames) continue
                 if (currentParts[part.entry]?.sha256 != part.sha256) continue
+                // If an already-loaded page carries an unbundled audio reference whose recording is now
+                // available (e.g. a take that finished after an earlier in-progress save), rewrite the page
+                // so the encoder embeds the audio asset instead of copying the unbundled page verbatim.
+                val loaded = base.backing.loadedPage(index)
+                if (loaded != null && hasBundleableUnbundledAudio(loaded, source.entryNames, audio)) continue
                 reusable[index] = part
             }
             if (reusable.isEmpty()) return none
             return MobixPageReuse(reusable, (0 until pages.size).toSet() - reusable.keys)
+        }
+
+        private fun hasBundleableUnbundledAudio(
+            page: Page,
+            sourceEntries: Set<String>,
+            audio: (String) -> MobixPayload?,
+        ): Boolean = page.layers.any { layer ->
+            layer.elements.any { element ->
+                val stroke = element as? Stroke ?: return@any false
+                val ref = stroke.audioRef() ?: return@any false
+                val alreadyBundled = stroke.bundledAudio?.let { it in sourceEntries } == true
+                !alreadyBundled && audio(ref.filename) != null
+            }
         }
 
         /**

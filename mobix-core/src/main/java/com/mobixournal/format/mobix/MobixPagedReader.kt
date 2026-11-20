@@ -269,6 +269,9 @@ class MobixPagedReader(
      * inflated and decoded on demand, updating the LRU cache.
      */
     @Synchronized
+    /** Return the cached page at [pageIndex] without inflating from the archive, or null if not loaded. */
+    fun cachedPage(pageIndex: Int): Page? = cache[pageIndex]
+
     fun getPage(pageIndex: Int): Page {
         require(pageIndex in 0 until pageCount) { "page index $pageIndex out of bounds (0..${pageCount - 1})" }
         cache[pageIndex]?.let { return it }

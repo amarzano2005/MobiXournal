@@ -83,6 +83,12 @@ interface PageSource : AutoCloseable {
     fun page(index: Int): Page
 
     /**
+     * The already-materialised page at [index], or null if this source has not loaded it yet.
+     * Callers use this to inspect live pages during save without inflating untouched pages.
+     */
+    fun loadedPage(index: Int): Page? = null
+
+    /**
      * The size of page [index], which a layout places every page by.
      *
      * The default reads the page ([page]), which is all a store that only holds page models can do.
@@ -166,6 +172,8 @@ private class MaterializedPages(private val pages: List<Page>) : PageSource {
         require(index in pages.indices) { "page index $index out of bounds (0..${pages.size - 1})" }
         return pages[index]
     }
+
+    override fun loadedPage(index: Int): Page? = pages.getOrNull(index)
 }
 
 /** A [PageSource] over a paged `.mobix`, delegating counting, ids and materialisation to [reader]. */
@@ -176,6 +184,8 @@ private class PagedMobix(private val reader: MobixPagedReader) : PageSource {
     override fun pageId(index: Int): String? = reader.pageId(index)
 
     override fun page(index: Int): Page = reader.getPage(index)
+
+    override fun loadedPage(index: Int): Page? = reader.cachedPage(index)
 
     /**
      * The parts the reader's own manifest lists — its `pages[]`, or its `chunks[]` for an infinite
