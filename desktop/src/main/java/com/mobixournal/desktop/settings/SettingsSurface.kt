@@ -132,6 +132,7 @@ private fun SettingsPanelHeader(policy: DesktopSettingsState) {
         Modifier
             .fillMaxWidth()
             .height(HEADER_HEIGHT)
+            .background(DesktopTheme.glass)
             // The header's own hairline: it meets the index's separator, so the title row and the two
             // columns under it read as one panel instead of a row floating above a box.
             .bandDivider(BandEdge.BOTTOM)
@@ -153,7 +154,12 @@ private fun SettingsPanelHeader(policy: DesktopSettingsState) {
                 },
             contentAlignment = Alignment.CenterStart,
         ) {
-            Text("Settings", color = DesktopTheme.ink, style = DesktopTheme.title)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Settings", color = DesktopTheme.ink, style = DesktopTheme.title)
+                policy.shownSection?.let { section ->
+                    Text("  /  ${section.title}", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
+                }
+            }
         }
         SettingsSearchField(
             query = policy.query,
@@ -181,7 +187,7 @@ private fun SettingsPanelHeader(policy: DesktopSettingsState) {
 @Composable
 private fun SettingsIndex(policy: DesktopSettingsState) {
     SettingsScrollPane(
-        modifier = Modifier.width(SettingsMetrics.INDEX_WIDTH).fillMaxHeight(),
+        modifier = Modifier.width(SettingsMetrics.INDEX_WIDTH).fillMaxHeight().background(DesktopTheme.glass),
         resetKey = "index",
         contentPadding = Modifier.padding(horizontal = 10.dp, vertical = PanelEdgeAir),
     ) {
@@ -215,6 +221,7 @@ private fun SettingsHelpLine(sentence: String) {
         Modifier
             .fillMaxWidth()
             .height(HELP_HEIGHT)
+            .background(DesktopTheme.glass)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

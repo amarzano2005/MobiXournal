@@ -15,6 +15,7 @@ import com.mobixournal.desktop.tools.DesktopButtonVariant
 import com.mobixournal.desktop.tools.FiguresSettings
 import com.mobixournal.desktop.tools.formatNumber
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -195,12 +197,16 @@ internal fun DesktopSettingPage(
         Text("No settings found. Try theme, pressure or scrolling.", color = DesktopTheme.inkSecondary, style = DesktopTheme.body)
         return
     }
-    // The title only: the section's one-line summary is its **index row's** own, handed to the panel's
-    // help line when the pointer is on it — a sentence under the title as well would spend a row saying the
-    // same thing twice, and ten pages of those is how this list came to read like a manual
-    // (`docs/desktop-settings.md`).
-    Text(section.title, color = DesktopTheme.ink, style = DesktopTheme.title)
-    Spacer(Modifier.height(6.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Canvas(Modifier.size(20.dp)) {
+            drawSettingsGlyph(section.glyph, DesktopTheme.accent)
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(section.title, color = DesktopTheme.ink, style = DesktopTheme.title)
+    }
+    Spacer(Modifier.height(4.dp))
+    Text(section.summary, color = DesktopTheme.inkSecondary, style = DesktopTheme.label)
+    Spacer(Modifier.height(4.dp))
     when (section) {
         DesktopSettingSection.STYLUS -> StylusSettings(policy)
         DesktopSettingSection.TOOLBAR -> ToolbarSettings(policy)
