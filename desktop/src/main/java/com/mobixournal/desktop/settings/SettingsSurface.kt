@@ -109,7 +109,7 @@ internal fun SettingsSurface(
                     SettingsScrollPane(
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         resetKey = policy.shownSection,
-                        contentPadding = Modifier.padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 24.dp),
+                        contentPadding = Modifier.padding(horizontal = 20.dp, vertical = 20.dp),
                     ) {
                         // The page is a column with a readable line length, not a surface that grows with
                         // the monitor: past 720 dp a label and its control stop belonging to each other.
@@ -191,6 +191,7 @@ private fun SettingsIndex(policy: DesktopSettingsState) {
         resetKey = "index",
         contentPadding = Modifier.padding(horizontal = 10.dp, vertical = PanelEdgeAir),
     ) {
+        var firstArea = true
         for (area in DesktopSettingArea.entries) {
             val rows = policy.sections.filter { it.area == area }
             if (rows.isEmpty()) continue
@@ -198,10 +199,11 @@ private fun SettingsIndex(policy: DesktopSettingsState) {
                 area.title,
                 color = DesktopTheme.inkMuted,
                 style = DesktopTheme.label,
-                // An area's eyebrow opens the group: 12 dp of air above it, so *Workspace* and the section
-                // under it belong together while the previous group's last row does not join this one.
-                modifier = Modifier.padding(start = 10.dp, top = 12.dp, bottom = 2.dp),
+                // The first area sits directly under the panel edge air; subsequent areas open with 16 dp
+                // so the four task blocks read as distinct groups, with 4 dp before their first row.
+                modifier = Modifier.padding(start = 10.dp, top = if (firstArea) 4.dp else 16.dp, bottom = 4.dp),
             )
+            firstArea = false
             for (section in rows) {
                 SettingsSectionRow(
                     section = section,

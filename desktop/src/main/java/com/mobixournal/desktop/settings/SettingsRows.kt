@@ -137,8 +137,9 @@ internal fun SettingsGroup(title: String, summary: String? = null, content: @Com
         Text(summary, color = DesktopTheme.inkSecondary, style = DesktopTheme.label,
             modifier = Modifier.padding(horizontal = ROW_INSET))
     }
-    Spacer(Modifier.height(8.dp))
+    Spacer(Modifier.height(6.dp))
     Box(Modifier.fillMaxWidth().height(1.dp).background(DesktopTheme.hairline))
+    Spacer(Modifier.height(8.dp))
     Column(Modifier.fillMaxWidth()) { content() }
 }
 
@@ -317,7 +318,7 @@ internal fun SettingsAnswer(text: String) {
 /** A sentence under a group: what an answer does, or what it deliberately does not. */
 @Composable
 internal fun SettingsNote(text: String) {
-    Spacer(Modifier.height(6.dp))
+    Spacer(Modifier.height(8.dp))
     // The same column as a group's heading and the rows' names: a sentence about a card is read as part of
     // it, so it starts where the card's labels start.
     Text(

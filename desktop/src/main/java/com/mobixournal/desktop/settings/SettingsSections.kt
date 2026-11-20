@@ -206,7 +206,6 @@ internal fun DesktopSettingPage(
     }
     Spacer(Modifier.height(4.dp))
     Text(section.summary, color = DesktopTheme.inkSecondary, style = DesktopTheme.label)
-    Spacer(Modifier.height(4.dp))
     when (section) {
         DesktopSettingSection.STYLUS -> StylusSettings(policy)
         DesktopSettingSection.TOOLBAR -> ToolbarSettings(policy)
