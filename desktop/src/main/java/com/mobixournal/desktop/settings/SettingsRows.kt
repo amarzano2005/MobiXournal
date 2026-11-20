@@ -203,9 +203,18 @@ internal fun SettingsRow(
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-internal fun SettingsCommand(label: String, note: String? = null, onClick: () -> Unit) {
+internal fun SettingsCommand(
+    label: String,
+    note: String? = null,
+    /**
+     * The air above and below this command. 4 dp on a page whose commands are one of a kind; a group of
+     * several (About's doors) asks for 6 dp so the stack reads as answers rather than as a wall.
+     */
+    spacing: Dp = 4.dp,
+    onClick: () -> Unit,
+) {
     Box(
-        Modifier.fillMaxWidth().reportHelp(note).padding(vertical = 4.dp),
+        Modifier.fillMaxWidth().reportHelp(note).padding(vertical = spacing),
         contentAlignment = Alignment.CenterStart,
     ) {
         // The button's own 12 dp inset *is* the rows' ROW_INSET, so a command's label starts on the same
@@ -254,6 +263,23 @@ internal fun SettingsUnavailable(label: String, note: String) {
     SettingsRow(label = label, note = note) {
         Text("Tablet only", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
     }
+}
+
+/**
+ * **An answer under the command that asked**, on the button's own label column.
+ *
+ * The update check and *Copy app details* both answer a click; a sentence that lived only in the hover
+ * help was one a reader could click and never see. It is a line of the page rather than a toast — the panel
+ * that asked is the panel that answers, and it stays until the next answer replaces it.
+ */
+@Composable
+internal fun SettingsAnswer(text: String) {
+    Text(
+        text,
+        color = DesktopTheme.inkSecondary,
+        style = DesktopTheme.body,
+        modifier = Modifier.padding(start = ROW_INSET + 12.dp, end = ROW_INSET, top = 2.dp, bottom = 2.dp),
+    )
 }
 
 /** A sentence under a group: what an answer does, or what it deliberately does not. */

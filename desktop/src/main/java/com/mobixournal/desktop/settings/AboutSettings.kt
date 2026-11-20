@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ProjectLinks
 
 /**
@@ -12,9 +13,14 @@ import com.mobixournal.design.ProjectLinks
  * the credits it owes — **one page**, not two.
  *
  * It used to be About beside a Feedback page, which made a reader choose between *what build do I have* and
- * *where do I say something about it* when they are the same question. Now the page carries the version and
- * the copy row first, then the two doors to the repository's issue forms, then the credits: the tablet's
- * page has the same three steps, minus its hero card (`AboutSection.kt`).
+ * *where do I say something about it* when they are the same question. Now the page is grouped by what a
+ * command is about: the **build** (its version, the check, the details a report asks for), then the
+ * **project** (the two issue forms and the repository), then the credits — the tablet's three steps, minus
+ * its hero card (`AboutSection.kt`).
+ *
+ * Every command **answers where it stands**: the check's result and the copy's confirmation are lines under
+ * their own button, not sentences only a hover can read (`docs/desktop-settings.md` owns the grammar, and
+ * `docs/updates.md` the update channel).
  *
  * The doors go to **issue forms** (`.github/ISSUE_TEMPLATE`, addressed through `ProjectLinks`) rather than
  * to a blank issue box: the form asks for the build and the platform in fields, and the report lands where
@@ -23,46 +29,47 @@ import com.mobixournal.design.ProjectLinks
  */
 @Composable
 internal fun AboutSettings() {
-    // The copy's answer stays on the row: a reader who just copied the build needs to see that it happened,
-    // and the panel has no toast of its own on this page.
+    // The copy's confirmation is a line of the page, like the update check's answer: a reader who just
+    // copied the build needs to see that it happened, and the panel has no toast of its own on this page.
     var copied by remember { mutableStateOf(false) }
     SettingsGroup("MobiXournal Desktop") {
         SettingsReadout("Version", DESKTOP_VERSION)
         SettingsReadout("Reads and writes", ".xopp · .mobix")
         // The check and its answer, in the same place: the note is the panel's static help, and the line
         // under the row is what the last check found — the version in hand, the newer one, or the failure.
-        // Nothing floats over the page for this (`docs/updates.md` owns the channel and both installers).
         SettingsCommand(
             label = "Check for updates",
             note = "Asks GitHub whether a newer window is published.",
+            spacing = 6.dp,
             onClick = { DesktopUpdates.offerOrCheck() },
         )
-        DesktopUpdates.answerLine()?.let { answer -> SettingsNote(answer) }
+        DesktopUpdates.answerLine()?.let { answer -> SettingsAnswer(answer) }
+        // The build's own facts, beside its version: this command is about the window, not about the
+        // project, and its confirmation is a line rather than a note a reader has to hover to find.
+        SettingsCommand(
+            label = "Copy app details",
+            note = "Version, Windows build and formats — the facts a report asks for.",
+            spacing = 6.dp,
+            onClick = { copied = copyAppDetailsToClipboard() },
+        )
+        if (copied) SettingsAnswer("Copied to the clipboard — paste it into your report.")
     }
-    SettingsGroup("Tell the project") {
+    SettingsGroup("Tell the project", summary = "Each command opens the project's own page in your browser.") {
         SettingsCommand(
             label = "Report a problem",
             note = "Opens the bug report form: what you did, what happened, and the build in hand.",
+            spacing = 6.dp,
         ) { openPage(ProjectLinks.newIssue(ProjectLinks.BUG_TEMPLATE)) }
         SettingsCommand(
             label = "Suggest an idea",
             note = "Opens the feature request form: something you want to do that the window cannot do yet.",
+            spacing = 6.dp,
         ) { openPage(ProjectLinks.newIssue(ProjectLinks.FEATURE_TEMPLATE)) }
-        // The facts a report asks for belong **under the doors they are pasted into**, as on the tablet.
-        SettingsCommand(
-            label = "Copy app details",
-            note = if (copied) {
-                "Copied to the clipboard — paste it into your report."
-            } else {
-                "Version, Windows build and formats — the facts a report asks for."
-            },
-            onClick = { copied = copyAppDetailsToClipboard() },
-        )
         SettingsCommand(
             label = "Open the project on GitHub",
             note = "Source code, release downloads, and every report already filed.",
-            onClick = ::openProjectPage,
-        )
+            spacing = 6.dp,
+        ) { openProjectPage() }
     }
     SettingsGroup("Credits & License") {
         SettingsNote(
