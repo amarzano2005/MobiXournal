@@ -101,7 +101,9 @@ Every surface is one of three objects. Pick the class from what the element *doe
   undo, redo, the file commands, the menu, the dismiss and add marks, the layer eye, and the whole
   selection bar — cut, copy, paste, duplicate, recolour, width, edit, delete and the six alignments with
   the two distributions. The art is the path data Material publishes, transcribed once as `d` strings on
-  the same 24-unit grid, and **both shells read it**: the tablet builds an `ImageVector` from the string
+  the same 24-unit grid — the one exception is `ChromeGlyph.GITHUB`, whose octocat is the brand's own
+  published path on that grid, because no Material icon names the service and a hand-drawn mark on each
+  shell is exactly the drift this catalogue prevents — and **both shells read it**: the tablet builds an `ImageVector` from the string
   (`ChromeGlyphIcons.kt`), the window fills a `Path` parsed from it (`SvgPath.kt`) — a shell may not
   hand-draw a mark of its own, which is how a phone and a PC came to show two nearly-equal icons for one
   command. `ChromeGlyphsTest` holds every glyph to a shape that parses, stays on the grid and is its own

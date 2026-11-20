@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -27,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -69,9 +71,9 @@ object AboutLinks {
  * The page is the whole area: there is no *About* row opening an *About* page, and no separate Feedback
  * entry to find, because the two questions a reader arrives with here — *which build is this* and *where
  * do I say something about it* — are asked at the same moment. Its shape is deliberately not the other
- * pages': a hero that names the app and the version (the version is still the update check), a pair of
- * action cards aimed at GitHub's issue forms, and one card holding the details a report needs plus the
- * credits and the licence behind two disclosures.
+ * pages': a hero that names the app and the version and carries the update check beside a compact GitHub
+ * door, a pair of action cards aimed at GitHub's issue forms with *Copy app details* under them, and one
+ * card holding the credits and the licence behind two disclosures.
  *
  * The doors go to the repository's **issue forms** (`ProjectLinks`, `.github/ISSUE_TEMPLATE`) rather than
  * to a blank issue box: the form asks for the build and the platform in fields, and the answer lands
@@ -116,30 +118,26 @@ fun AboutSection() {
             askedHere = true
             AppUpdates.offerOrCheck(context)
         },
+        onOpenProject = { open(AboutLinks.SOURCE) },
     )
 
     Spacer(Modifier.height(SettingsGroupGap))
     SettingsGroupTitle("Tell the project")
     ProjectDoors(open)
+    // The facts a report asks for sit **under the doors they are pasted into**, not in a card of their
+    // own: the reader copies them to write one of the two reports above, and the button says what it did
+    // on the press itself — `Copied` for a moment, then back to the command.
+    OutlinedButton(
+        onClick = { copied = copyAppDetails(context) },
+        modifier = Modifier.settingsActionPill(top = 8.dp, bottom = 0.dp),
+    ) {
+        Icon(ChromeGlyph.COPY.imageVector(), contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(if (copied) "Copied" else "Copy app details")
+    }
 
     Spacer(Modifier.height(SettingsGroupGap))
-    SettingsGroup("App details") {
-        // The card is ordered **what I do, where I go, what I owe**: the two actions first, then the
-        // disclosure pair — the legal text is the last thing a reader needs, not the thing between them.
-        LinkRow(
-            "Copy app details",
-            note = if (copied) {
-                "Copied. Paste it into your report."
-            } else {
-                "Version, Android release and device — the three facts a report asks for."
-            },
-        ) { copied = copyAppDetails(context) }
-        SettingsDivider()
-        LinkRow(
-            "Open the project on GitHub",
-            note = "Source code, release downloads, and every report already filed.",
-        ) { open(AboutLinks.SOURCE) }
-        SettingsDivider()
+    SettingsGroup("Credits & License") {
         // The credits and the licence are long, and neither is what a reader came for: a disclosure keeps
         // them one tap away instead of spending half the page on text that is read once.
         DisclosureRow("Credits") {
@@ -155,7 +153,7 @@ fun AboutSection() {
             LinkRow("Xournal++ desktop app") { open(AboutLinks.XOURNALPP) }
         }
         SettingsDivider()
-        DisclosureRow("Licence") {
+        DisclosureRow("License") {
             SettingsNote(
                 "Free software licensed under GNU General Public License v2 or later. " +
                     "Provided without warranty.",
@@ -244,6 +242,7 @@ private fun BuildIdentity(
     platform: String,
     checking: Boolean,
     onCheck: () -> Unit,
+    onOpenProject: () -> Unit,
 ) {
     val reach = LocalSettingsCardInset.current
     SettingsCard {
@@ -277,12 +276,32 @@ private fun BuildIdentity(
                     )
                 }
             }
-            Button(
-                onClick = onCheck,
-                enabled = !checking,
+            Row(
                 modifier = Modifier.settingsActionPill(top = 12.dp, bottom = 0.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(if (checking) "Checking…" else "Check for updates")
+                Button(
+                    onClick = onCheck,
+                    enabled = !checking,
+                    modifier = Modifier.weight(1f).height(48.dp),
+                ) {
+                    Text(if (checking) "Checking…" else "Check for updates")
+                }
+                // The **compact door out**, beside the check its releases answer: one glyph, one tap to the
+                // repository (its source, its downloads and its issue list), with the name in the icon's
+                // own label so a screen reader still says what the button is.
+                OutlinedButton(
+                    onClick = onOpenProject,
+                    modifier = Modifier.size(width = 56.dp, height = 48.dp),
+                    contentPadding = PaddingValues(0.dp),
+                ) {
+                    Icon(
+                        ChromeGlyph.GITHUB.imageVector(),
+                        contentDescription = "Open the project on GitHub",
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
             }
         }
     }

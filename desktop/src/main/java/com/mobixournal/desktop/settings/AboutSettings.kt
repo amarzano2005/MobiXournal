@@ -37,15 +37,6 @@ internal fun AboutSettings() {
             note = DesktopUpdates.statusLine(),
             onClick = { DesktopUpdates.offerOrCheck() },
         )
-        SettingsCommand(
-            label = "Copy app details",
-            note = if (copied) {
-                "Copied to the clipboard — paste it into your report."
-            } else {
-                "Version, Windows build and formats — the facts a report asks for."
-            },
-            onClick = { copied = copyAppDetailsToClipboard() },
-        )
     }
     SettingsGroup("Tell the project") {
         SettingsCommand(
@@ -56,6 +47,16 @@ internal fun AboutSettings() {
             label = "Suggest an idea",
             note = "Opens the feature request form: something you want to do that the window cannot do yet.",
         ) { openPage(ProjectLinks.newIssue(ProjectLinks.FEATURE_TEMPLATE)) }
+        // The facts a report asks for belong **under the doors they are pasted into**, as on the tablet.
+        SettingsCommand(
+            label = "Copy app details",
+            note = if (copied) {
+                "Copied to the clipboard — paste it into your report."
+            } else {
+                "Version, Windows build and formats — the facts a report asks for."
+            },
+            onClick = { copied = copyAppDetailsToClipboard() },
+        )
         SettingsCommand(
             label = "Open the project on GitHub",
             note = "Source code, release downloads, and every report already filed.",
