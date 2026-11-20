@@ -22,6 +22,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -223,6 +225,36 @@ internal fun SettingsCommand(
     }
 }
 
+/** One action inside [SettingsCommandRow], carrying its own hover-help [note]. */
+internal data class SettingsCommandAction(
+    val label: String,
+    val note: String? = null,
+    val onClick: () -> Unit,
+)
+
+/**
+ * **A horizontal row of related commands** (such as About's build actions or project links), wrapping
+ * gracefully if the panel narrows while keeping each button's hover help and `DesktopButton` states.
+ */
+@OptIn(ExperimentalLayoutApi::class, ExperimentalComposeUiApi::class)
+@Composable
+internal fun SettingsCommandRow(
+    vararg actions: SettingsCommandAction,
+    spacing: Dp = 6.dp,
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(vertical = spacing),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        actions.forEach { action ->
+            Box(Modifier.reportHelp(action.note)) {
+                DesktopButton(action.label, action.onClick, variant = DesktopButtonVariant.Secondary, style = DesktopTheme.body)
+            }
+        }
+    }
+}
+
 /**
  * The panel's **help line**: the sentence of whatever the pointer is over, shown in the footer.
  *
@@ -278,7 +310,7 @@ internal fun SettingsAnswer(text: String) {
         text,
         color = DesktopTheme.inkSecondary,
         style = DesktopTheme.body,
-        modifier = Modifier.padding(start = ROW_INSET + 12.dp, end = ROW_INSET, top = 2.dp, bottom = 2.dp),
+        modifier = Modifier.padding(horizontal = ROW_INSET, vertical = 2.dp),
     )
 }
 
@@ -292,7 +324,7 @@ internal fun SettingsNote(text: String) {
         text,
         color = DesktopTheme.inkMuted,
         style = DesktopTheme.label,
-        modifier = Modifier.padding(horizontal = ROW_INSET),
+        modifier = Modifier.padding(horizontal = ROW_INSET).widthIn(max = 560.dp),
     )
 }
 

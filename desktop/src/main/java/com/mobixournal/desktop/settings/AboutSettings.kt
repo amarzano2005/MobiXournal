@@ -5,7 +5,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ProjectLinks
 
 /**
@@ -35,41 +34,41 @@ internal fun AboutSettings() {
     SettingsGroup("MobiXournal Desktop") {
         SettingsReadout("Version", DESKTOP_VERSION)
         SettingsReadout("Reads and writes", ".xopp · .mobix")
-        // The check and its answer, in the same place: the note is the panel's static help, and the line
-        // under the row is what the last check found — the version in hand, the newer one, or the failure.
-        SettingsCommand(
-            label = "Check for updates",
-            note = "Asks GitHub whether a newer window is published.",
-            spacing = 6.dp,
-            onClick = { DesktopUpdates.offerOrCheck() },
+        // The build's two actions side by side, with their answers below on the same label column:
+        // checking for updates and copying diagnostics are sibling build commands.
+        SettingsCommandRow(
+            SettingsCommandAction(
+                label = "Check for updates",
+                note = "Asks GitHub whether a newer window is published.",
+                onClick = { DesktopUpdates.offerOrCheck() },
+            ),
+            SettingsCommandAction(
+                label = "Copy app details",
+                note = "Version, Windows build and formats — the facts a report asks for.",
+                onClick = { copied = copyAppDetailsToClipboard() },
+            ),
         )
         DesktopUpdates.answerLine()?.let { answer -> SettingsAnswer(answer) }
-        // The build's own facts, beside its version: this command is about the window, not about the
-        // project, and its confirmation is a line rather than a note a reader has to hover to find.
-        SettingsCommand(
-            label = "Copy app details",
-            note = "Version, Windows build and formats — the facts a report asks for.",
-            spacing = 6.dp,
-            onClick = { copied = copyAppDetailsToClipboard() },
-        )
         if (copied) SettingsAnswer("Copied to the clipboard — paste it into your report.")
     }
     SettingsGroup("Tell the project", summary = "Each command opens the project's own page in your browser.") {
-        SettingsCommand(
-            label = "Report a problem",
-            note = "Opens the bug report form: what you did, what happened, and the build in hand.",
-            spacing = 6.dp,
-        ) { openPage(ProjectLinks.newIssue(ProjectLinks.BUG_TEMPLATE)) }
-        SettingsCommand(
-            label = "Suggest an idea",
-            note = "Opens the feature request form: something you want to do that the window cannot do yet.",
-            spacing = 6.dp,
-        ) { openPage(ProjectLinks.newIssue(ProjectLinks.FEATURE_TEMPLATE)) }
-        SettingsCommand(
-            label = "Open the project on GitHub",
-            note = "Source code, release downloads, and every report already filed.",
-            spacing = 6.dp,
-        ) { openProjectPage() }
+        SettingsCommandRow(
+            SettingsCommandAction(
+                label = "Report a problem",
+                note = "Opens the bug report form: what you did, what happened, and the build in hand.",
+                onClick = { openPage(ProjectLinks.newIssue(ProjectLinks.BUG_TEMPLATE)) },
+            ),
+            SettingsCommandAction(
+                label = "Suggest an idea",
+                note = "Opens the feature request form: something you want to do that the window cannot do yet.",
+                onClick = { openPage(ProjectLinks.newIssue(ProjectLinks.FEATURE_TEMPLATE)) },
+            ),
+            SettingsCommandAction(
+                label = "Open the project on GitHub",
+                note = "Source code, release downloads, and every report already filed.",
+                onClick = { openProjectPage() },
+            ),
+        )
     }
     SettingsGroup("Credits & License") {
         SettingsNote(
