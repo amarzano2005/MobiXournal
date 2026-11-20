@@ -1,10 +1,11 @@
 package com.mobixournal.desktop.sheet
+import com.mobixournal.desktop.tools.DesktopButton
+import com.mobixournal.desktop.tools.DesktopButtonVariant
 import com.mobixournal.desktop.tools.DesktopTextAction
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.save
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.glyph
-import com.mobixournal.desktop.tools.PanelButton
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -161,24 +162,27 @@ internal fun PageSelectionBar(
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp))
         }
         Spacer(Modifier.height(6.dp))
-        // The pick's clipboard and its delete, on two rows: four labels on one line do not fit the 240 dp
-        // lane, and a button squeezed to a glyph would say less than the word it lost.
+        // Clipboard actions as quiet Ghost buttons on the left, and Delete as a clean danger text action
+        // on the right — one compact row that fits the 240 dp sidebar without heavy dialog boxes.
         Row(verticalAlignment = Alignment.CenterVertically) {
-            PanelButton(label = "Copy", primary = false, enabled = true, onClick = onCopy)
-            Spacer(Modifier.width(6.dp))
-            PanelButton(label = "Cut", primary = false, enabled = true, onClick = onCut)
-            Spacer(Modifier.width(6.dp))
-            PanelButton(label = "Paste", primary = false, enabled = true, onClick = onPaste)
-        }
-        Spacer(Modifier.height(6.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            PanelButton(label = "Delete pages", primary = false, enabled = true, destructive = true, onClick = onDelete)
-            Spacer(Modifier.width(8.dp))
+            DesktopButton("Copy", onCopy, variant = DesktopButtonVariant.Ghost, minHeight = 26.dp, style = DesktopTheme.label)
+            Spacer(Modifier.width(2.dp))
+            DesktopButton("Cut", onCut, variant = DesktopButtonVariant.Ghost, minHeight = 26.dp, style = DesktopTheme.label)
+            Spacer(Modifier.width(2.dp))
+            DesktopButton("Paste", onPaste, variant = DesktopButtonVariant.Ghost, minHeight = 26.dp, style = DesktopTheme.label)
+            Spacer(Modifier.weight(1f))
+            DesktopTextAction(
+                label = "Delete",
+                onClick = onDelete,
+                tone = DesktopTheme.danger,
+                minHeight = 26.dp,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+            )
         }
     }
 }
 
-/** The bar's one measurement: tall enough for its count and its button, so the layers list is not shoved. */
+/** The bar's one measurement: tall enough for its count and compact single-row actions. */
 internal object PageSelectionMetrics {
-    val BAR_HEIGHT = 144.dp
+    val BAR_HEIGHT = 76.dp
 }

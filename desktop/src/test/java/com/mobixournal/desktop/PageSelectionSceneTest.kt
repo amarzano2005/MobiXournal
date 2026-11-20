@@ -103,8 +103,8 @@ class PageSelectionSceneTest {
             click(scene, 120f, 280f, at = 1_200L, ctrl = true)
             assertEquals("two rows were picked", 2, picks.size)
 
-            // The bar sits at the bottom of the list while pages are picked, its delete on the left.
-            click(scene, 60f, 1_050f, at = 1_400L)
+            // The bar sits at the bottom of the list while pages are picked, its delete on the right.
+            click(scene, 206f, 1_076f, at = 1_400L)
 
             assertEquals("one delete", 1, removed.size)
             assertEquals("and it names both picked rows", picks.toSet(), removed.single())
