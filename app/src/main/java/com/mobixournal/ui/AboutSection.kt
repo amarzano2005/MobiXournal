@@ -311,8 +311,10 @@ private fun BuildIdentity(
  * One **door** on the page: a glyph, its name and one sentence saying where it goes.
  *
  * A card rather than a row because the doors are this page's main business; the glyph is the shared
- * chrome catalogue's, so the picture is the same on the window's page, and the whole card is the hit area
- * (a reader aims at the sentence that explains the door, not at a chevron).
+ * chrome catalogue's, so the picture is the same on the window's page. The **card itself** is the control
+ * ([SettingsCard]'s `onClick`), not a row inside it: a reader aims at the whole shape, and the card is the
+ * one node whose clip is its own corner — the two doors are stretched to a shared height, so a row inside
+ * them could light the sides but never the bottom.
  */
 @Composable
 private fun DoorCard(
@@ -323,13 +325,11 @@ private fun DoorCard(
     onClick: () -> Unit,
 ) {
     val reach = LocalSettingsCardInset.current
-    SettingsCard(modifier = modifier) {
+    SettingsCard(modifier = modifier, onClick = onClick) {
         Column(
             modifier = Modifier
-                .fullBleedRow(reach)
                 .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(horizontal = reach, vertical = settingsCellInset(reach)),
+                .padding(vertical = settingsCellInset(reach)),
         ) {
             Icon(
                 icon,

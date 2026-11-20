@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import com.mobixournal.ui.theme.PanelEdgeAir
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -96,21 +97,30 @@ internal val LocalSettingsCardInset = compositionLocalOf { 0.dp }
  * It pads **horizontally only**: a row reaches the card's top and bottom edges too, so a press or a
  * selection is shaped by the card's rounded clip instead of lighting a rectangle that stops short of the
  * corner — a vertical inset is what made a selected first or last row read as a bar inside the card.
+ *
+ * [onClick] makes the **whole card** the control — a door card, where the thing to press is the card and
+ * not one line in it. It is a parameter rather than a `clickable` on the caller's modifier because the
+ * order is the rule: the clip has to come *before* the click, or the indication is drawn over the card's
+ * rounded corners as a rectangle (`docs/interface-contract.md` §6, *the state layer follows the shape*).
+ * A card whose height is set by its neighbour in a row — the About page's two doors — is lit to its own
+ * edges only this way: a row inside it can reach the sides, never the stretched bottom.
  */
 @Composable
 internal fun SettingsCard(
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     // A card is a **settings surface**, not a pop-up: the near-solid panel fill (the window's own
     // settings material), the 20 dp panel corner and the rim as its whole edge — no Material
     // elevation, whose blur would land inside the card rather than beside it.
+    val surface = modifier
+        .fillMaxWidth()
+        .clip(SettingsCardShape)
+        .background(ModernTheme.settingsPanel(chromeIsDark()))
+        .floatingRim(20.dp)
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(SettingsCardShape)
-            .background(ModernTheme.settingsPanel(chromeIsDark()))
-            .floatingRim(20.dp),
+        modifier = if (onClick == null) surface else surface.clickable(onClick = onClick),
     ) {
         CompositionLocalProvider(LocalSettingsCardInset provides SettingsRowInset) {
             Column(
