@@ -340,10 +340,8 @@ internal object DesktopAudioSession {
             }
             return
         }
-        // Every clip starts at 0:00, tablet and window alike (`docs/audio.md`, mode 2): the stroke's own
-        // offset records when it was drawn, which is telemetry about the ink, not a place the user asked
-        // playback to begin at.
-        play(ref.copy(startMs = 0), tab)
+        val seekMs = KaraokeStrokeAnimator.seekTimeMs(ref.startMs, stroke.points, x, y) ?: ref.startMs
+        play(ref.copy(startMs = seekMs), tab)
     }
 
     /** Walk the transport's speeds: 1×, 1.25×, 1.5×, 2×, and back to 1×. */
