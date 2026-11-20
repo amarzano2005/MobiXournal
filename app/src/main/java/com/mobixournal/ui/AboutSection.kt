@@ -1,7 +1,11 @@
 package com.mobixournal.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -41,9 +45,15 @@ object AboutLinks {
 }
 
 /**
- * About: which build this is (the version name), who made it, the licence it ships under, and
- * the credits owed — both to NeXopp, the codebase this continues, and to Xournal++, the format's
- * author it is built for. Every row that points outward opens the link in the system browser.
+ * About: which build this is (the version name), what it owes, and the build details a report needs.
+ *
+ * It is a page of its own inside the **About** area now, beside **Feedback**: the two questions a reader
+ * arrives with here are *which build am I on* and *where do I say something about it*, and the outward
+ * doors — the bug form, the feature form, the repository — belong to the second one.
+ *
+ * The version row **is** the update check (the number is the one row the command answers about), and
+ * *Copy app details* puts the version, the Android release and the device on the clipboard: that trio is
+ * what a report is asked for, and retyping it from a settings page is the step a bug report loses.
  */
 @Composable
 fun AboutSection() {
@@ -68,14 +78,12 @@ fun AboutSection() {
             askedHere = true
             AppUpdates.offerOrCheck(context)
         }
-        // The **door out**, where a row naming the *other* shell's version used to stand: a reader who wants
-        // the Windows build wants its releases, and the repository is where both shells' work lives.
+        SettingsDivider()
+        // The build's three facts, one tap to the clipboard: what a report needs (`FeedbackSection`).
         LinkRow(
-            "MobiXournal on GitHub",
-            AboutLinks.SOURCE,
-            open,
-            note = "Source code, release downloads, and issue tracker.",
-        )
+            "Copy app details",
+            note = "Version, Android release and device — paste them into a report.",
+        ) { copyAppDetails(context) }
     }
 
     SettingsGroup("Credits") {
@@ -83,18 +91,18 @@ fun AboutSection() {
             "Continues NeXopp by Brian Monroe (bamonroe), licensed under GNU GPL v2 or later. " +
                 "Original portions copyright Brian Monroe.",
         )
-        LinkRow("NeXopp on GitHub", AboutLinks.NEXOPP, open)
+        LinkRow("NeXopp on GitHub") { open(AboutLinks.NEXOPP) }
         SettingsDivider()
         SettingsNote(
             "Interoperable with Xournal++, which defines the .xopp format. " +
                 "Unofficial; not affiliated with or endorsed by Xournal++ authors.",
         )
-        LinkRow("Xournal++ desktop app", AboutLinks.XOURNALPP, open)
+        LinkRow("Xournal++ desktop app") { open(AboutLinks.XOURNALPP) }
     }
 
     SettingsGroup("License") {
         SettingsNote("Free software licensed under GNU General Public License v2 or later. Provided without warranty.")
-        LinkRow("Read the GPL v2 License", AboutLinks.LICENSE, open)
+        LinkRow("Read the GPL v2 License") { open(AboutLinks.LICENSE) }
     }
 
 }
@@ -102,6 +110,29 @@ fun AboutSection() {
 /** The sentence the bottom notification repeats when the check finds nothing newer. */
 private fun latestSentence(): String =
     "MobiXournal ${BuildConfig.VERSION_NAME} is the latest version."
+
+/** The three facts a report asks for, one per line — what *Copy app details* puts on the clipboard. */
+private fun appDetails(): String = buildString {
+    append("MobiXournal ${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})\n")
+    append("Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})\n")
+    append("${Build.MANUFACTURER} ${Build.MODEL}")
+}
+
+/**
+ * Hand [appDetails] to the clipboard, with a word about where they go.
+ *
+ * A device without a clipboard service is told so rather than failing quietly: the row is a command, and
+ * a command that does nothing when pressed reads as a broken page.
+ */
+private fun copyAppDetails(context: Context) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+    if (clipboard == null) {
+        Toast.makeText(context, "This device has no clipboard to copy to.", Toast.LENGTH_SHORT).show()
+        return
+    }
+    clipboard.setPrimaryClip(ClipData.newPlainText("MobiXournal app details", appDetails()))
+    Toast.makeText(context, "App details copied.", Toast.LENGTH_SHORT).show()
+}
 
 /**
  * The build's number, and **the button** that asks GitHub whether it is still current.
@@ -142,20 +173,21 @@ private fun VersionRow(version: String, status: String, onClick: () -> Unit) {
 }
 
 /**
- * A tappable line that hands its URL to the system browser, with [note] as its own subtitle.
+ * A tappable line, with [note] as its own subtitle: the shape both outward links (**About**) and the
+ * clipboard command wear, so one page's rows read as one list.
  *
  * The note is inside the row rather than a [SettingsNote] after it: a separate block carries a cell's
- * air above and below, so the sentence that explains the link sat a group's gap away from it and read
+ * air above and below, so the sentence that explains the row sat a group's gap away from it and read
  * as belonging to whatever came next.
  */
 @Composable
-private fun LinkRow(label: String, url: String, open: (String) -> Unit, note: String? = null) {
+internal fun LinkRow(label: String, note: String? = null, onClick: () -> Unit) {
     val reach = LocalSettingsCardInset.current
     Column(
         modifier = Modifier
             .fullBleedRow(reach)
             .fillMaxWidth()
-            .clickable { open(url) }
+            .clickable { onClick() }
             .padding(horizontal = reach, vertical = settingsCellInset(reach)),
     ) {
         Text(

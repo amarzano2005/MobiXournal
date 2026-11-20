@@ -12,8 +12,8 @@ objects the sections read and write. What the window's own Settings surface look
 
 Choosing Settings
 from the ☰ menu swaps in `SettingsScreen`, which is shaped like a tablet's system settings and has **two
-shapes** for one set of areas. On a screen at least `SETTINGS_TWO_PANE_MIN_WIDTH` (600dp) wide the four
-`SettingsArea`s — **Input**, **Drawing**, **Interface**, **App & data** — are a **permanent side menu**
+shapes** for one set of areas. On a screen at least `SETTINGS_TWO_PANE_MIN_WIDTH` (600dp) wide the five
+`SettingsArea`s — **Input**, **Drawing**, **Interface**, **App & data** and **About** — are a **permanent side menu**
 (`SettingsSidebar.kt`: its own search field and one row per area) with the selected area's
 `SettingsSection`s in the pane beside it, and an opened section replaces that pane (the title bar and the
 back arrow return to the list). Narrower than that the side menu is dropped for the pushed flow — index,
@@ -105,7 +105,7 @@ mechanics are in [`selection.md`](selection.md#selecting-objects-render).
 
 **A change offers a restart** (`ThemeRestartDialog`). The colour scheme repaints the live window the moment the answer is picked and the app's `-night` qualifier moves with it (`MobiXournalApp.applyNightMode`), so the startup window wears the chosen theme at the next start — now or later, since the choice is already written to the store. The **home-screen icon** is the part that needs the restart: `MobiXournalApp.restartForTheme` switches the launcher alias once the affinity is on its way out, because disabling the `activity-alias` a running task was launched through makes Android finish that task — syncing the alias on selection closed the app before the notice could be read. The splash is chosen by the qualifier rather than by the alias: an alias only re-labels the icon, while Android draws the starting window from `MainActivity`'s own theme, which is why a light theme used to come up on a dark splash. The three answers are `mobix-core`'s `ThemeMode` — one enum for both shells, since the window kept a second copy with its members in the other order — and the row's words are the entry's own (`SettingsSection`'s title and summary), a pairing `SettingsCopyParityTest` holds while the names the two shells share stay spelled the same.
 
-**A backup carries the audio choices too.** `AppSettingsBackup` writes `audioFolderUri` and `saveStandaloneAudio` beside the rest, so another device keeps where recordings are copied and whether they are copied at all (`audio.md` owns what the two mean). **About** ends in a door rather than a cross-reference: the tablet's page links to the project's repository (`ProjectLinks`, `mobix-core`), and the window's About row opens the same page in the machine's browser, so a reader looking for the other shell reaches its releases instead of reading a version number.
+**A backup carries the audio choices too.** `AppSettingsBackup` writes `audioFolderUri` and `saveStandaloneAudio` beside the rest, so another device keeps where recordings are copied and whether they are copied at all (`audio.md` owns what the two mean). **About is an area of its own**, holding two pages: **About** names the build in hand — its version row *is* the update check, and *Copy app details* puts the version, the Android release and the device on the clipboard, which is the trio a report is asked for — and **Feedback** is the pair of doors to the project's issue tracker. *Report a problem* opens the bug form and *Suggest an idea* the feature form, both files in `.github/ISSUE_TEMPLATE` addressed through `ProjectLinks` (`mobix-core`), and the page ends on the project's own repository, so a reader looking for the other shell reaches its releases instead of reading a version number. A form rather than a blank issue box because it asks for the build and the platform in fields; the window splits the same two questions the same way.
 
 ## The rail's two fixed slots
 

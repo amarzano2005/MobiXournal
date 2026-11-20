@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * The settings' permanent side menu: the search field, then the four [SettingsArea]s.
+ * The settings' permanent side menu: the search field, then the five [SettingsArea]s.
  *
  * This is the shape a tablet's system settings use — the top-level list stays on screen and the pane
  * beside it shows what is selected — so moving between areas is one tap with no level to walk back

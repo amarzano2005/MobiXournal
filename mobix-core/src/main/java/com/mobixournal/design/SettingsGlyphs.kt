@@ -68,6 +68,15 @@ enum class SettingsGlyph {
 
     /** The app itself: version, formats, licences. */
     ABOUT,
+
+    /**
+     * Talking back to the project: a problem, or an idea.
+     *
+     * The mark is a speech bubble, because that is the object: the reader says something and the project
+     * reads it. It is not the issue tracker's own icon (a dot in a ring) — a ring reads as a target or a
+     * record button at 16 dp, and the same ring already means *the pen-tip ring* in this list.
+     */
+    FEEDBACK,
 }
 
 /** The catalogue: one glyph, its parts, in draw order. */
@@ -90,6 +99,7 @@ object SettingsGlyphCatalogue {
         SettingsGlyph.STORAGE -> cylinder()
         SettingsGlyph.BACKUP -> restore()
         SettingsGlyph.ABOUT -> info()
+        SettingsGlyph.FEEDBACK -> bubble()
     }
 
     // --- the art ---------------------------------------------------------------------------------
@@ -282,6 +292,26 @@ object SettingsGlyphCatalogue {
         GlyphPart.Circle(12f, 12f, 8.5f),
         GlyphPart.Line(12f, 11f, 12f, 16.5f),
         GlyphPart.Circle(12f, 7.8f, 0.9f),
+    )
+
+    /**
+     * A speech bubble with two lines of writing in it: something said to the project.
+     *
+     * The tail is drawn as part of the frame's outline rather than as a second stroke on top of it, so the
+     * silhouette stays open where the words go and the mark is one shape at 16 dp — a bubble plus a
+     * separate tail read as a box with a tick beside it at the size an index row draws.
+     */
+    private fun bubble(): List<GlyphPart> = listOf(
+        GlyphPart.Polyline(
+            listOf(
+                GlyphPoint(4.5f, 5f), GlyphPoint(19.5f, 5f), GlyphPoint(19.5f, 15f),
+                GlyphPoint(10.5f, 15f), GlyphPoint(7.5f, 19.5f), GlyphPoint(7.5f, 15f),
+                GlyphPoint(4.5f, 15f),
+            ),
+            closed = true,
+        ),
+        GlyphPart.Line(8f, 8.5f, 16f, 8.5f),
+        GlyphPart.Line(8f, 11.5f, 13.5f, 11.5f),
     )
 
 }

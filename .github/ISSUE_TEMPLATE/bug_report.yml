@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in MobiXournal does not work as it should.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting this. **Settings → About → Copy app details** puts the build, the Android/Windows version and the device on your clipboard — paste that below.
+
+        A report that can be repeated can be fixed; one that cannot is a guess.
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what the app did instead.
+      placeholder: I tapped Pages after drawing, and the app closed without saving.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The shortest sequence that shows the problem. Say so if it does not happen every time.
+      placeholder: |
+        1. Open a notebook
+        2. Draw on two pages
+        3. Tap Pages
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: MobiXournal version
+      description: The version on Settings → About, e.g. 2.3.1 (build 18).
+      placeholder: 2.3.1 (build 18)
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Where it happened. Choose both if the same problem shows on Android and Windows.
+      options:
+        - Android
+        - Windows
+        - Both
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Anything else
+      description: Screenshots, a log, or a notebook that shows the problem (remove pages you cannot share).
+    validations:
+      required: false

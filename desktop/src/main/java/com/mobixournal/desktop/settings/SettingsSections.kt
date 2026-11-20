@@ -42,6 +42,9 @@ enum class DesktopSettingArea(val title: String) {
     INPUT("Input"),
     DRAWING("Drawing"),
     APP("Files & app"),
+
+    /** The build in hand and the doors out to the project: About beside Feedback. */
+    ABOUT("About"),
 }
 
 /**
@@ -142,8 +145,15 @@ enum class DesktopSettingSection(
     ABOUT(
         "About",
         "The version, the formats it reads, and what it is.",
-        "about version build formats licence license independent unofficial",
+        "about version build formats licence license independent unofficial credits update latest",
         SettingsGlyph.ABOUT,
+    ),
+    FEEDBACK(
+        "Feedback",
+        "Report a problem or suggest an idea, in the project's issue tracker.",
+        "feedback report bug problem issue crash suggest idea feature request github tracker help support " +
+            "contact",
+        SettingsGlyph.FEEDBACK,
     ),
     ;
 
@@ -153,7 +163,8 @@ enum class DesktopSettingSection(
             STYLUS, SHORTCUTS, RING -> DesktopSettingArea.INPUT
             FIGURES, COLORS -> DesktopSettingArea.DRAWING
             TOOLBAR, APPEARANCE, NAVIGATION -> DesktopSettingArea.INTERFACE
-            DOCUMENTS, AUDIO, BACKUP, ABOUT -> DesktopSettingArea.APP
+            DOCUMENTS, AUDIO, BACKUP -> DesktopSettingArea.APP
+            ABOUT, FEEDBACK -> DesktopSettingArea.ABOUT
         }
 
     /** Whether this section answers [needle] — its title, its summary, aliases or commands. */
@@ -169,7 +180,7 @@ enum class DesktopSettingSection(
         /** One order for the visible index, searches and their fallback page. */
         val ORDERED: List<DesktopSettingSection> = listOf(
             APPEARANCE, TOOLBAR, NAVIGATION, STYLUS, SHORTCUTS, RING,
-            FIGURES, COLORS, DOCUMENTS, AUDIO, BACKUP, ABOUT,
+            FIGURES, COLORS, DOCUMENTS, AUDIO, BACKUP, ABOUT, FEEDBACK,
         )
         /** The section a window opens on: the **pen**, the page every session starts from. */
         val DEFAULT: DesktopSettingSection = STYLUS
@@ -214,6 +225,7 @@ internal fun DesktopSettingPage(
         DesktopSettingSection.DOCUMENTS -> DocumentsSettings(policy)
         DesktopSettingSection.BACKUP -> BackupSettings(policy)
         DesktopSettingSection.ABOUT -> AboutSettings()
+        DesktopSettingSection.FEEDBACK -> FeedbackSettings()
     }
 }
 
@@ -627,25 +639,17 @@ private fun BackupSettings(policy: DesktopSettingsState) {
 }
 
 /**
- * **About**: what the window is, the credits it owes, and the door out to the project's own page.
+ * **About**: what the window is, the credits it owes, and the check that says whether it is current.
  *
  * The credits are the tablet's, in the window's words: MobiXournal continues NeXopp, and it is built on and
- * for Xournal++, which owns the `.xopp` format. The first group ends with the **door out** — the project's own
- * repository, opened in the machine's browser — because a version number is not what a reader wants when they
- * look for the other shell: its releases are.
+ * for Xournal++, which owns the `.xopp` format. The doors out — the issue forms and the repository — are the
+ * page beside it (**Feedback**), so this page stays what it says it is: which build is in hand.
  */
 @Composable
 private fun AboutSettings() {
     SettingsGroup("MobiXournal Desktop") {
         SettingsReadout("Version", DESKTOP_VERSION)
         SettingsReadout("Reads and writes", ".xopp · .mobix")
-        // The door **out**, in place of a row that reported the other shell's version: a reader who wants the
-        // Android build wants its releases, and the project's page is where both shells' work lives.
-        SettingsCommand(
-            label = "Open project on GitHub",
-            note = "Source code, release downloads, and issue tracker.",
-            onClick = ::openProjectPage,
-        )
         // The check's own row. Its note is the panel's hover help, so the answer a reader needs after a tap
         // — "you are on the latest version" — is the bottom pill the shell hosts, not this line
         // (`docs/updates.md` owns the channel, the pill and both installers).

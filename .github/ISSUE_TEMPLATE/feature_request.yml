@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest an idea, or a change to something MobiXournal already does.
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea. Describe the task you want to do rather than only the button you would add — the shape of the feature often follows from the work.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The writing, drawing or organising task the app gets in the way of today.
+      placeholder: I import a PDF and want its headings as an outline, and I have to type each one by hand.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+      description: The change you have in mind, at whatever level of detail you have it.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you do instead today
+      description: The workaround, the other app, or the paper notebook this would replace. Optional.
+    validations:
+      required: false
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where it matters most
+      options:
+        - Android
+        - Windows
+        - Both
+    validations:
+      required: true
+  - type: checkboxes
+    id: interchange
+    attributes:
+      label: Saving and interchange
+      description: MobiXournal only builds what survives save and reopen in `.mobix` or `.xopp`.
+      options:
+        - label: I understand the idea has to survive save and reopen to be built.
+          required: false

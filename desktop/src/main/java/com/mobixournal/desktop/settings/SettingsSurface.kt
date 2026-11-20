@@ -171,10 +171,10 @@ private fun SettingsPanelHeader(policy: DesktopSettingsState) {
 }
 
 /**
- * The **index**: the four areas as eyebrows, and their sections under them.
+ * The **index**: the five areas as eyebrows, and their sections under them.
  *
- * Ten names in one flat column is a list read top to bottom; four short groups is a list scanned by its
- * shape, and desktop task areas put related controls together (`DesktopSettingArea`). A section's
+ * A dozen names in one flat column is a list read top to bottom; five short groups is a list scanned by
+ * its shape, and desktop task areas put related controls together (`DesktopSettingArea`). A section's
  * sentence is not drawn here — the index is names only, and the help line says what a section covers when
  * the pointer is on it.
  */

@@ -56,7 +56,7 @@ enum class SettingsArea(
     val title: String,
     val summary: String,
     val sections: List<SettingsSection>,
-    /** The glyph on the area's row, so a list of four reads at a glance. */
+    /** The glyph on the area's row, so a list of five reads at a glance. */
     val icon: ImageVector,
 ) {
     /** Input devices and the keys that stand in for them: stylus behaviour and shortcuts. */
@@ -87,17 +87,30 @@ enum class SettingsArea(
         listOf(SettingsSection.TOOLBAR, SettingsSection.NAVIGATION, SettingsSection.APPEARANCE),
         SettingsGlyph.APPEARANCE.imageVector(),
     ),
-    /** The app itself: what it writes, how much it may store, how its settings move, what it is. */
+    /** What the app writes and keeps: new-document format, storage limits, settings backup. */
     APP(
         "App & data",
-        "The format of new documents, storage limits, settings backup, and version information.",
+        "The format of new documents, storage limits, and settings backup.",
         listOf(
             SettingsSection.DOCUMENTS,
             SettingsSection.STORAGE,
             SettingsSection.BACKUP,
-            SettingsSection.ABOUT,
         ),
         SettingsGlyph.STORAGE.imageVector(),
+    ),
+    /**
+     * The app as an artefact rather than as a set of choices: which build is in hand, what it owes, and
+     * where to tell the project about a problem or an idea.
+     *
+     * It is its own area because those questions are asked at a different moment from the ones above —
+     * *which version is this* and *where do I say something about it* are not settings, and a reader
+     * looking for either should not walk through the document format to find them.
+     */
+    ABOUT(
+        "About",
+        "Which build is in hand, its update check, the credits it owes, and where to report a problem or suggest an idea.",
+        listOf(SettingsSection.ABOUT, SettingsSection.FEEDBACK),
+        SettingsGlyph.ABOUT.imageVector(),
     ),
 }
 
@@ -225,17 +238,27 @@ enum class SettingsSection(
         "Export or import your settings to and from a JSON file.",            "backup export import json file restore reset settings transfer migrate",
         SettingsGlyph.BACKUP.imageVector(),
     ),
-    /** About: version, licence, source, and support links. */
+    /** About: the build in hand, its update check, the credits, and the licence. */
     ABOUT(
         "About",
-        "Version, licence, source code, and how to support the work.",            "about version build number licence license gpl source code github support donate credits",
+        "The build in hand, its update check, the credits it owes, and the licence.",
+        "about version build number licence license gpl credits xournal nexopp copy details " +
+            "update latest",
         SettingsGlyph.ABOUT.imageVector(),
+    ),
+    /** Feedback: the two doors to the project's issue tracker — a problem, or an idea. */
+    FEEDBACK(
+        "Feedback",
+        "Report a problem or suggest an idea, in the project's issue tracker.",
+        "feedback report bug problem issue crash suggest idea feature request github tracker help support " +
+            "contact",
+        SettingsGlyph.FEEDBACK.imageVector(),
     ),
 }
 
 /**
  * Settings, shaped like a tablet's system settings: on a screen of at least
- * [SETTINGS_TWO_PANE_MIN_WIDTH] a permanent side menu lists the four [SettingsArea]s with the selected
+ * [SETTINGS_TWO_PANE_MIN_WIDTH] a permanent side menu lists the five [SettingsArea]s with the selected
  * area's [SettingsSection]s beside it — and whichever section is open replaces that list — while a
  * narrower screen keeps the pushed flow (index → area → section). Both shapes share one search:
  * typing filters to matching sections wherever the user is, and a result opens that section directly.
@@ -456,6 +479,7 @@ private fun SectionBody(
         SettingsSection.STORAGE -> StorageSection(settings, onChange)
         SettingsSection.BACKUP -> BackupSection(settings, onChange)
         SettingsSection.ABOUT -> AboutSection()
+        SettingsSection.FEEDBACK -> FeedbackSection()
     }
 }
 

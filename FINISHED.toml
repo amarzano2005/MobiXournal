@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "about-becomes-its-own-settings-area-with-a-feedback-page-that-files-github-issues"
+title = "About becomes its own settings area with a Feedback page that files GitHub issues"
+description = "Settings has a fifth area, About, on both shells. It owns two pages: About (version row is still the update check, plus Copy app details -> clipboard with version/build, Android release and device; credits and licence below) and the new Feedback page, whose rows open the repository's GitHub issue forms (.github/ISSUE_TEMPLATE/bug_report.yml and feature_request.yml) through ProjectLinks.newIssue, and the project itself. App & data keeps Documents, Storage and Backup. SettingsGlyph gained FEEDBACK (speech bubble) in the shared catalogue; docs/chrome-settings.md, docs/desktop-settings.md (thirteen sections, five areas), docs/guide-settings-and-shortcuts.md and DocClaimsTest's count vocabulary were updated with it. Verification: source review, todo validate and the scripts/todo Python suites. Not run: any Gradle task (DocsGuardTest, SourceStructureTest, SettingsAreaTest, SettingsSearchTest, SettingsGlyphParityTest, DesktopSettingsGlyphTest, SettingsOrganizationTest, DocClaimsTest) and the APK / :desktop:createDistributable refresh — this host has no JDK or Android SDK and its Docker daemon is down."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-20
+completed = 2026-11-20
+tags = []
+design = "material: no new surface class — the Feedback page is the existing settings card and full-bleed rows, the desktop page uses SettingsCommand; tokens: no literals added, glyph geometry uses the 24-unit grid only; glyph: SettingsGlyph.FEEDBACK added to the shared catalogue and drawn by both adapters; states: rows keep the existing tappable full-bleed/default state, desktop commands keep their four variants; copy: English, sentence case, each row says where it goes; parity: same About/Feedback split and the same two issue forms on Android and Windows; docs: chrome-settings.md, desktop-settings.md and guide-settings-and-shortcuts.md updated; tests: DocClaimsTest vocabulary extended, no render test added for the new glyph beyond the existing SettingsGlyphRenderTest sweep"
+
+[[task]]
 id = "android-contents-menu-contract"
 title = "Use the shared menu surface for Android bookmark actions"
 description = "Both raw DropdownMenu call sites in app/src/main/java/com/mobixournal/ui/PdfContentsDialog.kt (full-title long-press popup at ContentsRowTitle and row Rename/Delete action menu at ContentsRowMenu) were migrated to the shared ToolbarMenu surface in commit ac2be374; zero raw DropdownMenu( calls remain in app/src/main. Verified green with ToolbarMenuGuardTest and DocumentNavigationTest."
