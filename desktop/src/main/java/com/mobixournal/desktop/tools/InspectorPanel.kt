@@ -17,6 +17,10 @@ import com.mobixournal.desktop.shell.DesktopShellState
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.shell.Header
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -98,51 +102,61 @@ internal fun InspectorLane(
     // field opens the panel and committing it closes both — one gesture, no hunting for the box afterwards.
     val drafting = state.textBox.box?.takeIf { it.tabKey == tab.key && it.page == tab.page }
     // Nothing to edit, nothing to draw: a selection alone is the bar's business, not this column's.
-    if (pending == null && drafting == null && live == null) return
+    val open = pending != null || drafting != null || live != null
+    val lastTarget = rememberClosingValue(if (open) Triple(pending, drafting, live) else null)
     val commitBox = { state.textBox.commit(tab, state::edited) }
 
-    InspectorFrame(state.prefs.inspectorSizing, modifier) {
-        LaneHeader(
-            tool = pending?.slot?.tool() ?: drafting?.let { DesktopTool.TEXT } ?: live?.family?.tool(),
-            title = pending?.let { "New ${it.slot.label().lowercase()}" }
-                ?: drafting?.let { "Text" }
-                ?: live?.family?.title.orEmpty(),
-            summary = pending?.summary() ?: drafting?.let { textSummary(it.element()) } ?: live?.let { livingSummary(it) },
-            onClose = when {
-                pending != null -> ({ state.cancelPlacement() })
-                drafting != null -> commitBox
-                else -> ({ state.closeLivingEditor() })
-            },
-        )
-        Column(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 12.dp),
-        ) {
-            when {
-                pending != null -> PlacementBody(pending)
-                // The draft's own element is what the controls read and write: a restyle here changes
-                // what the commit will write, and the field above follows it as it is typed.
-                drafting != null -> TextBody(drafting.element()) { edited ->
-                    if (edited is TextElement) state.textBox.restyle(edited)
+    AnimatedVisibility(
+        visible = open,
+        enter = fadeIn(tween(140)),
+        exit = fadeOut(tween(110)),
+    ) {
+        val (shownPending, shownDrafting, shownLive) = lastTarget ?: return@AnimatedVisibility
+        InspectorFrame(state.prefs.inspectorSizing, modifier) {
+            LaneHeader(
+                tool = shownPending?.slot?.tool() ?: shownDrafting?.let { DesktopTool.TEXT } ?: shownLive?.family?.tool(),
+                title = shownPending?.let { "New ${it.slot.label().lowercase()}" }
+                    ?: shownDrafting?.let { "Text" }
+                    ?: shownLive?.family?.title.orEmpty(),
+                summary = shownPending?.summary()
+                    ?: shownDrafting?.let { textSummary(it.element()) }
+                    ?: shownLive?.let { livingSummary(it) },
+                onClose = when {
+                    shownPending != null -> ({ state.cancelPlacement() })
+                    shownDrafting != null -> commitBox
+                    else -> ({ state.closeLivingEditor() })
+                },
+            )
+            Column(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 12.dp),
+            ) {
+                when {
+                    shownPending != null -> PlacementBody(shownPending)
+                    // The draft's own element is what the controls read and write: a restyle here changes
+                    // what the commit will write, and the field above follows it as it is typed.
+                    shownDrafting != null -> TextBody(shownDrafting.element()) { edited ->
+                        if (edited is TextElement) state.textBox.restyle(edited)
+                    }
+                    shownLive != null -> EditorBody(shownLive) { element -> state.commitLiving(element) }
+                    else -> Unit
                 }
-                live != null -> EditorBody(live) { element -> state.commitLiving(element) }
-                else -> Unit
             }
-        }
-        LaneFooter {
-            when {
-                pending != null -> {
-                    // The lane's answers close on the right, in the order every dialog in the window uses:
-                    // the ordinary answer first, the commit last.
-                    InspectorButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
-                    InspectorButton("Place", primary = true, enabled = pending.ready, onClick = { state.confirmPlacement() })
+            LaneFooter {
+                when {
+                    shownPending != null -> {
+                        // The lane's answers close on the right, in the order every dialog in the window uses:
+                        // the ordinary answer first, the commit last.
+                        InspectorButton("Cancel", primary = false, enabled = true, onClick = { state.cancelPlacement() })
+                        InspectorButton("Place", primary = true, enabled = shownPending.ready, onClick = { state.confirmPlacement() })
+                    }
+                    // A box being typed is finished by the same answer the field's `Esc` gives: it is written.
+                    shownDrafting != null -> InspectorButton("Done", primary = true, enabled = true, onClick = commitBox)
+                    else -> InspectorButton("Done", primary = true, enabled = true, onClick = { state.closeLivingEditor() })
                 }
-                // A box being typed is finished by the same answer the field's `Esc` gives: it is written.
-                drafting != null -> InspectorButton("Done", primary = true, enabled = true, onClick = commitBox)
-                else -> InspectorButton("Done", primary = true, enabled = true, onClick = { state.closeLivingEditor() })
             }
         }
     }
