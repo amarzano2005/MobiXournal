@@ -169,7 +169,7 @@ fun PageSidebar(
             // opaque tone and **one** 1 dp divider against the canvas, no rim all round and no lift.
             .bandSurface(DesktopTheme.glass)
             .bandDivider(BandEdge.END)
-            .padding(vertical = 12.dp),
+            .padding(top = 12.dp),
     ) {
         // Pages or Contents: one persistent switch, and the view it names fills the sidebar. The choice lives
         // on the tab, so two tabs can read two different views and neither loses its own.

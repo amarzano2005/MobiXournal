@@ -1,6 +1,4 @@
 package com.mobixournal.desktop.sheet
-import com.mobixournal.desktop.tools.DesktopButton
-import com.mobixournal.desktop.tools.DesktopButtonVariant
 import com.mobixournal.desktop.tools.DesktopTextAction
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.save
@@ -148,41 +146,46 @@ internal fun PageSelectionBar(
             .fillMaxWidth()
             .height(PageSelectionMetrics.BAR_HEIGHT)
             .background(DesktopTheme.panelField)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(top = 10.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Text(
                 PageSelectionRules.title(count),
                 color = DesktopTheme.accent,
                 style = DesktopTheme.label,
                 modifier = Modifier.weight(1f),
             )
-            DesktopTextAction("Clear", onClear, minHeight = 20.dp,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp))
+            DesktopTextAction(
+                "Clear",
+                onClear,
+                minHeight = 22.dp,
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+            )
         }
         Spacer(Modifier.height(6.dp))
-        // Clipboard actions as quiet Ghost buttons on the left, and Delete as a clean danger text action
-        // on the right — one compact row that fits the 240 dp sidebar without heavy dialog boxes.
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            DesktopButton("Copy", onCopy, variant = DesktopButtonVariant.Ghost, minHeight = 26.dp, style = DesktopTheme.label)
-            Spacer(Modifier.width(2.dp))
-            DesktopButton("Cut", onCut, variant = DesktopButtonVariant.Ghost, minHeight = 26.dp, style = DesktopTheme.label)
-            Spacer(Modifier.width(2.dp))
-            DesktopButton("Paste", onPaste, variant = DesktopButtonVariant.Ghost, minHeight = 26.dp, style = DesktopTheme.label)
+        // 6 dp outer padding + 6 dp action padding aligns Copy with "1 page selected" at 12 dp
+        // and Delete on the right, with even breathing room across all four actions.
+        val actionPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            DesktopTextAction("Copy", onCopy, tone = DesktopTheme.ink, minHeight = 26.dp, contentPadding = actionPadding)
+            Spacer(Modifier.width(4.dp))
+            DesktopTextAction("Cut", onCut, tone = DesktopTheme.ink, minHeight = 26.dp, contentPadding = actionPadding)
+            Spacer(Modifier.width(4.dp))
+            DesktopTextAction("Paste", onPaste, tone = DesktopTheme.ink, minHeight = 26.dp, contentPadding = actionPadding)
             Spacer(Modifier.weight(1f))
-            DesktopTextAction(
-                label = "Delete",
-                onClick = onDelete,
-                tone = DesktopTheme.danger,
-                minHeight = 26.dp,
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-            )
+            DesktopTextAction("Delete", onDelete, tone = DesktopTheme.danger, minHeight = 26.dp, contentPadding = actionPadding)
         }
     }
 }
 
 /** The bar's one measurement: tall enough for its count and compact single-row actions. */
 internal object PageSelectionMetrics {
-    val BAR_HEIGHT = 76.dp
+    val BAR_HEIGHT = 78.dp
 }
