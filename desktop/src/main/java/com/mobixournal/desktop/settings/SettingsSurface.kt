@@ -102,7 +102,10 @@ internal fun SettingsSurface(
                 .pointerHoverIcon(PointerIcon.Default),
         ) {
             SettingsPanelHeader(policy)
-            CompositionLocalProvider(LocalSettingsHelp provides help) {
+            CompositionLocalProvider(
+                LocalSettingsHelp provides help,
+                LocalSettingsSearchQuery provides policy.query,
+            ) {
                 Row(Modifier.weight(1f).fillMaxWidth()) {
                     SettingsIndex(policy)
                     Box(Modifier.width(1.dp).fillMaxHeight().background(DesktopTheme.hairline))

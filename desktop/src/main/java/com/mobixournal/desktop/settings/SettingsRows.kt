@@ -154,10 +154,33 @@ internal fun SettingsRow(
 ) {
     val press = rememberUpdatedState(onClick)
     var focused by remember { mutableStateOf(false) }
+    val searchQuery = LocalSettingsSearchQuery.current
+    val searchHit = remember(searchQuery, label, note) {
+        if (searchQuery.isBlank()) {
+            false
+        } else {
+            val haystack = "$label ${note.orEmpty()}".lowercase()
+            searchQuery.trim().lowercase().split(Regex("\\s+")).all { it in haystack }
+        }
+    }
     Row(
         Modifier
             .fillMaxWidth()
             .heightIn(min = SettingsMetrics.ROW_HEIGHT)
+            .background(
+                if (searchHit) DesktopTheme.activeSlot.copy(alpha = 0.35f) else Color.Transparent,
+                PropertyControlShape,
+            )
+            .drawBehind {
+                if (searchHit) {
+                    drawLine(
+                        DesktopTheme.accent,
+                        Offset(2.dp.toPx(), 8.dp.toPx()),
+                        Offset(2.dp.toPx(), size.height - 8.dp.toPx()),
+                        strokeWidth = 2.dp.toPx(),
+                    )
+                }
+            }
             .border(1.dp, if (focused) DesktopTheme.accent else Color.Transparent, PropertyControlShape)
             .onFocusChanged { focused = it.isFocused }
             .reportHelp(note)
@@ -230,6 +253,7 @@ internal fun SettingsCommand(
 internal data class SettingsCommandAction(
     val label: String,
     val note: String? = null,
+    val variant: DesktopButtonVariant = DesktopButtonVariant.Secondary,
     val onClick: () -> Unit,
 )
 
@@ -250,7 +274,7 @@ internal fun SettingsCommandRow(
     ) {
         actions.forEach { action ->
             Box(Modifier.reportHelp(action.note)) {
-                DesktopButton(action.label, action.onClick, variant = DesktopButtonVariant.Secondary, style = DesktopTheme.body)
+                DesktopButton(action.label, action.onClick, variant = action.variant, style = DesktopTheme.body)
             }
         }
     }
@@ -265,6 +289,9 @@ internal fun SettingsCommandRow(
  * sentences to themselves.
  */
 internal val LocalSettingsHelp = compositionLocalOf<MutableState<String>?> { null }
+
+/** The active search query in the Settings header, used to highlight matching rows on the open page. */
+internal val LocalSettingsSearchQuery = compositionLocalOf { "" }
 
 /**
  * Hands this row's sentence to the help line while the pointer is on it, and takes it back when it leaves.
@@ -592,7 +619,7 @@ internal fun SettingsSectionRow(
             }
             .border(
                 width = 1.dp,
-                color = if (focused) DesktopTheme.accent else Color.Transparent,
+                color = if (focused && !selected) DesktopTheme.accent else Color.Transparent,
                 shape = PropertyControlShape,
             )
             .onFocusChanged { focused = it.isFocused }

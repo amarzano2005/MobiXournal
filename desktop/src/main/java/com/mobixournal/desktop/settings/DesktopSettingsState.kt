@@ -197,13 +197,10 @@ class DesktopSettingsState(private val store: DesktopSettings) {
      */
     var pickBackupFile: ((save: Boolean, onPicked: (File?) -> Unit) -> Unit)? = null
 
-    /**
-     * What the last export or import said, shown under the two rows of the Backup section.
-     *
-     * A sentence rather than a dialog: backing settings up is not a question, and the answer (a file
-     * written, a file refused and why) belongs beside the rows that asked.
-     */
+    /** What the last export/import or reset said, shown in its group on the Backup page. */
     var backupNotice by mutableStateOf<String?>(null)
+        private set
+    var resetNotice by mutableStateOf<String?>(null)
         private set
 
     /**
@@ -253,7 +250,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         store.restore(emptyMap())
         reload()
         onRestored?.invoke()
-        backupNotice = "Every setting is back to its default."
+        resetNotice = "Every setting is back to its default."
     }
 
     /** Which part of the tablet's surface is mapped. */

@@ -29,6 +29,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -152,10 +156,10 @@ enum class DesktopSettingSection(
     /** The area of the index this section is listed under. */
     val area: DesktopSettingArea
         get() = when (this) {
-            STYLUS, SHORTCUTS, RING -> DesktopSettingArea.INPUT
+            STYLUS, SHORTCUTS, RING, AUDIO -> DesktopSettingArea.INPUT
             FIGURES, COLORS -> DesktopSettingArea.DRAWING
             TOOLBAR, APPEARANCE, NAVIGATION -> DesktopSettingArea.INTERFACE
-            DOCUMENTS, AUDIO, BACKUP, ABOUT -> DesktopSettingArea.APP
+            DOCUMENTS, BACKUP, ABOUT -> DesktopSettingArea.APP
         }
 
     /** Whether this section answers [needle] — its title, its summary, aliases or commands. */
@@ -170,8 +174,8 @@ enum class DesktopSettingSection(
     companion object {
         /** One order for the visible index, searches and their fallback page. */
         val ORDERED: List<DesktopSettingSection> = listOf(
-            APPEARANCE, TOOLBAR, NAVIGATION, STYLUS, SHORTCUTS, RING,
-            FIGURES, COLORS, DOCUMENTS, AUDIO, BACKUP, ABOUT,
+            APPEARANCE, TOOLBAR, NAVIGATION, STYLUS, SHORTCUTS, RING, AUDIO,
+            FIGURES, COLORS, DOCUMENTS, BACKUP, ABOUT,
         )
         /** The section a window opens on: the **pen**, the page every session starts from. */
         val DEFAULT: DesktopSettingSection = STYLUS
@@ -607,27 +611,54 @@ private fun PillLevelMeter(level: Float) {
  */
 @Composable
 private fun BackupSettings(policy: DesktopSettingsState) {
+    var confirmingReset by remember { mutableStateOf(false) }
     SettingsGroup("Settings transfer") {
-        SettingsCommand(
-            label = "Export settings…",
-            note = "Save all settings to a backup file.",
-            onClick = { policy.pickBackupFile?.invoke(true) { file -> file?.let(policy::exportBackup) } },
+        SettingsCommandRow(
+            SettingsCommandAction(
+                label = "Export settings…",
+                note = "Save all settings to a backup file.",
+                onClick = { policy.pickBackupFile?.invoke(true) { file -> file?.let(policy::exportBackup) } },
+            ),
+            SettingsCommandAction(
+                label = "Import settings…",
+                note = "Restore settings from a previous backup file.",
+                onClick = { policy.pickBackupFile?.invoke(false) { file -> file?.let(policy::importBackup) } },
+            ),
         )
-        SettingsCommand(
-            label = "Import settings…",
-            note = "Restore settings from a previous backup file.",
-            onClick = { policy.pickBackupFile?.invoke(false) { file -> file?.let(policy::importBackup) } },
-        )
-        policy.backupNotice?.let { SettingsNote(it) }
+        policy.backupNotice?.let { SettingsAnswer(it) }
     }
     // The one command that answers "start over": it is the backup page's own subject — a whole
-    // configuration, in or out — and it is drawn as a command, not as a row that reports a state.
+    // configuration, in or out — so it asks for an explicit second click before wiping every section.
     SettingsGroup("Reset settings") {
-        SettingsCommand(
-            label = "Reset all settings…",
-            note = "Restore all settings to factory defaults. Document files are not affected.",
-            onClick = policy::resetAllSettings,
-        )
+        if (!confirmingReset) {
+            SettingsCommandRow(
+                SettingsCommandAction(
+                    label = "Reset all settings…",
+                    note = "Restore all settings to factory defaults. Document files are not affected.",
+                    variant = DesktopButtonVariant.Destructive,
+                    onClick = { confirmingReset = true },
+                ),
+            )
+        } else {
+            SettingsNote("This restores every setting to its factory default. Document files are not affected.")
+            SettingsCommandRow(
+                SettingsCommandAction(
+                    label = "Confirm reset",
+                    note = "Restore every setting to its factory default now.",
+                    variant = DesktopButtonVariant.Destructive,
+                    onClick = {
+                        policy.resetAllSettings()
+                        confirmingReset = false
+                    },
+                ),
+                SettingsCommandAction(
+                    label = "Cancel",
+                    note = "Keep your current settings.",
+                    onClick = { confirmingReset = false },
+                ),
+            )
+        }
+        policy.resetNotice?.let { SettingsAnswer(it) }
     }
 }
 

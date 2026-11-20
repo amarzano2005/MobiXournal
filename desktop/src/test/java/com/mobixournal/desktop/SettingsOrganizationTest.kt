@@ -30,7 +30,7 @@ class SettingsOrganizationTest {
 
     @Test fun penRingAndRecordingHaveTaskAppropriateHomes() {
         assertEquals(DesktopSettingArea.INPUT, Section.RING.area)
-        assertEquals(DesktopSettingArea.APP, Section.AUDIO.area)
+        assertEquals(DesktopSettingArea.INPUT, Section.AUDIO.area)
         assertFalse(Section.BACKUP.summary.contains("recovery"))
         assertTrue(Section.NAVIGATION.summary.contains("scrolling"))
     }
