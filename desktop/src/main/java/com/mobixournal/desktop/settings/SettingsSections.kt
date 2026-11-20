@@ -42,9 +42,6 @@ enum class DesktopSettingArea(val title: String) {
     INPUT("Input"),
     DRAWING("Drawing"),
     APP("Files & app"),
-
-    /** The build in hand and the doors out to the project: About beside Feedback. */
-    ABOUT("About"),
 }
 
 /**
@@ -148,13 +145,6 @@ enum class DesktopSettingSection(
         "about version build formats licence license independent unofficial credits update latest",
         SettingsGlyph.ABOUT,
     ),
-    FEEDBACK(
-        "Feedback",
-        "Report a problem or suggest an idea, in the project's issue tracker.",
-        "feedback report bug problem issue crash suggest idea feature request github tracker help support " +
-            "contact",
-        SettingsGlyph.FEEDBACK,
-    ),
     ;
 
     /** The area of the index this section is listed under. */
@@ -163,8 +153,7 @@ enum class DesktopSettingSection(
             STYLUS, SHORTCUTS, RING -> DesktopSettingArea.INPUT
             FIGURES, COLORS -> DesktopSettingArea.DRAWING
             TOOLBAR, APPEARANCE, NAVIGATION -> DesktopSettingArea.INTERFACE
-            DOCUMENTS, AUDIO, BACKUP -> DesktopSettingArea.APP
-            ABOUT, FEEDBACK -> DesktopSettingArea.ABOUT
+            DOCUMENTS, AUDIO, BACKUP, ABOUT -> DesktopSettingArea.APP
         }
 
     /** Whether this section answers [needle] — its title, its summary, aliases or commands. */
@@ -180,7 +169,7 @@ enum class DesktopSettingSection(
         /** One order for the visible index, searches and their fallback page. */
         val ORDERED: List<DesktopSettingSection> = listOf(
             APPEARANCE, TOOLBAR, NAVIGATION, STYLUS, SHORTCUTS, RING,
-            FIGURES, COLORS, DOCUMENTS, AUDIO, BACKUP, ABOUT, FEEDBACK,
+            FIGURES, COLORS, DOCUMENTS, AUDIO, BACKUP, ABOUT,
         )
         /** The section a window opens on: the **pen**, the page every session starts from. */
         val DEFAULT: DesktopSettingSection = STYLUS
@@ -225,7 +214,6 @@ internal fun DesktopSettingPage(
         DesktopSettingSection.DOCUMENTS -> DocumentsSettings(policy)
         DesktopSettingSection.BACKUP -> BackupSettings(policy)
         DesktopSettingSection.ABOUT -> AboutSettings()
-        DesktopSettingSection.FEEDBACK -> FeedbackSettings()
     }
 }
 
@@ -635,40 +623,6 @@ private fun BackupSettings(policy: DesktopSettingsState) {
             note = "Restore all settings to factory defaults. Document files are not affected.",
             onClick = policy::resetAllSettings,
         )
-    }
-}
-
-/**
- * **About**: what the window is, the credits it owes, and the check that says whether it is current.
- *
- * The credits are the tablet's, in the window's words: MobiXournal continues NeXopp, and it is built on and
- * for Xournal++, which owns the `.xopp` format. The doors out — the issue forms and the repository — are the
- * page beside it (**Feedback**), so this page stays what it says it is: which build is in hand.
- */
-@Composable
-private fun AboutSettings() {
-    SettingsGroup("MobiXournal Desktop") {
-        SettingsReadout("Version", DESKTOP_VERSION)
-        SettingsReadout("Reads and writes", ".xopp · .mobix")
-        // The check's own row. Its note is the panel's hover help, so the answer a reader needs after a tap
-        // — "you are on the latest version" — is the bottom pill the shell hosts, not this line
-        // (`docs/updates.md` owns the channel, the pill and both installers).
-        SettingsCommand(
-            label = "Check for updates",
-            note = DesktopUpdates.statusLine(),
-            onClick = { DesktopUpdates.offerOrCheck() },
-        )
-    }
-    SettingsGroup("Credits & License") {
-        SettingsNote(
-            "Continues NeXopp by Brian Monroe (bamonroe), licensed under GNU GPL v2 or later. " +
-                "Original portions copyright Brian Monroe.",
-        )
-        SettingsNote(
-            "Interoperable with Xournal++, which defines the .xopp format. " +
-                "Unofficial; not affiliated with or endorsed by Xournal++ authors.",
-        )
-        SettingsNote("Free software licensed under GNU General Public License v2 or later. Provided without warranty.")
     }
 }
 

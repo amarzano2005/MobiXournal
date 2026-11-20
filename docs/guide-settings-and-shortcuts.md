@@ -13,7 +13,7 @@ Both shells keep settings in one list, and both let you search it instead of scr
 its sections by name and by keyword, and the tablet's list has the same search over the same areas.
 `Ctrl+,` opens it in the window.
 
-## The window's thirteen sections
+## The window's twelve sections
 
 | Section | What changing it affects |
 |---|---|
@@ -28,8 +28,7 @@ its sections by name and by keyword, and the tablet's list has the same search o
 | **Appearance** | The theme, and what the status bar reads |
 | **Documents** | The format a new document is written in, and its page |
 | **Backup** | The recovery snapshot, and the file that carries your settings |
-| **About** | The version, the formats it reads, and the update check |
-| **Feedback** | Where to report a problem or suggest an idea, in the project's GitHub issue tracker |
+| **About** | The version, the update check, and the doors to the project's GitHub issue tracker |
 
 ## The tablet's areas
 
@@ -40,11 +39,12 @@ palette and favourite colours, the ring, audio, import and export, the cache, a 
 licence. The groups are the same areas the window calls sections — a setting you know on one shell is
 findable on the other by its subject, not by its name.
 
-**About** is an area of its own on both shells, with the same two pages: the build in hand — its version
-row asks GitHub whether it is the latest, and *Copy app details* puts that version, your Android release
-and your device on the clipboard — and **Feedback**, which opens the project's issue forms for a problem
-or an idea. Paste the copied details into the report: the build is the part that makes a problem
-reproducible, and the forms are plain GitHub, so anything you already have open there is one tap away.
+**About** is a page of its own on both shells, and not shaped like the other settings pages: a header
+card names the build — tap it to ask GitHub whether it is the latest, and *Copy app details* puts the
+version, your Android release and your device on the clipboard — then two buttons open the project's
+GitHub issue forms, one for a problem and one for an idea. Paste the copied details into the report: the
+build is the part that makes a problem reproducible, and the forms are plain GitHub, so anything you
+already have open there is one tap away.
 
 Two lists are arranged by hand. On either shell, drag a swatch's handle in the Colors page to change the
 palette's order — every picker, the Ring and the colour shortcuts follow it. In the window's Toolbar page,

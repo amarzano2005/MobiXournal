@@ -26,9 +26,16 @@ class SettingsAreaTest {
     @Test
     fun `no area is an empty level of indirection`() {
         // A one-child area costs the user a tap and explains nothing; a new section belongs in the
-        // closest existing area instead of in a fresh one of its own.
+        // closest existing area instead of in a fresh one of its own. The exception is a page that *is*
+        // its area — About — where the single child is drawn inline: there is no door to open, so the
+        // level costs nothing and the page keeps its own place in the sidebar.
         for (area in SettingsArea.values()) {
-            assertTrue("${area.title} must own at least two sections", area.sections.size >= 2)
+            if (area.sections.size >= 2) continue
+            val only = area.sections.singleOrNull()
+            assertTrue(
+                "${area.title} must own at least two sections, or draw its only one inline",
+                only != null && only.inline,
+            )
         }
     }
 

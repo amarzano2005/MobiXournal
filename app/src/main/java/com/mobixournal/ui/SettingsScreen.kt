@@ -50,7 +50,8 @@ import com.mobixournal.design.SettingsGlyph
  * sections, so the same list drives both shapes.
  *
  * Every area owns at least two sections: an area with a single child is a level of indirection that
- * buys nothing, so a new section is added to the closest existing area instead.
+ * buys nothing, so a new section is added to the closest existing area instead — unless that child is
+ * **inline**, in which case the area draws the page itself and there is no tap to pay for at all.
  */
 enum class SettingsArea(
     val title: String,
@@ -100,7 +101,7 @@ enum class SettingsArea(
     ),
     /**
      * The app as an artefact rather than as a set of choices: which build is in hand, what it owes, and
-     * where to tell the project about a problem or an idea.
+     * where to tell the project about a problem or an idea — **one page**, drawn by its only section.
      *
      * It is its own area because those questions are asked at a different moment from the ones above —
      * *which version is this* and *where do I say something about it* are not settings, and a reader
@@ -108,8 +109,8 @@ enum class SettingsArea(
      */
     ABOUT(
         "About",
-        "Which build is in hand, its update check, the credits it owes, and where to report a problem or suggest an idea.",
-        listOf(SettingsSection.ABOUT, SettingsSection.FEEDBACK),
+        "The build in hand, its update check, the credits it owes, and the doors to the project.",
+        listOf(SettingsSection.ABOUT),
         SettingsGlyph.ABOUT.imageVector(),
     ),
 }
@@ -238,21 +239,20 @@ enum class SettingsSection(
         "Export or import your settings to and from a JSON file.",            "backup export import json file restore reset settings transfer migrate",
         SettingsGlyph.BACKUP.imageVector(),
     ),
-    /** About: the build in hand, its update check, the credits, and the licence. */
+    /**
+     * About: the build in hand, its update check, the credits, the licence and the doors to the project.
+     *
+     * It is [inline] and it is its area's only child: the page *is* the area, so there is no row to tap
+     * before reaching it — see [SettingsArea] and `inlineOnly`.
+     */
     ABOUT(
         "About",
-        "The build in hand, its update check, the credits it owes, and the licence.",
-        "about version build number licence license gpl credits xournal nexopp copy details " +
-            "update latest",
+        "The build in hand, its update check, the credits, the licence, and where to report a problem or suggest an idea.",
+        "about version build number licence license gpl credits xournal nexopp copy details update latest " +
+            "feedback report bug problem issue crash suggest idea feature request github tracker help " +
+            "support contact",
         SettingsGlyph.ABOUT.imageVector(),
-    ),
-    /** Feedback: the two doors to the project's issue tracker — a problem, or an idea. */
-    FEEDBACK(
-        "Feedback",
-        "Report a problem or suggest an idea, in the project's issue tracker.",
-        "feedback report bug problem issue crash suggest idea feature request github tracker help support " +
-            "contact",
-        SettingsGlyph.FEEDBACK.imageVector(),
+        inline = true,
     ),
 }
 
@@ -377,7 +377,11 @@ private fun TwoPaneSettings(
                     when {
                         section != null -> SectionBody(section, settings, onChange)
                         query.isNotEmpty() -> SearchResultRows(query, results, onSection)
-                        else -> SectionRows(shownArea, settings, onChange, onSection)
+                        else -> {
+                            val page = shownArea.inlineOnly()
+                            if (page != null) SectionBody(page, settings, onChange)
+                            else SectionRows(shownArea, settings, onChange, onSection)
+                        }
                     }
                 }
             }
@@ -425,7 +429,11 @@ private fun StackedSettings(
             CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
                 when {
                     openSection != null -> SectionBody(openSection, settings, onChange)
-                    openArea != null -> SectionRows(openArea, settings, onChange, onSection)
+                    openArea != null -> {
+                        val page = openArea.inlineOnly()
+                        if (page != null) SectionBody(page, settings, onChange)
+                        else SectionRows(openArea, settings, onChange, onSection)
+                    }
                     else -> {
                         // The search lives on the index: it is the one page both shapes share, and the
                         // answer to "where is this setting" is a section, not an area.
@@ -479,9 +487,17 @@ private fun SectionBody(
         SettingsSection.STORAGE -> StorageSection(settings, onChange)
         SettingsSection.BACKUP -> BackupSection(settings, onChange)
         SettingsSection.ABOUT -> AboutSection()
-        SettingsSection.FEEDBACK -> FeedbackSection()
     }
 }
+
+/**
+ * The one section an area draws **on itself**, when that is how the area is built.
+ *
+ * A page that *is* its area — About, whose identity header, two doors and details are one surface — has no
+ * door to open and no list to stand in, so its area's page is the page itself. Every other area lists its
+ * sections and opens them (or draws an [SettingsSection.inline] answer where its entry stood).
+ */
+private fun SettingsArea.inlineOnly(): SettingsSection? = sections.singleOrNull()?.takeIf { it.inline }
 
 /**
  * An area's own list: what it covers, then one card holding its sections. A section marked

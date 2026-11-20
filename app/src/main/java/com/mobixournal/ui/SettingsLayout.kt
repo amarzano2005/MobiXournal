@@ -43,15 +43,27 @@ fun SettingsGroup(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(modifier.fillMaxWidth().padding(bottom = SettingsGroupGap)) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Medium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 16.dp, bottom = SettingsHeaderGap),
-        )
+        SettingsGroupTitle(title)
         SettingsCard(content = content)
     }
+}
+
+/**
+ * A group's **heading**, on its own — the one the card under it is named after.
+ *
+ * It is a separate composable because a page can hold cards that are not one group's: the About page names
+ * its pair of doors this way, so a heading and the card it names sit at the same step as every other page
+ * while the cards under them are side by side rather than stacked.
+ */
+@Composable
+internal fun SettingsGroupTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.Medium,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 16.dp, bottom = SettingsHeaderGap),
+    )
 }
 
 /**

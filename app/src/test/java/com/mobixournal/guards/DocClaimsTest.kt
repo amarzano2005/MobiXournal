@@ -122,7 +122,7 @@ class DocClaimsTest {
         )
         val countWords = listOf(
             "no", "one", "two", "three", "four", "five", "six",
-            "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen",
+            "seven", "eight", "nine", "ten", "eleven", "twelve",
         )
         val word = countWords.getOrNull(enum.size)
         assertTrue(
