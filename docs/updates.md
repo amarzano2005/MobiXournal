@@ -49,20 +49,51 @@ report the failure — on the About line, and on the pill when the reader asked 
 Both shells keep the result in one state object per shell (`AppUpdates.kt`, `DesktopUpdates.kt`), because the
 offer outlives the page that shows it: the launch check may find a release while the reader is writing.
 
-## The popup and its two answers
+## The popup and its states
 
-When a newer build exists, a card names it and the build in hand, and offers the release's own page as
-**See what changed** — the notes are read where they were written, not summarised in the window. The card is
-a **floating surface** on both shells — the tablet's `FloatingDialog`, the window's `glassSurface` — so it
-arrives and leaves on the glass spring instead of being an opaque dialog over the page, and
-`ColorContractGuardTest` fails the build if the tablet's goes back to one
+When a newer build exists, a card names the build and the one in hand — *MobiXournal 2.3.0*, *Update available
+· you have 2.2.0* — and, while the offer is on the table, opens the release's own page: the notes are read
+where they were written, not summarised in the window (`What's changed in 2.3.0` on the tablet, *See what
+changed* in the window). The card is a **floating surface** on both shells — the tablet's `FloatingDialog`,
+the window's `glassSurface` — so it arrives and leaves on the glass spring instead of being an opaque dialog
+over the page, and `ColorContractGuardTest` fails the build if the tablet's goes back to one
 ([`interface-contract.md`](interface-contract.md) owns that rule).
-Its two answers are the reader's:
+
+**The tablet's card carries one primary answer at a time**, and the phase decides it. `UpdateCardCopy.kt`
+owns the words **and** the action each phase offers (`UpdateAction`); the dialog only performs the action and
+prints its label, so a button cannot say one thing and do another. The card is at most 420 dp wide, so a
+landscape slate reads a card rather than a panel with an empty half.
+
+| Phase | What the card says | The answers |
+|---|---|---|
+| Available | the build, and the one in hand | **Update now** (filled), *Remind me later*, *Skip this version*, the notes |
+| Downloading | *Downloading the update* and a bar: `42% · 12.4 MB of 45.0 MB`; an indeterminate bar and no percentage when the server declared no length | **Cancel** |
+| Downloaded | *Update downloaded*, and the sentence the installer left | **Install** — asks Android's installer again for the APK in hand — and *Later* |
+| Failed, no bytes | the offer, with the failure's own sentence | **Try again** (a fresh download), *Remind me later*, *Skip this version*, the notes |
+| Failed, bytes in hand | *Update downloaded*, with the installer's refusal | **Install** again, *Later* |
+
+**A download cannot be hidden.** While one runs the card ignores an outside tap and Back, because a
+transfer that continues with no surface is one the reader cannot see; **Cancel** stops it, deletes the half
+APK and puts the offer back, and a cancel that lands after the bytes are complete does nothing. Progress is
+a bar and a number — never a sentence and a disabled button saying the same thing twice — and a response
+without `Content-Length` says only that it is downloading instead of printing a percentage it does not have.
+
+**Skip this version is the one answer that outlives the launch.** The version string is kept in the app's
+own preferences (`mobixournal_updates`, its own file like the bookmark and recents stores), and the launch
+check stops raising the card for it — the release is still recorded, so About's command reopens the offer
+whenever the reader asks. A newer release is a different string, so it is offered again; nothing has to
+clear the entry.
+
+The window's card keeps its own shape (the opaque popup surface, **Remind me later** and **Update now**) and
+its state sentence carries the same facts; the skip answer is the tablet's. The standing answers of an offer
+are:
 
 - **Remind me later** closes the card. The offer stays on the About page, so the reader can come back to it
   without the check being made again.
-- **Update now** downloads that shell's artifact and hands it to the platform's installer. The download
-  reports its progress, and a failure says so instead of leaving the button pressed and silent.
+- **Skip this version** (the tablet) puts the build away for good: no card at the next launch, and the same
+  offer one tap away in About.
+- **Update now** downloads that shell's artifact and hands it to the platform's installer. A failure says
+  so instead of leaving the button pressed and silent.
 
 ## What Update now installs
 

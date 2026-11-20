@@ -7,15 +7,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
 import com.mobixournal.BuildConfig
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
-import kotlin.math.roundToInt
 
 /** What the tablet is doing about updates right now — one state, read by About and by the dialog. */
 enum class UpdatePhase { IDLE, CHECKING, UP_TO_DATE, AVAILABLE, DOWNLOADING, READY, FAILED }
@@ -54,42 +57,84 @@ object AppUpdates {
     var progress by mutableStateOf(0f)
         private set
 
-    /** The sentence under the About row — always about *this* shell's own state, never a guess. */
-    var message by mutableStateOf<String?>(null)
+    /** How many bytes have arrived, and how many the server declared — the card's own readout. */
+    var receivedBytes by mutableStateOf(0L)
+        private set
+
+    /** The APK's declared length, or 0 when the server declared none (then the bar is indeterminate). */
+    var totalBytes by mutableStateOf(0L)
+        private set
+
+    /** The APK already in hand, so Android's installer can be asked again without a second download. */
+    var downloadedFile by mutableStateOf<File?>(null)
+        private set
+
+    /** The download in flight, so **Cancel** can stop it instead of leaving it unseen. */
+    private var downloadJob: Job? = null
+
+    /**
+     * Numbers each attempt, and so names each attempt's own file.
+     *
+     * A cancelled coroutine may still be blocked in a read when the reader starts the next download, and it
+     * finishes its file's cleanup long after that one began. Its own path means the two attempts cannot write
+     * to the same file: the old writer is left with a deleted inode and the new one owns its own name.
+     */
+    private var attempt = 0
+
+    /**
+     * Why the last attempt stopped, or null — the card and the About row word it from
+     * [updateFailureSentence], so a failure is written once (`docs/updates.md`).
+     */
+    var failure by mutableStateOf<UpdateFailure?>(null)
+        private set
+
+    /** The build the reader asked never to be offered again, or null; see [skipThisVersion]. */
+    var skippedVersion by mutableStateOf<String?>(null)
         private set
 
     /** Whether the popup is up. **Remind me later** closes it and leaves [release] in hand. */
     var dialog by mutableStateOf(false)
         private set
 
-    /** The launch check: silent unless it finds something newer, so a working app opens to its page. */
+    /**
+     * The launch check: silent unless it finds something newer, so a working app opens to its page.
+     *
+     * A build the reader skipped is still recorded as the offer — About can reopen it — but it does not
+     * raise the card, which is what makes **Skip this version** hold across launches. A newer release is a
+     * different version string, so it is offered again.
+     */
     fun checkOnLaunch(context: Context) {
         if (asked) return
         asked = true
-        check(context)
+        check(context, fromLaunch = true)
     }
 
     /** The About row's command — the same check, with the answer reported either way. */
     fun check(context: Context) {
+        check(context, fromLaunch = false)
+    }
+
+    private fun check(context: Context, fromLaunch: Boolean) {
         if (phase == UpdatePhase.CHECKING || phase == UpdatePhase.DOWNLOADING) return
         phase = UpdatePhase.CHECKING
-        message = null
+        failure = null
         scope.launch {
             val found = runCatching { latest() }
             val offer = found.getOrNull()
             if (found.isFailure) {
                 phase = UpdatePhase.FAILED
-                message = "Could not check for updates. Check your connection and try again."
+                failure = UpdateFailure.CHECK
                 return@launch
             }
             if (offer == null) {
                 phase = UpdatePhase.UP_TO_DATE
-                message = null
                 return@launch
             }
+            val skipped = UpdatePreferences(context).skippedVersion()
             release = offer
+            skippedVersion = skipped
             phase = UpdatePhase.AVAILABLE
-            dialog = true
+            dialog = updateShouldInterrupt(fromLaunch, offer.version, skipped)
         }
     }
 
@@ -99,22 +144,68 @@ object AppUpdates {
         if (phase == UpdatePhase.DOWNLOADING) return
         phase = UpdatePhase.DOWNLOADING
         progress = 0f
+        receivedBytes = 0L
+        totalBytes = 0L
+        downloadedFile = null
+        failure = null
         dialog = true
-        scope.launch {
-            val file = runCatching { download(context, current) }.getOrNull()
-            if (file == null) {
+        val token = ++attempt
+        downloadJob = scope.launch {
+            val file = try {
+                download(context, current, token)
+            } catch (cancelled: CancellationException) {
+                // **Cancel** already put the card back on the offer; a cancelled read is not a failure.
+                throw cancelled
+            } catch (failed: Throwable) {
                 phase = UpdatePhase.FAILED
-                message = "The download did not finish. Check your connection and try again."
+                failure = UpdateFailure.DOWNLOAD
                 return@launch
             }
+            downloadedFile = file
             phase = UpdatePhase.READY
-            message = "The installer is open. Follow it to finish the update."
+            failure = null
             withContext(Dispatchers.Main) { install(context, file) }
         }
     }
 
+    /**
+     * The dialog's **Cancel**: stop the download and put the offer back.
+     *
+     * The half file is deleted by [download] itself, so the next attempt starts from zero and no truncated
+     * APK is ever handed to Android's installer. Cancelling once the bytes are complete is a no-op, because
+     * the phase has already left [UpdatePhase.DOWNLOADING].
+     */
+    fun cancelDownload() {
+        if (phase != UpdatePhase.DOWNLOADING) return
+        downloadJob?.cancel()
+        downloadJob = null
+        progress = 0f
+        receivedBytes = 0L
+        totalBytes = 0L
+        failure = null
+        phase = UpdatePhase.AVAILABLE
+    }
+
+    /** The dialog's **Install**: ask Android's installer again for a download already in hand. */
+    fun installNow(context: Context) {
+        val file = downloadedFile ?: return
+        install(context, file)
+    }
+
     /** The dialog's **Remind me later**: it goes away, and the offer stays on the About page. */
     fun remindLater() {
+        dialog = false
+    }
+
+    /**
+     * The dialog's **Skip this version**: remember it and close, so the launch check stops raising this
+     * build. A newer release is offered again, and About's own command reopens the offer whenever the
+     * reader asks for it. Nothing is downloaded or deleted here.
+     */
+    fun skipThisVersion(context: Context) {
+        val version = release?.version ?: return
+        UpdatePreferences(context).skip(version)
+        skippedVersion = version
         dialog = false
     }
 
@@ -128,16 +219,15 @@ object AppUpdates {
         if (release != null) showDialog() else check(context)
     }
 
-    /** The one line About prints under its command. */
-    fun statusLine(): String = when (phase) {
-        UpdatePhase.IDLE -> "Tap to check for updates."
-        UpdatePhase.CHECKING -> "Checking for updates…"
-        UpdatePhase.UP_TO_DATE -> "MobiXournal ${BuildConfig.VERSION_NAME} is the latest version."
-        UpdatePhase.AVAILABLE -> release?.let { "Version ${it.version} is available." } ?: ""
-        UpdatePhase.DOWNLOADING -> "Downloading ${(progress * 100).roundToInt()}%"
-        UpdatePhase.READY -> message ?: ""
-        UpdatePhase.FAILED -> message ?: "Could not check for updates."
-    }
+    /** The one line About prints under its command — the same copy the card reads. */
+    fun statusLine(): String = updateStatusLine(
+        phase = phase,
+        version = release?.version,
+        current = BuildConfig.VERSION_NAME,
+        failure = failure,
+        progress = progress,
+        totalBytes = totalBytes,
+    )
 
     /**
      * The newer release, or null when this build already is the latest.
@@ -186,12 +276,18 @@ object AppUpdates {
         }
     }
 
-    /** Stream the APK into the provider's own folder, reporting its progress as it arrives. */
-    private fun download(context: Context, release: UpdateRelease): File {
+    /**
+     * Stream the APK into the provider's own folder, reporting its progress as it arrives.
+     *
+     * The loop yields to cancellation between chunks (**Cancel**), and a cancelled attempt deletes its half
+     * file: a download the reader stopped leaves nothing behind that could later be installed.
+     */
+    private suspend fun download(context: Context, release: UpdateRelease, attempt: Int): File {
+        currentCoroutineContext().ensureActive()
         val folder = File(context.cacheDir, UPDATE_FOLDER).apply { mkdirs() }
         // One package at a time: a second download of another build must not leave two of them to install.
         folder.listFiles()?.forEach { it.delete() }
-        val target = File(folder, "MobiXournal-${release.version}.apk")
+        val target = File(folder, "MobiXournal-${release.version}-$attempt.apk")
         val connection = (URL(release.downloadUrl).openConnection() as HttpURLConnection).apply {
             connectTimeout = 10_000
             readTimeout = 30_000
@@ -201,19 +297,25 @@ object AppUpdates {
         try {
             if (connection.responseCode != HttpURLConnection.HTTP_OK) error("HTTP ${connection.responseCode}")
             val total = connection.contentLengthLong
+            if (total > 0) totalBytes = total
             connection.inputStream.use { input ->
                 target.outputStream().use { output ->
                     val buffer = ByteArray(64 * 1024)
                     var written = 0L
                     while (true) {
+                        currentCoroutineContext().ensureActive()
                         val read = input.read(buffer)
                         if (read < 0) break
                         output.write(buffer, 0, read)
                         written += read
+                        receivedBytes = written
                         if (total > 0) progress = (written.toDouble() / total).toFloat().coerceIn(0f, 1f)
                     }
                 }
             }
+        } catch (cancelled: CancellationException) {
+            runCatching { target.delete() }
+            throw cancelled
         } finally {
             connection.disconnect()
         }
@@ -234,7 +336,7 @@ object AppUpdates {
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { context.startActivity(intent) }.onFailure {
             phase = UpdatePhase.FAILED
-            message = "Android did not open its installer. Allow MobiXournal to install apps and try again."
+            failure = UpdateFailure.INSTALL
         }
     }
 }
