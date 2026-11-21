@@ -176,8 +176,8 @@ private fun ExportFormatGrid(
                 modifier = Modifier.weight(1f),
             )
             ExportFormatCard(
-                badge = "PKG",
-                title = "Portable .pmobix",
+                badge = "PMOBIX",
+                title = "Portable MobiXournal",
                 subtitle = if (shareMode) "Send notebook file" else "Includes assets",
                 tint = accent,
                 ink = ink,
@@ -283,7 +283,7 @@ internal fun SaveAsDrilldownView(
         }
         SaveAsFormatRow(
             badge = ".mobix",
-            title = "MobiXournal (.mobix)",
+            title = "MobiXournal",
             subtitle = "Native format · Everything stays editable",
             accent = accent,
             ink = ink,
@@ -292,7 +292,7 @@ internal fun SaveAsDrilldownView(
         )
         SaveAsFormatRow(
             badge = ".xopp",
-            title = "Xournal++ (.xopp)",
+            title = "Xournal++",
             subtitle = "Standard gzip · PDF stays linked",
             accent = accent,
             ink = ink,
@@ -301,7 +301,7 @@ internal fun SaveAsDrilldownView(
         )
         SaveAsFormatRow(
             badge = "ZIP",
-            title = "Zipped (single .xopp)",
+            title = "Zipped Xournal++",
             subtitle = "Portable · PDF embedded inside",
             accent = accent,
             ink = ink,
