@@ -70,7 +70,8 @@ internal fun destinationLiveValue(destination: SettingsDestination, settings: Ap
     SettingsDestination.PEN_INPUT ->
         if (!settings.pressureEnabled) "Fixed"
         else String.format(Locale.US, "%.1fx", settings.pressureMultiplier)
-    SettingsDestination.CANVAS_TOOLS -> settings.defaultTool.label
+    SettingsDestination.CANVAS_TOOLS ->
+        pageSizeLabel(settings.defaultPageWidthPt, settings.defaultPageHeightPt, settings.pageSizeUnit)
     SettingsDestination.PALETTE_RING -> "${ringFaces(settings).size} faces"
     SettingsDestination.WORKSPACE -> "${settings.themeMode.shortLabel()} · ${settings.toolbarPosition.label}"
     SettingsDestination.SHORTCUTS -> {

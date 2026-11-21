@@ -190,7 +190,7 @@ internal fun TabletProbeWindow(probe: TabletProbe) {
                 style = DesktopTheme.label,
             )
             Text(
-                "4. Press each ExpressKey and the pen's barrel button.",
+                "4. Press each ExpressKey and the pen's side button.",
                 color = DesktopTheme.inkSecondary,
                 style = DesktopTheme.body,
             )

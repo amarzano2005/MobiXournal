@@ -28,7 +28,8 @@ fun CanvasToolsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 onChange = { onChange(settings.copy(momentum = it)) },
             )
             AnimatedVisibility(visible = settings.momentum > 0f) {
-                SettingsAccentBlock {
+                Column {
+                    SettingsDivider()
                     OptionGroup(
                         title = "Momentum curve",
                         subtitle = "Deceleration profile: Linear is uniform; Exponential scales with flick velocity.",

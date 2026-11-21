@@ -23,13 +23,19 @@ use a subtle `12.dp` tonal `MaterialTheme.colorScheme.surfaceContainerLow` panel
 Binary and ternary selectors (`SettingsSegmentedControl`) use underline tabs without capsules, and action
 buttons use `SettingsActionShape` (`8.dp`).
 
-Each destination adapts its controls to the active subsection: `PenInputSection` pairs a segmented
-touch-mode control (`SettingsSegmentedControl`) with a live `PressureCurvePreview` that collapses when
-`pressureEnabled` is off; `CanvasToolsSection` reveals custom angle editors only for `Scalene` figures
-and the glide curve only while `momentum > 0`; `PaletteRingSection` combines the interactive Ring wheel
-with palette swatches; `WorkspaceSection` renders a 3-card visual theme picker, segmented rail-side
-toggle, and collapsible toolbar-button accordion; `FilesDataSection` offers visual `.mobix` / `.xopp`
-format cards alongside storage and consolidated `Backup & reset` rows.
+Each destination adapts its controls to the active subsection: `PenInputSection` orders its groups as
+**Pressure** (collapsible live `PressureCurvePreview` + sliders when `pressureEnabled` is active),
+**Ink** (stroke precision), **Pen side button** (held and double-click actions), and **Touch & gestures**
+(segmented `Pan only` / `Draw` control, hover preview, two/three-finger taps); `CanvasToolsSection`
+always starts documents with Pen (no Default tool row), expands `PaperSection` (`fillWidth = true`)
+across tablet width while syncing `pageSizeUnit`, omits the redundant Polygon subsection (the rail slot
+persists `polygonSides`), uses `Header row` for tables, reveals custom angle editors only for `Scalene`
+figures, and renders **Momentum curve** directly inside **Navigation & momentum** while `momentum > 0`;
+`PaletteRingSection` combines the interactive **Ring** wheel (`RingSection.kt`) with palette swatches;
+`WorkspaceSection` renders a 3-card visual theme picker, segmented rail-side toggle, and collapsible
+toolbar-button accordion; `FilesDataSection` places **Audio** directly beneath visual `.mobix` / `.xopp`
+**New documents** cards, consolidates text import and PDF cache budgets under **Limits**, and finishes
+with **Backup & reset** rows.
 
 On screens at least `SETTINGS_TWO_PANE_MIN_WIDTH` (600dp) wide (`TwoPaneSettings`), `SettingsSidebar`
 (`SettingsSidebar.kt`) stays visible on the left with `SettingsSearchField` and the seven destinations

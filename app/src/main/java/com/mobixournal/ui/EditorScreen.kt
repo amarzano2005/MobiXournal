@@ -48,6 +48,7 @@ import com.mobixournal.render.Placement
 import com.mobixournal.render.RadialHud
 import com.mobixournal.render.ShapeKind
 import com.mobixournal.render.Uncompilable
+import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.bandSideEdge
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
@@ -550,6 +551,16 @@ fun EditorScreen(
                 onDocumentFormat = { onSettingsChange(settings.copy(newDocumentFormat = it)) },
             )
         }
+
+        FocusModeEffect(
+            active = ui.fullPage,
+            onRepaint = { ui.panes.forEach { it.surface?.repaintAfterResize() } },
+        )
+        FocusModeExitButton(
+            visible = ui.fullPage,
+            onExit = { ui.fullPage = false },
+            modifier = Modifier.align(Alignment.TopEnd),
+        )
     }
 }
 
@@ -629,13 +640,9 @@ private fun EditorBody(
             second = { secondPane(it) },
         )
     }
-    if (ui.fullPage) {
-        Box(modifier = modifier) { canvas(Modifier.fillMaxSize()) }
-    } else {
-        DocumentNavigationWorkspace(
-            ui, pane, settings.toolbarPosition != ToolbarPosition.RIGHT, toolbar, canvas, modifier,
-        )
-    }
+    DocumentNavigationWorkspace(
+        ui, pane, settings.toolbarPosition != ToolbarPosition.RIGHT, toolbar, canvas, modifier,
+    )
 }
 
 /**

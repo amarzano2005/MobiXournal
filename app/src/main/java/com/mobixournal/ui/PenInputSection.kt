@@ -27,13 +27,12 @@ import kotlin.math.max
 
 /**
  * Unified **Pen & Input** section (`Stylus` + `Finger gestures`) with adaptive UI:
- * segmented touch-mode toggle (`Pan only` vs `Draw`), collapsible pressure-curve preview + sliders
- * when `pressureEnabled` is active, barrel button actions, finger tap gestures, and stroke precision.
+ * collapsible pressure-curve preview + sliders when `pressureEnabled` is active, stroke
+ * precision, pen side button actions, segmented touch-mode toggle (`Pan only` vs `Draw`),
+ * and finger tap gestures.
  */
 @Composable
 fun PenInputSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    TouchInputGroup(settings, onChange)
-    BarrelButtonGroup(settings, onChange)
     PressureGroup(settings, onChange)
     SettingsGroup("Ink") {
         OptionGroup(
@@ -45,6 +44,8 @@ fun PenInputSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             onSelect = { onChange(settings.copy(strokePrecision = it)) },
         )
     }
+    PenSideButtonGroup(settings, onChange)
+    TouchInputGroup(settings, onChange)
 }
 
 @Composable
@@ -91,11 +92,11 @@ private fun TouchInputGroup(settings: AppSettings, onChange: (AppSettings) -> Un
 }
 
 @Composable
-private fun BarrelButtonGroup(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    SettingsGroup("Barrel button") {
+private fun PenSideButtonGroup(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+    SettingsGroup("Pen side button") {
         OptionGroup(
             title = "While held",
-            subtitle = "Tool or action activated while pressing the stylus barrel button.",
+            subtitle = "Tool or action activated while pressing the pen side button.",
             options = BarrelAction.values().toList(),
             selected = settings.barrelAction,
             label = { barrelActionLabel(it) },
@@ -104,7 +105,7 @@ private fun BarrelButtonGroup(settings: AppSettings, onChange: (AppSettings) -> 
         SettingsDivider()
         OptionGroup(
             title = "Double-click",
-            subtitle = "Action triggered by double-clicking the stylus barrel button while lifted.",
+            subtitle = "Action triggered by double-clicking the pen side button while lifted.",
             options = QuickAction.values().toList(),
             selected = settings.barrelDoubleAction,
             label = { quickActionLabel(it) },

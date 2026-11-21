@@ -252,12 +252,11 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
 /** Build the editor's state holder once, seeded from the persisted [settings]. */
 @Composable
 fun rememberEditorUiState(settings: AppSettings): EditorUiState = remember {
-    val starting = startingTool(settings.defaultTool, settings.toolGroupSelections)
+    val starting = EditorTool.PEN
     EditorUiState(
         tool = starting,
         color = settings.lastColor,
-        // Shapes have their own width; every other tool starts at the pen's.
-        width = if (starting in SHAPE_TOOLS) settings.shapeWidth else settings.lastWidth,
+        width = settings.lastWidth,
         highlighterColorInit = settings.highlighterColor,
         highlighterWidthInit = settings.highlighterWidth,
     )

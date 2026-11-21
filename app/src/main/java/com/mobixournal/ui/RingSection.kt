@@ -62,10 +62,10 @@ fun RingSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     var picked by remember { mutableStateOf(0) }
     val index = picked.coerceIn(0, (faces.size - 1).coerceAtLeast(0))
 
-    SettingsGroup("The ring") {
+    SettingsGroup("Ring") {
         SettingsNote(
-            "The ring as it appears at the pen tip. Tap a face, then choose what it holds; the barrel " +
-                "button opens it (Settings → Stylus).",
+            "Ring as it appears at the pen tip. Tap a face, then choose what it holds; the pen " +
+                "side button opens it (Settings → Pen & Input).",
         )
         if (faces.isNotEmpty()) {
             RingDrawing(faces, index) { tapped -> picked = tapped }

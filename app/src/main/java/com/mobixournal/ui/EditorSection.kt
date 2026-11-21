@@ -16,22 +16,13 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.render.PageSizeStep
 
 /**
- * Editor preferences, in the order a user meets them: what a new document starts as (tool, page
+ * Editor preferences, in the order a user meets them: what a new document starts as (page
  * size), then the aids that tidy what they draw (snapping to the grid and to 15° angles). Shape
  * recognition is a figure's own setting, so it lives under **Figures**.
  */
 @Composable
 fun EditorSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("New documents") {
-        OptionGroup(
-            title = "Default tool",
-            subtitle = "Initial active tool when opening a document.",
-            options = DEFAULT_TOOL_CHOICES,
-            selected = settings.defaultTool,
-            label = { it.label },
-            onSelect = { onChange(settings.copy(defaultTool = it)) },
-        )
-        SettingsDivider()
         DefaultDimensionsControl(settings, onChange)
     }
     SettingsGroup("Quick page size") {
@@ -100,9 +91,15 @@ private fun pageSizeStepText(mm: Double): String =
 /** The default page width and height controls for new documents, synchronized with the Page Format popup. */
 @Composable
 private fun DefaultDimensionsControl(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    val paper = remember { PaperState(settings.defaultPageWidthPt, settings.defaultPageHeightPt) }
-    LaunchedEffect(settings.defaultPageWidthPt, settings.defaultPageHeightPt) {
-        paper.updateFromExternal(settings.defaultPageWidthPt, settings.defaultPageHeightPt)
+    val paper = remember {
+        PaperState(settings.defaultPageWidthPt, settings.defaultPageHeightPt, settings.pageSizeUnit)
+    }
+    LaunchedEffect(settings.defaultPageWidthPt, settings.defaultPageHeightPt, settings.pageSizeUnit) {
+        paper.updateFromExternal(
+            settings.defaultPageWidthPt,
+            settings.defaultPageHeightPt,
+            settings.pageSizeUnit,
+        )
     }
 
     ControlHeader(
@@ -116,6 +113,8 @@ private fun DefaultDimensionsControl(settings: AppSettings, onChange: (AppSettin
             onChanged = { w, h ->
                 onChange(settings.copy(defaultPageWidthPt = w, defaultPageHeightPt = h))
             },
+            onUnit = { unit -> onChange(settings.copy(pageSizeUnit = unit)) },
+            fillWidth = true,
         )
     }
 }

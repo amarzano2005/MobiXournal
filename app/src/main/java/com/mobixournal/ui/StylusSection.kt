@@ -34,7 +34,7 @@ fun StylusSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             onCheckedChange = { onChange(settings.copy(showHover = it)) },
         )
     }
-    SettingsGroup("Barrel button") { BarrelButtonControls(settings, onChange) }
+    SettingsGroup("Pen side button") { BarrelButtonControls(settings, onChange) }
     SettingsGroup("Pressure") { PressureControls(settings, onChange) }
     SettingsGroup("Ink") {
         OptionGroup(
@@ -65,7 +65,7 @@ fun barrelActionLabel(action: BarrelAction): String = when (action) {
 private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     OptionGroup(
         title = "While held",
-        subtitle = "Tool or action activated while pressing the stylus barrel button.",
+        subtitle = "Tool or action activated while pressing the pen side button.",
         options = BarrelAction.values().toList(),
         selected = settings.barrelAction,
         label = { barrelActionLabel(it) },
@@ -74,7 +74,7 @@ private fun BarrelButtonControls(settings: AppSettings, onChange: (AppSettings) 
     SettingsDivider()
     OptionGroup(
         title = "Double-click",
-        "Action triggered by double-clicking the stylus barrel button while lifted.",
+        "Action triggered by double-clicking the pen side button while lifted.",
         options = QuickAction.values().toList(),
         selected = settings.barrelDoubleAction,
         label = { quickActionLabel(it) },

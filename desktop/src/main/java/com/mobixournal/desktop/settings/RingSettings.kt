@@ -79,11 +79,11 @@ import kotlin.math.roundToInt
 @Composable
 internal fun RingSettings(policy: DesktopSettingsState) {
     val ring = policy.ring
-    SettingsGroup("The ring") {
+    SettingsGroup("Ring") {
         RingDrawing(policy)
         SettingsCommand(
             label = "Add a position",
-            note = "One more face, at the end of the ring — up to ${RadialHud.MAX_SLOTS}.",
+            note = "One more face, at the end of Ring — up to ${RadialHud.MAX_SLOTS}.",
             onClick = ring::addPosition,
         )
         SettingsCommand(
@@ -143,7 +143,7 @@ private fun RingDrawing(policy: DesktopSettingsState) {
             }
             if (faces.isEmpty()) {
                 Text(
-                    "Nothing on the ring",
+                    "Nothing on Ring",
                     color = DesktopTheme.inkMuted,
                     style = DesktopTheme.label,
                     modifier = Modifier.align(Alignment.Center),

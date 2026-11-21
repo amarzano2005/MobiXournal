@@ -74,7 +74,7 @@ enum class SettingsArea(
     /** Input devices and the keys that stand in for them: stylus behaviour and shortcuts. */
     INPUT(
         "Input",
-        "Stylus pressure, barrel buttons, hover, finger gestures, and keyboard shortcuts.",
+        "Stylus pressure, pen side buttons, hover, finger gestures, and keyboard shortcuts.",
         listOf(SettingsSection.STYLUS, SettingsSection.GESTURES, SettingsSection.SHORTCUTS),
         SettingsGlyph.STYLUS.imageVector(),
     ),
@@ -150,11 +150,11 @@ enum class SettingsSection(
      */
     val inline: Boolean = false,
 ) {
-    /** Stylus and finger input settings: pressure curve, barrel buttons, hover, finger drawing. */
+    /** Stylus and finger input settings: pressure curve, pen side buttons, hover, finger drawing. */
     STYLUS(
         "Stylus",
-        "Finger drawing, hover preview, barrel button, pressure feel.",
-        "pressure multiplier minimum floor barrel button double tap hover preview palm rejection " +
+        "Finger drawing, hover preview, pen side button, pressure feel.",
+        "pressure multiplier minimum floor pen side button barrel button double tap hover preview palm rejection " +
             "finger drawing touch eraser tip stylus pen presets diagnostics thickness",
         SettingsGlyph.STYLUS.imageVector(),
     ),
@@ -192,8 +192,8 @@ enum class SettingsSection(
     /** Ring: the pen-tip HUD — the faces it carries and what each position holds. */
     RING(
         "Ring",
-        "Arrange the faces of the ring at the pen tip.",
-        "ring radial hud pen tip barrel button swatches colours color widths tools slot face position " +
+        "Arrange Ring faces at the pen tip.",
+        "ring radial hud pen tip pen side button barrel button swatches colours color widths tools slot face position " +
             "favourite flick automatic reset",
         SettingsGlyph.RING.imageVector(),
     ),

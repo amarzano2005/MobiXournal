@@ -22,13 +22,13 @@ internal enum class SettingsDestination(
 ) {
     PEN_INPUT(
         title = "Pen & Input",
-        subtitle = "Pressure curve, barrel button, finger gestures",
+        subtitle = "Pressure curve, pen side button, finger gestures",
         category = SettingsGroupCategory.DRAFTING,
         icon = SettingsGlyph.STYLUS.imageVector(),
     ),
     CANVAS_TOOLS(
         title = "Canvas & Tools",
-        subtitle = "Default tool, snapping, figures, momentum",
+        subtitle = "Page size, snapping, figures, momentum",
         category = SettingsGroupCategory.DRAFTING,
         icon = SettingsGlyph.FIGURES.imageVector(),
     ),

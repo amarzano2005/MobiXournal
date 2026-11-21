@@ -75,10 +75,13 @@ internal class PaperState(widthPt: Double, heightPt: Double, unit: PageSizeUnit 
         heightText = fmtDim(unit.fromPt(heightPt))
     }
 
-    fun updateFromExternal(w: Double, h: Double) {
-        if (!matchesPageSize(widthPt, heightPt, w, h)) {
+    fun updateFromExternal(w: Double, h: Double, u: PageSizeUnit = unit) {
+        val sizeChanged = !matchesPageSize(widthPt, heightPt, w, h)
+        val unitChanged = u != unit
+        if (sizeChanged || unitChanged) {
             widthPt = w
             heightPt = h
+            unit = u
             resync()
         }
     }
@@ -260,8 +263,12 @@ internal fun PaperSection(
     onChanged: ((Double, Double) -> Unit)? = null,
     /** The unit a chip picked here is stored as — the quick size reads the sheet in it afterwards. */
     onUnit: ((PageSizeUnit) -> Unit)? = null,
+    fillWidth: Boolean = false,
 ) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    FlowRow(
+        modifier = if (fillWidth) Modifier.fillMaxWidth() else Modifier,
+        horizontalArrangement = Arrangement.spacedBy(if (fillWidth) 8.dp else 4.dp),
+    ) {
         for (preset in PAGE_PRESETS) {
             SizeTab(
                 label = preset.name,
@@ -275,7 +282,10 @@ internal fun PaperSection(
             )
         }
     }
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = if (fillWidth) Modifier.fillMaxWidth() else Modifier,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Text("Units:", style = MaterialTheme.typography.labelMedium)
         for (u in PageSizeUnit.entries) {
             TextButton(onClick = {
@@ -293,9 +303,11 @@ internal fun PaperSection(
         }
     }
     Row(
+        modifier = if (fillWidth) Modifier.fillMaxWidth() else Modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
+        val fieldModifier = if (fillWidth) Modifier.weight(1f) else Modifier.width(140.dp)
         SizeField(
             label = "Width",
             text = paper.widthText,
@@ -307,6 +319,7 @@ internal fun PaperSection(
                     onChanged?.invoke(paper.widthPt, paper.heightPt)
                 }
             },
+            modifier = fieldModifier,
         )
         IconButton(onClick = {
             val w = paper.widthPt
@@ -326,13 +339,20 @@ internal fun PaperSection(
                     onChanged?.invoke(paper.widthPt, paper.heightPt)
                 }
             },
+            modifier = fieldModifier,
         )
     }
 }
 
 /** One editable dimension of the paper, in the dialog's current [unit]. */
 @Composable
-private fun SizeField(label: String, text: String, unit: PageSizeUnit, onText: (String) -> Unit) {
+private fun SizeField(
+    label: String,
+    text: String,
+    unit: PageSizeUnit,
+    onText: (String) -> Unit,
+    modifier: Modifier = Modifier.width(140.dp),
+) {
     OutlinedTextField(
         value = text,
         onValueChange = onText,
@@ -340,7 +360,7 @@ private fun SizeField(label: String, text: String, unit: PageSizeUnit, onText: (
         suffix = { Text(unit.label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-        modifier = Modifier.width(140.dp),
+        modifier = modifier,
     )
 }
 

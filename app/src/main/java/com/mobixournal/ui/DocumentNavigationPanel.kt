@@ -180,15 +180,15 @@ internal fun DocumentNavigationWorkspace(
         // there is nothing left to see that the lane would not paint anyway.
         Box(Modifier.fillMaxSize().background(rememberGlassSurfaceColor().compositeOver(rememberChromeColor()))) {
             Row(Modifier.fillMaxSize()) {
-                if (railOnLeft) RailLane(toolbar, canvasOnRight = true)
+                if (railOnLeft && !ui.fullPage) RailLane(toolbar, canvasOnRight = true)
                 if (compact) {
-                    CompactNavigationBody(ui.pageListOpen, canvas, navigator)
+                    CompactNavigationBody(laneOpen, canvas, navigator)
                 } else {
                     if (railOnLeft) navigator()
                     canvas(Modifier.weight(1f).fillMaxHeight())
                     if (!railOnLeft) navigator()
                 }
-                if (!railOnLeft) RailLane(toolbar, canvasOnRight = false)
+                if (!railOnLeft && !ui.fullPage) RailLane(toolbar, canvasOnRight = false)
             }
         }
     }

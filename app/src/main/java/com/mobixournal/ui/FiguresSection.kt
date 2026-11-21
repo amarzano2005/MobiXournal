@@ -27,7 +27,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.ShapeRecognition
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
@@ -67,7 +66,6 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("Default size") { DefaultFigureSize(settings, onChange) }
     SettingsGroup("Triangle") { TriangleGeometry(settings, onChange) }
     SettingsGroup("Trapezoid") { TrapezoidGeometry(settings, onChange) }
-    SettingsGroup("Polygon") { PolygonGeometry(settings, onChange) }
     SettingsGroup("Table") { TableDefaults(settings, onChange) }
 }
 
@@ -106,7 +104,7 @@ private fun TableDefaults(settings: AppSettings, onChange: (AppSettings) -> Unit
     }
     SettingsDivider()
     SwitchRow(
-        title = "Header row (relational)",
+        title = "Header row",
         subtitle = "Adds a bold row above the grid, under a double line.",
         checked = settings.tableHeader,
         onCheckedChange = { onChange(settings.copy(tableHeader = it)) },
@@ -132,32 +130,6 @@ private fun Stepper(
     }
     IconButton(onClick = { onValue((value + 1).coerceAtMost(max)) }, enabled = value < max) {
         Icon(Icons.Filled.Add, contentDescription = "More $noun")
-    }
-}
-
-/**
- * The polygon tool's side count, as the stored value it starts from. It is the one figure whose shape
- * count is the user's, so the number lives beside the tool instead of one button per polygon — the
- * Polygons slot's own menu sets the same value where the figure is drawn.
- */
-@Composable
-private fun PolygonGeometry(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    ControlHeader(
-        "Sides",
-        "Sides the Polygon tool draws. Its slot's own menu sets the same value.",
-        Modifier.settingsBlockInset(),
-    )
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Stepper(
-            label = "Polygon",
-            value = settings.polygonSides,
-            noun = "sides",
-            min = ShapeBuilder.MIN_POLYGON_SIDES,
-            max = ShapeBuilder.MAX_POLYGON_SIDES,
-        ) { onChange(settings.copy(polygonSides = it)) }
     }
 }
 
