@@ -158,34 +158,36 @@ fun <T> OptionGroup(
             icon = icon?.invoke(selected),
             leadingIcon = leadingIcon,
             onClick = { open = !open },
+            menu = {
+                ToolbarMenu(
+                    expanded = open,
+                    onDismissRequest = { open = false },
+                    modifier = Modifier.heightIn(max = maxMenuHeight),
+                    positionProvider = placement,
+                    // The list is the row's own width and wears the settings panel's fill: a panel squeezed to its
+                    // intrinsic width wrapped every answer onto a second line, and floating glass over a card let
+                    // the rows behind it read through — a stain, not a menu. The window's select opens on the same
+                    // fill for the same reason (`docs/desktop-settings.md`).
+                    contentWidthPx = menuWidth?.let { with(density) { it.roundToPx() } },
+                    // Opaque: the list lands over a settings card, and the floating glass there let the row behind
+                    // it read through its own answers.
+                    fill = ModernTheme.settingsPanel(chromeIsDark())
+                        .compositeOver(MaterialTheme.colorScheme.background),
+                ) {
+                    OptionMenuRows(
+                        options = options,
+                        selected = selected,
+                        label = label,
+                        icon = icon,
+                        section = section,
+                        onPick = { option ->
+                            open = false
+                            onSelect(option)
+                        },
+                    )
+                }
+            },
         )
-        ToolbarMenu(
-            expanded = open,
-            onDismissRequest = { open = false },
-            modifier = Modifier.heightIn(max = maxMenuHeight),
-            positionProvider = placement,
-            // The list is the row's own width and wears the settings panel's fill: a panel squeezed to its
-            // intrinsic width wrapped every answer onto a second line, and floating glass over a card let
-            // the rows behind it read through — a stain, not a menu. The window's select opens on the same
-            // fill for the same reason (`docs/desktop-settings.md`).
-            contentWidthPx = menuWidth?.let { with(density) { it.roundToPx() } },
-            // Opaque: the list lands over a settings card, and the floating glass there let the row behind
-            // it read through its own answers.
-            fill = ModernTheme.settingsPanel(chromeIsDark())
-                .compositeOver(MaterialTheme.colorScheme.background),
-        ) {
-            OptionMenuRows(
-                options = options,
-                selected = selected,
-                label = label,
-                icon = icon,
-                section = section,
-                onPick = { option ->
-                    open = false
-                    onSelect(option)
-                },
-            )
-        }
     }
 }
 
@@ -244,6 +246,7 @@ private fun OptionTriggerRow(
     icon: ImageVector?,
     leadingIcon: ImageVector?,
     onClick: () -> Unit,
+    menu: @Composable () -> Unit = {},
 ) {
     val reach = LocalSettingsCardInset.current
     Row(
@@ -275,12 +278,15 @@ private fun OptionTriggerRow(
             modifier = Modifier.widthIn(max = 160.dp),
         )
         Spacer(Modifier.width(4.dp))
-        Icon(
-            Icons.Outlined.KeyboardArrowDown,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(18.dp),
-        )
+        Box {
+            Icon(
+                Icons.Outlined.KeyboardArrowDown,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+            menu()
+        }
     }
 }
 
