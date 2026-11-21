@@ -9,8 +9,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupPositionProvider
 
-/** The air above a settings list: between it and the row that opened it. */
-internal val SettingsSelectGap: Dp = 4.dp
+/** The air above a settings list: between it and the chevron that opened it. */
+internal val SettingsSelectGap: Dp = 12.dp
 
 /** The least air a settings list keeps from the window's own edge. */
 internal val SettingsSelectMargin: Dp = 8.dp
