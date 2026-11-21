@@ -55,11 +55,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupPositionProvider
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.format.SaveFormat
-import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
+import com.mobixournal.ui.theme.rememberPopupPanelColor
 
 private enum class SheetTab { DOCUMENT, STUDIO }
 private enum class SheetView { DOCUMENT, STUDIO, EXPORT, SHARE, SAVE_AS }
@@ -231,7 +231,7 @@ internal fun OverflowMenu(
 
     val layout = rememberSheetPopupLayout()
     val isCompact = layout.isCompact
-    val sheetFill = ModernTheme.settingsPanel(chromeIsDark())
+    val sheetFill = rememberPopupPanelColor()
 
     Box {
         OverflowTriggerButton(

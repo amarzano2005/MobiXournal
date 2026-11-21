@@ -281,7 +281,7 @@ fun FloatingDialog(
     confirmButton: @Composable () -> Unit,
     dismissButton: @Composable (() -> Unit)? = null,
 ) {
-    val surface = rememberPopupPanelColor()
+    val surface = ModernTheme.glassSurface(chromeIsDark()).copy(alpha = 0.90f)
     val scheme = MaterialTheme.colorScheme
     MaterialTheme(colorScheme = scheme.copy(surface = surface, surfaceTint = surface)) {
         AlertDialog(
