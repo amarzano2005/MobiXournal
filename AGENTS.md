@@ -63,7 +63,7 @@ The active task's `rebuild` and `emulator_debug` are binding, not hints:
 - `emulator_debug = true` requires installing and exercising the app, screenshots, error logs and
   simulated input; a successful compile alone does not meet the requirement.
 - Ad-hoc implementation defaults to a **release** APK build (`:app:assembleRelease` / `scripts/release-apk.sh`, never `assembleDebug`) and unit tests, without an emulator pass. Read-only questions and audits do not require application builds.
-- Whenever generating an Android APK, always build the **release** APK (`:app:assembleRelease` / `scripts/release-apk.sh`), not `assembleDebug` (see [docs/tools.md](docs/tools.md)).
+- Whenever generating an Android APK, always build a **signed release** APK (`:app:assembleRelease` / `scripts/release-apk.sh`), not `assembleDebug` (see [docs/tools.md](docs/tools.md)).
 - For a series of quick tweaks, build once at the end if required, and exercise the emulator once
   if any task requires it. A task with no rebuild requirement does not acquire one from this rule.
 
