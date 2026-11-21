@@ -277,7 +277,7 @@ private fun OptionTriggerRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.widthIn(max = 160.dp),
         )
-        Spacer(Modifier.width(4.dp))
+        Spacer(Modifier.width(8.dp))
         Box {
             Icon(
                 Icons.Outlined.KeyboardArrowDown,
