@@ -111,7 +111,7 @@ private fun SidebarDestinationRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(6.dp)
     val rowBg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent
     val iconTint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     val titleColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
@@ -158,13 +158,13 @@ internal fun SettingsSearchField(
 ) {
     val dark = chromeIsDark()
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(6.dp)
     val borderColor = if (focused) MaterialTheme.colorScheme.primary else ModernTheme.hairlineBorder(dark)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(44.dp)
+            .height(40.dp)
             .clip(shape)
             .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, borderColor, shape)

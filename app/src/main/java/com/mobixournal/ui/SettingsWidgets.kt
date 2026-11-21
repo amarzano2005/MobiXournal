@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.selection.toggleable
@@ -571,7 +572,7 @@ fun RailItemRow(
     }
 }
 
-/** Compact segmented pill selector for binary or ternary choices inside a [SettingsCard]. */
+/** Compact segmented selector for binary or ternary choices inside a [SettingsCard]. */
 @Composable
 internal fun <T> SettingsSegmentedControl(
     options: List<T>,
@@ -580,13 +581,14 @@ internal fun <T> SettingsSegmentedControl(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val containerShape = RoundedCornerShape(12.dp)
-    val itemShape = RoundedCornerShape(9.dp)
+    val containerShape = RoundedCornerShape(6.dp)
+    val itemShape = RoundedCornerShape(4.dp)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clip(containerShape)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+            .border(1.dp, ModernTheme.hairlineBorder(chromeIsDark()), containerShape)
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {

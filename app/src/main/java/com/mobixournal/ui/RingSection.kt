@@ -83,6 +83,7 @@ fun RingSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         if (faces.size < RadialHud.MAX_SLOTS) {
             OutlinedButton(
                 onClick = { onChange(ringWithPosition(settings)) },
+                shape = SettingsActionShape,
                 modifier = Modifier.settingsActionPill(top = 8.dp),
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null)

@@ -71,6 +71,7 @@ fun ColorsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         OutlinedButton(
             onClick = { editing = settings.penColors.size },
             enabled = settings.penColors.size < AppSettings.MAX_PEN_COLORS,
+            shape = SettingsActionShape,
             modifier = Modifier.settingsActionPill(top = 8.dp),
         ) {
             Icon(Icons.Filled.Add, contentDescription = null)

@@ -284,7 +284,7 @@ fun SettingsScreen(
     var query by remember { mutableStateOf("") }
     val results = remember(query) { settingsSearchResults(query) }
 
-    BoxWithConstraints(modifier = modifier) {
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val twoPane = maxWidth >= SETTINGS_TWO_PANE_MIN_WIDTH
 
         BackHandler(enabled = true) {
@@ -393,7 +393,7 @@ private fun TwoPaneDetailPane(
             .verticalScroll(viewport.state)
             .padding(horizontal = 24.dp, vertical = 16.dp),
     ) {
-        Column(Modifier.widthIn(max = 720.dp).fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth()) {
             CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
                 if (activeDestination == null) {
                     Box(
@@ -480,7 +480,7 @@ private fun StackedSettings(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 12.dp, vertical = 12.dp)
                 .settingsViewport(viewport)
                 .verticalScroll(viewport.state),
         ) {
@@ -504,7 +504,7 @@ private fun StackedSettings(
                             if (query.isNotEmpty()) {
                                 SearchResultRows(query, results) { onDestination(it) }
                             } else {
-                                GroupedSettingsIndex(onOpenDestination = { onDestination(it) })
+                                GroupedSettingsIndex(settings = settings, onOpenDestination = { onDestination(it) })
                             }
                         }
                     }
@@ -551,7 +551,7 @@ private fun SettingsChrome(title: String, onBack: () -> Unit, body: @Composable 
                         modifier = Modifier
                             .padding(start = 8.dp, end = 4.dp)
                             .size(36.dp)
-                            .clip(CircleShape)
+                            .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                             .clickable(onClick = onBack),
                         contentAlignment = Alignment.Center,

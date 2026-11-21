@@ -65,11 +65,29 @@ private fun ThemeMode.shortLabel(): String = when (this) {
     ThemeMode.DARK -> "Dark"
 }
 
+/** Concise live readout for each consolidated [SettingsDestination] on the mobile index. */
+internal fun destinationLiveValue(destination: SettingsDestination, settings: AppSettings): String = when (destination) {
+    SettingsDestination.PEN_INPUT ->
+        if (!settings.pressureEnabled) "Fixed"
+        else String.format(Locale.US, "%.1fx", settings.pressureMultiplier)
+    SettingsDestination.CANVAS_TOOLS -> settings.defaultTool.label
+    SettingsDestination.PALETTE_RING -> "${ringFaces(settings).size} faces"
+    SettingsDestination.WORKSPACE -> "${settings.themeMode.shortLabel()} · ${settings.toolbarPosition.label}"
+    SettingsDestination.SHORTCUTS -> {
+        val count = totalBoundShortcuts(settings)
+        if (count > 0) "$count bound" else "None"
+    }
+    SettingsDestination.FILES_DATA ->
+        if (settings.newDocumentFormat == NewDocumentFormat.MOBIX) ".mobix" else ".xopp"
+    SettingsDestination.ABOUT -> "v${BuildConfig.VERSION_NAME}"
+}
+
 /**
  * Flat 1-tap grouped index of the seven dynamic [SettingsDestination]s for narrow screens.
  */
 @Composable
 internal fun GroupedSettingsIndex(
+    settings: AppSettings,
     onOpenDestination: (SettingsDestination) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -91,6 +109,7 @@ internal fun GroupedSettingsIndex(
                             title = dest.title,
                             summary = null,
                             icon = dest.icon,
+                            valueLabel = destinationLiveValue(dest, settings),
                             onClick = { onOpenDestination(dest) },
                         )
                         if (index < destinations.size - 1) {

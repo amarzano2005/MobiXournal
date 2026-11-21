@@ -124,10 +124,10 @@ internal fun SettingsCard(
             Column(
                 // Air on the sides only. A row reaches the card's top and bottom edges as well as its
                 // sides, so a press, a hover or a selection on the first (or last) row is cut by the
-                // card's own 20 dp clip and wears the corner; any air the card kept vertically left
+                // card's own clip and wears the corner; any air the card kept vertically left
                 // that row a square band floating inside the curve. Every block that is not a row
                 // carries its own air (`settingsBlockInset`, `SettingsNote`).
-                Modifier.padding(horizontal = SettingsRowInset),
+                Modifier.fillMaxWidth().padding(horizontal = SettingsRowInset),
                 content = content,
             )
         }
@@ -279,4 +279,7 @@ internal fun Modifier.settingsActionPill(top: Dp = 8.dp, bottom: Dp = 8.dp): Mod
 }
 
 /** The corner radius of every settings card (groups and the index lists). */
-internal val SettingsCardShape = RoundedCornerShape(16.dp)
+internal val SettingsCardShape = RoundedCornerShape(8.dp)
+
+/** Architectural corner radius for action buttons inside settings, avoiding capsule pills. */
+internal val SettingsActionShape = RoundedCornerShape(6.dp)

@@ -138,6 +138,7 @@ fun PenPresetsRow(
                     onClick = {
                         onSelectPreset(preset)
                     },
+                    shape = SettingsActionShape,
                     label = {
                         Text(preset.name, style = MaterialTheme.typography.bodySmall)
                     },

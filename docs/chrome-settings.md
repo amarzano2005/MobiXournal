@@ -15,8 +15,10 @@ search topics into **seven dynamic `SettingsDestination`s** (`SettingsDestinatio
 three `SettingsGroupCategory` eyebrows (**Drafting**: *Pen & Input*, *Canvas & Tools*, *Palette & Ring*;
 **Interface**: *Workspace*, *Shortcuts*; **System**: *Files & Data*, *About*). `SettingsChrome` paints
 the screen container with `MaterialTheme.colorScheme.background` (`DeskDark` in dark mode, `DeskLight`
-in light mode) so every `SettingsCard` (`16.dp` radius, solid `MaterialTheme.colorScheme.surface` fill,
-`1.dp` hairline border — without floating-glass rim effects) separates cleanly from the backdrop.
+in light mode) so every `SettingsCard` (`8.dp` architectural radius, solid `MaterialTheme.colorScheme.surface` fill,
+`1.dp` hairline border — without floating-glass rim effects or capsule pills) separates cleanly from the backdrop.
+Controls and action buttons inside Settings use `SettingsActionShape` (`6.dp` corners) and full-bleed rows
+(`BackupSection.kt`) instead of capsule pills.
 
 Each destination adapts its controls to the active subsection: `PenInputSection` pairs a segmented
 touch-mode control (`SettingsSegmentedControl`) with a live `PressureCurvePreview` that collapses when
@@ -24,14 +26,15 @@ touch-mode control (`SettingsSegmentedControl`) with a live `PressureCurvePrevie
 and the glide curve only while `momentum > 0`; `PaletteRingSection` combines the interactive Ring wheel
 with palette swatches; `WorkspaceSection` renders a 3-card visual theme picker, segmented rail-side
 toggle, and collapsible toolbar-button accordion; `FilesDataSection` offers visual `.mobix` / `.xopp`
-format cards alongside storage and backup actions.
+format cards alongside storage and consolidated `Backup & reset` rows.
 
 On screens at least `SETTINGS_TWO_PANE_MIN_WIDTH` (600dp) wide (`TwoPaneSettings`), `SettingsSidebar`
 (`SettingsSidebar.kt`) stays visible on the left with `SettingsSearchField` and the seven destinations
-without trailing preview clutter, while `TwoPaneDetailPane` renders the selected destination beside it.
-Narrower screens (`StackedSettings`) show a flat 1-tap grouped index (`GroupedSettingsIndex`) and
-route `SearchResultRows` hits directly to their hosting `SettingsDestination` (`toDestination`). System
-back mirrors the title-bar arrow (destination → search → exit on phones; clear search → exit on tablets).
+without trailing preview clutter, while `TwoPaneDetailPane` renders the selected destination across the full
+remaining width.
+Narrower screens (`StackedSettings`) show a flat 1-tap grouped index (`GroupedSettingsIndex`) with live
+trailing state (`destinationLiveValue`) and route `SearchResultRows` hits directly to their hosting
+`SettingsDestination` (`toDestination`). System back mirrors the title-bar arrow (destination → search → exit on phones; clear search → exit on tablets).
 
 ## Rows light the card's width
 

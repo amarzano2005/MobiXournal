@@ -132,6 +132,7 @@ fun AboutSection() {
     SettingsCard {
         OutlinedButton(
             onClick = { copied = copyAppDetails(context) },
+            shape = SettingsActionShape,
             modifier = Modifier.settingsActionPill(),
         ) {
             Icon(ChromeGlyph.COPY.imageVector(), contentDescription = null, modifier = Modifier.size(18.dp))
@@ -289,6 +290,7 @@ private fun BuildIdentity(
                 Button(
                     onClick = onCheck,
                     enabled = !checking,
+                    shape = SettingsActionShape,
                     modifier = Modifier.weight(1f).height(48.dp),
                 ) {
                     Text(if (checking) "Checking…" else "Check for updates")
@@ -298,6 +300,7 @@ private fun BuildIdentity(
                 // own label so a screen reader still says what the button is.
                 OutlinedButton(
                     onClick = onOpenProject,
+                    shape = SettingsActionShape,
                     modifier = Modifier.size(width = 56.dp, height = 48.dp),
                     contentPadding = PaddingValues(0.dp),
                 ) {
