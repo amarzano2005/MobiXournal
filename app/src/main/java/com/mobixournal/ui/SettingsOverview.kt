@@ -1,135 +1,62 @@
 package com.mobixournal.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.mobixournal.BuildConfig
-import com.mobixournal.design.ThemeMode
+import com.mobixournal.render.ShapeRecognition
 import java.util.Locale
 
 /**
- * Compact 3-tile quick controls strip at the top of Settings for the most-changed mobile
- * preferences: theme mode, finger drawing, and toolbar handedness.
- */
-@Composable
-internal fun SettingsQuickControls(
-    settings: AppSettings,
-    onChange: (AppSettings) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    SettingsCard(modifier = modifier) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            QuickControlTile(
-                label = "Theme",
-                value = settings.themeMode.shortLabel(),
-                active = true,
-                onClick = { onChange(settings.copy(themeMode = settings.themeMode.next())) },
-                modifier = Modifier.weight(1f),
-            )
-            QuickControlTile(
-                label = "Finger",
-                value = if (settings.fingerDraws) "Draw" else "Pan only",
-                active = settings.fingerDraws,
-                onClick = { onChange(settings.copy(fingerDraws = !settings.fingerDraws)) },
-                modifier = Modifier.weight(1f),
-            )
-            QuickControlTile(
-                label = "Toolbar",
-                value = settings.toolbarPosition.label,
-                active = true,
-                onClick = {
-                    val next = if (settings.toolbarPosition == ToolbarPosition.LEFT) {
-                        ToolbarPosition.RIGHT
-                    } else {
-                        ToolbarPosition.LEFT
-                    }
-                    onChange(settings.copy(toolbarPosition = next))
-                },
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun QuickControlTile(
-    label: String,
-    value: String,
-    active: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val bg = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.055f)
-    val valueColor = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(bg)
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp, horizontal = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = label.uppercase(Locale.US),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Medium,
-            color = valueColor,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-/**
- * Concise live readout shown on the trailing edge of a [SectionRow] so the current configuration
- * is readable from the index without drilling into every page.
+ * Concise live readout shown on the trailing edge of settings index and sidebar rows so the
+ * active configuration is readable without drilling into every page.
  */
 internal fun sectionLiveValue(section: SettingsSection, settings: AppSettings): String? = when (section) {
-    SettingsSection.STYLUS -> String.format(Locale.US, "%.1fx", settings.pressureMultiplier)
-    SettingsSection.GESTURES -> if (settings.fingerDraws) "Draw" else "Pan only"
-    SettingsSection.EDITOR -> if (settings.recognizeShapes) "Snap on" else "Freehand"
+    SettingsSection.STYLUS ->
+        if (!settings.pressureEnabled) "Fixed"
+        else String.format(Locale.US, "%.1fx", settings.pressureMultiplier)
+    SettingsSection.GESTURES -> gestureSummaryLabel(settings)
+    SettingsSection.EDITOR -> settings.defaultTool.label
     SettingsSection.TOOLBAR -> settings.toolbarPosition.label
-    SettingsSection.FIGURES -> "${settings.penColors.size} colors"
+    SettingsSection.FIGURES -> when (settings.shapeRecognition) {
+        ShapeRecognition.ON_LIFT -> "On lift"
+        ShapeRecognition.ON_HOLD -> "On hold"
+        ShapeRecognition.OFF -> "Off"
+    }
     SettingsSection.COLORS -> "${settings.penColors.size} colors"
-    SettingsSection.RING -> null
+    SettingsSection.RING -> "${ringFaces(settings).size} faces"
     SettingsSection.SHORTCUTS -> {
-        val count = settings.toolShortcutKeys.size + settings.colorShortcutKeys.size
-        if (count > 0) "$count bound" else null
+        val count = totalBoundShortcuts(settings)
+        if (count > 0) "$count bound" else "None"
     }
     SettingsSection.NAVIGATION -> if (settings.momentum > 0f) "Smooth" else "Crisp"
     SettingsSection.APPEARANCE -> settings.themeMode.shortLabel()
-    SettingsSection.DOCUMENTS -> ".${settings.newDocumentFormat.name.lowercase(Locale.US)}"
+    SettingsSection.DOCUMENTS ->
+        if (settings.newDocumentFormat == NewDocumentFormat.MOBIX) ".mobix" else ".xopp"
     SettingsSection.STORAGE -> "${settings.pdfCacheLimitMb} MB"
     SettingsSection.BACKUP -> null
     SettingsSection.ABOUT -> "v${BuildConfig.VERSION_NAME}"
+}
+
+private fun gestureSummaryLabel(settings: AppSettings): String {
+    val two = quickActionLabel(settings.twoFingerTapAction)
+    val three = quickActionLabel(settings.threeFingerTapAction)
+    return when {
+        two == "Off" && three == "Off" -> "Off"
+        three == "Off" -> two
+        two == "Off" -> three
+        else -> "$two / $three"
+    }
 }
 
 private fun ThemeMode.shortLabel(): String = when (this) {
@@ -138,36 +65,30 @@ private fun ThemeMode.shortLabel(): String = when (this) {
     ThemeMode.DARK -> "Dark"
 }
 
-private fun ThemeMode.next(): ThemeMode = when (this) {
-    ThemeMode.DARK -> ThemeMode.LIGHT
-    ThemeMode.LIGHT -> ThemeMode.SYSTEM
-    ThemeMode.SYSTEM -> ThemeMode.DARK
-}
-
 /**
- * Flat 1-tap grouped index of all [SettingsArea]s and their [SettingsSection]s for mobile.
+ * Flat 1-tap grouped index of all [SettingsArea]s and their [SettingsSection]s for narrow screens.
  */
 @Composable
 internal fun GroupedSettingsIndex(
     settings: AppSettings,
-    onChange: (AppSettings) -> Unit,
     onOpenSection: (SettingsSection) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        SettingsQuickControls(settings = settings, onChange = onChange)
+    Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
         SettingsArea.entries.forEach { area ->
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column {
                 Text(
                     text = area.title.uppercase(Locale.US),
                     style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    letterSpacing = 0.8.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 6.dp),
+                    modifier = Modifier.padding(start = 12.dp, bottom = 6.dp),
                 )
                 SettingsCard {
                     area.sections.forEachIndexed { index, entry ->
                         SectionRow(
                             title = entry.title,
-                            summary = entry.summary,
+                            summary = null,
                             icon = entry.icon,
                             valueLabel = sectionLiveValue(entry, settings),
                             onClick = { onOpenSection(entry) },
@@ -177,6 +98,42 @@ internal fun GroupedSettingsIndex(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Search matches across all [SettingsSection]s, each showing its parent area and live value.
+ */
+@Composable
+internal fun SearchResultRows(
+    query: String,
+    results: List<SettingsSection>,
+    settings: AppSettings,
+    onOpen: (SettingsSection) -> Unit,
+) {
+    if (results.isEmpty()) {
+        Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+            Text(
+                text = "No setting matches “$query”.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
+    SettingsCard {
+        results.forEachIndexed { index, entry ->
+            val where = areaOf(entry)?.title
+            SectionRow(
+                title = entry.title,
+                summary = if (where == null) entry.summary else "$where · ${entry.summary}",
+                icon = entry.icon,
+                valueLabel = sectionLiveValue(entry, settings),
+            ) { onOpen(entry) }
+            if (index < results.size - 1) {
+                SettingsDivider()
             }
         }
     }

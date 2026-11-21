@@ -1,7 +1,9 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -10,120 +12,236 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
+import java.util.Locale
 
 /**
- * The settings' permanent side menu: the search field, then the five [SettingsArea]s.
+ * The settings' permanent wide-screen side menu: a live search field, then every [SettingsSection]
+ * directly grouped under its uppercase [SettingsArea] eyebrow with live trailing value readouts.
  *
- * This is the shape a tablet's system settings use — the top-level list stays on screen and the pane
- * beside it shows what is selected — so moving between areas is one tap with no level to walk back
- * through, and the search is reachable from wherever the user is. It is drawn only on wide screens
- * ([SETTINGS_TWO_PANE_MIN_WIDTH]); on a phone the same areas are the pushed index page instead, since
- * a permanent menu there would leave the controls a strip to live in.
- *
- * The field is a *field*, not a button to a search screen: typing in it filters the pane live.
+ * Clicking any section updates the adjacent detail pane immediately without an intermediate area-list
+ * step, keeping tablet navigation 1:1 with the desktop panel and the grouped mobile index.
  */
 @Composable
 internal fun SettingsSidebar(
     query: String,
     onQuery: (String) -> Unit,
-    selected: SettingsArea,
-    onArea: (SettingsArea) -> Unit,
+    selected: SettingsSection?,
+    visibleSections: List<SettingsSection>,
+    settings: AppSettings,
+    onSelect: (SettingsSection) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.padding(horizontal = 12.dp, vertical = 16.dp)) {
+    val visibleSet = remember(visibleSections) { visibleSections.toSet() }
+    val groups = remember(visibleSet) {
+        SettingsArea.entries.mapNotNull { area ->
+            val rows = area.sections.filter { it in visibleSet }
+            if (rows.isEmpty()) null else area to rows
+        }
+    }
+
+    Column(modifier = modifier.padding(horizontal = 12.dp, vertical = 14.dp)) {
         SettingsSearchField(query, onQuery)
-        Spacer(Modifier.size(SettingsSidebarGapAfterField))
-        for (area in SettingsArea.values()) {
-            SidebarRow(
-                area = area,
-                selected = area == selected,
-                onClick = { onArea(area) },
+        Spacer(Modifier.height(SettingsSidebarGapAfterField))
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            if (groups.isEmpty()) {
+                Text(
+                    text = "No setting matches “$query”.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 20.dp),
+                )
+            } else {
+                groups.forEachIndexed { idx, (area, rows) ->
+                    Text(
+                        text = area.title.uppercase(Locale.US),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Medium,
+                        letterSpacing = 0.8.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                        modifier = Modifier.padding(
+                            start = 10.dp,
+                            top = if (idx == 0) 2.dp else 14.dp,
+                            bottom = 4.dp,
+                        ),
+                    )
+                    rows.forEach { sec ->
+                        SidebarSectionRow(
+                            section = sec,
+                            selected = sec == selected,
+                            valueLabel = sectionLiveValue(sec, settings),
+                            onClick = { onSelect(sec) },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SidebarSectionRow(
+    section: SettingsSection,
+    selected: Boolean,
+    valueLabel: String?,
+    onClick: () -> Unit,
+) {
+    val shape = RoundedCornerShape(12.dp)
+    val rowBg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent
+    val iconTint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val titleColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val valueColor = if (selected) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+            .height(SettingsSidebarRowHeight)
+            .clip(shape)
+            .background(rowBg)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = section.icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(18.dp),
+        )
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = section.title,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            color = titleColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (!valueLabel.isNullOrBlank()) {
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = valueLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = valueColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 76.dp),
             )
         }
     }
 }
 
 /**
- * One area in the side menu: its icon, its name, and a tonal pill while it is the selected one.
- *
- * The pills are **one size and one step apart** ([SettingsSidebarRowHeight], [SettingsSidebarRowGap]).
- * They used to be spaced by 2 dp a side, so four rows read as one stacked block with seams in it rather
- * than as four separate targets — "the pills and the rest" out of proportion.
+ * Compact rounded pill search field shared by the tablet sidebar, phone index, and shortcuts list.
  */
 @Composable
-private fun SidebarRow(area: SettingsArea, selected: Boolean, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(12.dp)
+internal fun SettingsSearchField(
+    query: String,
+    onQuery: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    placeholder: String = "Search settings…",
+) {
+    val dark = chromeIsDark()
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(14.dp)
+    val borderColor = if (focused) MaterialTheme.colorScheme.primary else ModernTheme.hairlineBorder(dark)
+
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = SettingsSidebarRowGap)
-            .height(SettingsSidebarRowHeight)
+            .height(44.dp)
             .clip(shape)
-            .background(
-                if (selected) MaterialTheme.colorScheme.secondaryContainer
-                else MaterialTheme.colorScheme.surface,
-            )
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp),
+            .background(ModernTheme.settingsPanel(dark))
+            .border(1.dp, borderColor, shape)
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = area.icon,
+            imageVector = Icons.Filled.Search,
             contentDescription = null,
-            tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-            else MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(18.dp),
         )
-        Spacer(Modifier.width(12.dp))
-        Text(
-            text = area.title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-            color = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
-            else MaterialTheme.colorScheme.onSurface,
-        )
-    }
-}
-
-/**
- * The one settings search field, shared by the side menu (wide) and the index page (narrow) so both
- * shapes search the same way: typing filters live, and the clear button appears only once there is
- * something to clear.
- */
-@Composable
-internal fun SettingsSearchField(query: String, onQuery: (String) -> Unit, modifier: Modifier = Modifier) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQuery,
-        singleLine = true,
-        placeholder = { Text("Search settings") },
-        leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQuery("") }) {
-                    Icon(Icons.Filled.Clear, contentDescription = "Clear search")
-                }
+        Spacer(Modifier.width(10.dp))
+        Box(
+            modifier = Modifier.weight(1f),
+            contentAlignment = Alignment.CenterStart,
+        ) {
+            if (query.isEmpty()) {
+                Text(
+                    text = placeholder,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-        },
-        shape = RoundedCornerShape(24.dp),
-        modifier = modifier.fillMaxWidth(),
-    )
+            BasicTextField(
+                value = query,
+                onValueChange = onQuery,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface,
+                ),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focused = it.isFocused },
+            )
+        }
+        if (query.isNotEmpty()) {
+            Spacer(Modifier.width(4.dp))
+            IconButton(
+                onClick = { onQuery("") },
+                modifier = Modifier.size(28.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Clear,
+                    contentDescription = "Clear search",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+        }
+    }
 }
 
 /** One pill's height and the air around it: the list's step is the two added together. */

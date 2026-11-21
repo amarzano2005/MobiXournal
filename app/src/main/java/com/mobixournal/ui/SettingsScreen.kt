@@ -2,11 +2,9 @@ package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import com.mobixournal.ui.theme.liquidGlassFadeTransform
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -16,23 +14,27 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,9 +42,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.SettingsGlyph
+import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.liquidGlassFadeTransform
 
 /**
  * A macro-area of the settings: the four things the app's preferences are *about*, each owning the
@@ -260,17 +268,10 @@ enum class SettingsSection(
 }
 
 /**
- * Settings, shaped like a tablet's system settings: on a screen of at least
- * [SETTINGS_TWO_PANE_MIN_WIDTH] a permanent side menu lists the five [SettingsArea]s with the selected
- * area's [SettingsSection]s beside it — and whichever section is open replaces that list — while a
- * narrower screen keeps the pushed flow (index → area → section). Both shapes share one search:
- * typing filters to matching sections wherever the user is, and a result opens that section directly.
- *
- * Back pops one step of whichever shape is on screen (section → results → area → out of settings),
- * so the system back button and the title-bar arrow stay the same gesture.
- *
- * Edits are pushed live to the canvas and persisted via [SettingsStore] (see `MainActivity`). Reached
- * from the top-bar menu.
+ * Settings screen: on wide screens ([SETTINGS_TWO_PANE_MIN_WIDTH] and above) a permanent sidebar
+ * lists all [SettingsSection]s grouped under their [SettingsArea] eyebrows with live values beside
+ * the selected section's controls; on narrower screens a flat 1-tap grouped index opens any section
+ * directly. Both shapes share live keyword search via [settingsSearchResults].
  */
 @Composable
 fun SettingsScreen(
@@ -279,52 +280,43 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var area by remember { mutableStateOf<SettingsArea?>(null) }
-    var section by remember { mutableStateOf<SettingsSection?>(null) }
+    var selectedSection by remember { mutableStateOf<SettingsSection?>(null) }
     var query by remember { mutableStateOf("") }
-    // Recomputed only when the query changes: a filter over eleven keyword lists, not per recomposition.
     val results = remember(query) { settingsSearchResults(query) }
 
     BoxWithConstraints(modifier = modifier) {
         val twoPane = maxWidth >= SETTINGS_TWO_PANE_MIN_WIDTH
 
-        // Settings is composed after the editor, so this handler outranks the editor's: the system back
-        // mirrors the title-bar arrow. On a wide screen the side menu *is* the index, so there is no
-        // index level to pop — the area stays selected and the next back leaves settings.
         BackHandler(enabled = true) {
-            when {
-                section != null -> section = null
-                query.isNotEmpty() -> query = ""
-                twoPane -> onBack()
-                area != null -> area = null
-                else -> onBack()
+            if (twoPane) {
+                if (query.isNotEmpty()) query = "" else onBack()
+            } else {
+                when {
+                    selectedSection != null -> selectedSection = null
+                    query.isNotEmpty() -> query = ""
+                    else -> onBack()
+                }
             }
         }
 
         if (twoPane) {
             TwoPaneSettings(
-                shownArea = area ?: SettingsArea.INPUT,
-                onArea = { area = it; section = null; query = "" },
                 query = query,
-                // Typing is a search: close whatever section is open, or the pane would stay on the
-                // page the user has just stopped looking at while the field fills beside it.
-                onQuery = { query = it; if (it.isNotEmpty()) section = null },
+                onQuery = { query = it },
                 results = results,
-                section = section,
-                onSection = { section = it },
+                selected = selectedSection,
+                onSelect = { selectedSection = it },
                 settings = settings,
                 onChange = onChange,
                 onBack = onBack,
             )
         } else {
             StackedSettings(
-                area = area,
-                onArea = { area = it },
                 query = query,
                 onQuery = { query = it },
                 results = results,
-                section = section,
-                onSection = { section = it },
+                section = selectedSection,
+                onSection = { selectedSection = it },
                 settings = settings,
                 onChange = onChange,
                 onBack = onBack,
@@ -333,11 +325,139 @@ fun SettingsScreen(
     }
 }
 
-/** The wide shape: permanent side menu on the left, the area's sections or the open section beside it. */
+/** Wide master/detail layout: grouped searchable sidebar on the left, active section on the right. */
 @Composable
 private fun TwoPaneSettings(
-    shownArea: SettingsArea,
-    onArea: (SettingsArea) -> Unit,
+    query: String,
+    onQuery: (String) -> Unit,
+    results: List<SettingsSection>,
+    selected: SettingsSection?,
+    onSelect: (SettingsSection) -> Unit,
+    settings: AppSettings,
+    onChange: (AppSettings) -> Unit,
+    onBack: () -> Unit,
+) {
+    val visibleSections = remember(query, results) {
+        if (query.isBlank()) SettingsSection.entries else results
+    }
+    val activeSection = when {
+        query.isBlank() -> selected ?: SettingsSection.STYLUS
+        selected in results -> selected
+        else -> results.firstOrNull()
+    }
+
+    SettingsChrome(
+        title = "Settings",
+        onBack = { if (query.isNotEmpty()) onQuery("") else onBack() },
+    ) { padding ->
+        Row(Modifier.fillMaxSize().padding(padding)) {
+            SettingsSidebar(
+                query = query,
+                onQuery = onQuery,
+                selected = activeSection,
+                visibleSections = visibleSections,
+                settings = settings,
+                onSelect = onSelect,
+                modifier = Modifier.width(272.dp).fillMaxHeight(),
+            )
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .width(1.dp)
+                    .background(ModernTheme.hairlineBorder(chromeIsDark())),
+            )
+            TwoPaneDetailPane(
+                activeSection = activeSection,
+                query = query,
+                settings = settings,
+                onChange = onChange,
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+            )
+        }
+    }
+}
+
+@Composable
+private fun TwoPaneDetailPane(
+    activeSection: SettingsSection?,
+    query: String,
+    settings: AppSettings,
+    onChange: (AppSettings) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val viewport = rememberSettingsScrollViewport()
+    LaunchedEffect(activeSection) { viewport.state.scrollTo(0) }
+    Column(
+        modifier = modifier
+            .settingsViewport(viewport)
+            .verticalScroll(viewport.state)
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+    ) {
+        Column(Modifier.widthIn(max = 720.dp).fillMaxWidth()) {
+            CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
+                if (activeSection == null) {
+                    Box(
+                        Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "No setting matches “$query”.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                } else {
+                    AnimatedContent(
+                        targetState = activeSection,
+                        transitionSpec = { liquidGlassFadeTransform() },
+                        label = "TwoPaneSettingsContent",
+                    ) { sec ->
+                        Column(Modifier.fillMaxWidth()) {
+                            TabletSectionHeader(sec)
+                            SectionBody(sec, settings, onChange)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TabletSectionHeader(section: SettingsSection) {
+    val areaTitle = areaOf(section)?.title
+    Column(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, bottom = 16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = section.title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            if (areaTitle != null) {
+                Text(
+                    text = areaTitle,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = section.summary,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+/** Narrow single-pane layout: 1-tap grouped index (with live search) and section detail pages. */
+@Composable
+private fun StackedSettings(
     query: String,
     onQuery: (String) -> Unit,
     results: List<SettingsSection>,
@@ -348,7 +468,7 @@ private fun TwoPaneSettings(
     onBack: () -> Unit,
 ) {
     SettingsChrome(
-        title = paneTitle(section, query, shownArea),
+        title = section?.title ?: "Settings",
         onBack = {
             when {
                 section != null -> onSection(null)
@@ -357,109 +477,39 @@ private fun TwoPaneSettings(
             }
         },
     ) { padding ->
-        Row(Modifier.fillMaxSize().padding(padding)) {
-            SettingsSidebar(
-                query = query,
-                onQuery = onQuery,
-                selected = shownArea,
-                onArea = onArea,
-                modifier = Modifier.width(260.dp).fillMaxHeight(),
-            )
-            // A hairline rule rather than a Material divider: the two panes are one screen, not two cards.
-            Box(Modifier.fillMaxHeight().width(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
-            val viewport = rememberSettingsScrollViewport()
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .settingsViewport(viewport)
-                    .verticalScroll(viewport.state)
-                    .padding(16.dp),
-            ) {
-                CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
-                    AnimatedContent(
-                        targetState = Triple(section, query.isNotEmpty(), shownArea),
-                        transitionSpec = { liquidGlassFadeTransform() },
-                        label = "TwoPaneSettingsContent",
-                    ) { (openSec, hasQuery, activeArea) ->
-                        when {
-                            openSec != null -> SectionBody(openSec, settings, onChange)
-                            hasQuery -> SearchResultRows(query, results, onSection)
-                            else -> {
-                                val page = activeArea.inlineOnly()
-                                if (page != null) SectionBody(page, settings, onChange)
-                                else Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                                    SettingsQuickControls(settings = settings, onChange = onChange)
-                                    SectionRows(activeArea, settings, onChange, onSection)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** The narrow shape: one pane, walked by pushing pages — index, then area, then the section itself. */
-@Composable
-private fun StackedSettings(
-    area: SettingsArea?,
-    /** Null means "back to the index": the narrow shape walks a level down and up, so it clears it. */
-    onArea: (SettingsArea?) -> Unit,
-    query: String,
-    onQuery: (String) -> Unit,
-    results: List<SettingsSection>,
-    section: SettingsSection?,
-    onSection: (SettingsSection?) -> Unit,
-    settings: AppSettings,
-    onChange: (AppSettings) -> Unit,
-    onBack: () -> Unit,
-) {
-    val openArea = area
-    val openSection = section
-    SettingsChrome(
-        title = when {
-            openSection != null -> openSection.title
-            openArea != null -> openArea.title
-            else -> "Settings"
-        },
-        onBack = {
-            when {
-                openSection != null -> onSection(null)
-                openArea != null -> onArea(null)
-                else -> onBack()
-            }
-        },
-    ) { padding ->
         val viewport = rememberSettingsScrollViewport()
+        LaunchedEffect(section) { viewport.state.scrollTo(0) }
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp, vertical = 12.dp)
                 .settingsViewport(viewport)
                 .verticalScroll(viewport.state),
         ) {
             CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
                 AnimatedContent(
-                    targetState = Triple(openSection, openArea, query.isNotEmpty()),
+                    targetState = section,
                     transitionSpec = { liquidGlassFadeTransform() },
                     label = "StackedSettingsPane",
-                ) { (sec, areaState, hasQuery) ->
-                    when {
-                        sec != null -> SectionBody(sec, settings, onChange)
-                        areaState != null -> {
-                            val page = areaState.inlineOnly()
-                            if (page != null) SectionBody(page, settings, onChange)
-                            else SectionRows(areaState, settings, onChange, onSection)
+                ) { openSec ->
+                    if (openSec != null) {
+                        Column(Modifier.fillMaxWidth()) {
+                            SectionBody(openSec, settings, onChange)
                         }
-                        else -> {
-                            SettingsSearchField(query, onQuery, Modifier.padding(bottom = 12.dp))
-                            if (hasQuery) {
-                                SearchResultRows(query, results, onSection)
+                    } else {
+                        Column(Modifier.fillMaxWidth()) {
+                            SettingsSearchField(
+                                query = query,
+                                onQuery = onQuery,
+                                modifier = Modifier.padding(bottom = 16.dp),
+                            )
+                            if (query.isNotEmpty()) {
+                                SearchResultRows(query, results, settings) { onSection(it) }
                             } else {
                                 GroupedSettingsIndex(
                                     settings = settings,
-                                    onChange = onChange,
-                                    onOpenSection = onSection,
+                                    onOpenSection = { onSection(it) },
                                 )
                             }
                         }
@@ -468,13 +518,6 @@ private fun StackedSettings(
             }
         }
     }
-}
-
-/** What the pane's title bar says: the open section, the search, or the selected area. */
-private fun paneTitle(section: SettingsSection?, query: String, area: SettingsArea): String = when {
-    section != null -> section.title
-    query.isNotEmpty() -> "Search results"
-    else -> area.title
 }
 
 /** The controls of one section page: the `when` that maps a [SettingsSection] onto its composable. */
@@ -502,142 +545,95 @@ private fun SectionBody(
     }
 }
 
-/**
- * The one section an area draws **on itself**, when that is how the area is built.
- *
- * A page that *is* its area — About, whose identity header, two doors and details are one surface — has no
- * door to open and no list to stand in, so its area's page is the page itself. Every other area lists its
- * sections and opens them (or draws an [SettingsSection.inline] answer where its entry stood).
- */
-private fun SettingsArea.inlineOnly(): SettingsSection? = sections.singleOrNull()?.takeIf { it.inline }
-
-/**
- * An area's own list: what it covers, then one card holding its sections. A section marked
- * [SettingsSection.inline] draws its controls here rather than a door to a page of its own — the entry keeps
- * its place in the card, so the list reads as the one it always was.
- */
-@Composable
-private fun SectionRows(
-    area: SettingsArea,
-    settings: AppSettings,
-    onChange: (AppSettings) -> Unit,
-    onOpen: (SettingsSection) -> Unit,
-) {
-    SettingsNote(area.summary, Modifier.padding(start = 4.dp, bottom = 12.dp))
-    SettingsCard {
-        area.sections.forEachIndexed { index, entry ->
-            if (entry.inline) {
-                SectionBody(entry, settings, onChange)
-            } else {
-                SectionRow(
-                    title = entry.title,
-                    summary = entry.summary,
-                    icon = entry.icon,
-                    valueLabel = sectionLiveValue(entry, settings),
-                ) { onOpen(entry) }
-            }
-            if (index < area.sections.size - 1) {
-                SettingsDivider()
-            }
-        }
-    }
-}
-
-/**
- * The search's answer: the matching sections, each labelled with the area it lives in so a result
- * found by an alias ("wallpaper" → Appearance) still says where the setting belongs.
- */
-@Composable
-private fun SearchResultRows(
-    query: String,
-    results: List<SettingsSection>,
-    onOpen: (SettingsSection) -> Unit,
-) {
-    if (results.isEmpty()) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
-            Text(
-                text = "No setting matches “$query”.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        return
-    }
-    SettingsCard {
-        results.forEachIndexed { index, entry ->
-            val where = areaOf(entry)?.title
-            SectionRow(
-                title = entry.title,
-                summary = if (where == null) entry.summary else "$where · ${entry.summary}",
-                icon = entry.icon,
-            ) { onOpen(entry) }
-            if (index < results.size - 1) {
-                SettingsDivider()
-            }
-        }
-    }
-}
-
-/** The shared chrome of every settings page: a titled bar with the back arrow, and a body. */
+/** Shared scaffold for Settings screens on the theme background so panel cards elevate cleanly. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SettingsChrome(title: String, onBack: () -> Unit, body: @Composable (PaddingValues) -> Unit) {
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(title) },
+                title = {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 8.dp, end = 4.dp)
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                            .clickable(onClick = onBack),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
                 },
-                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                    containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
             )
         },
     ) { padding -> body(padding) }
 }
 
-/**
- * The disc a settings row opens with: the entry's glyph, tinted, and the gap to its title.
- *
- * A **door** ([SectionRow]) and a **choice** drawn where that door used to stand ([OptionTriggerRow]) wear the
- * same one, because the entry that stopped being a page is still the same entry in the same list.
- */
+/** Leading accent icon badge shared by About doors and inline choice triggers. */
 @Composable
 internal fun SectionGlyph(icon: ImageVector) {
     Box(
         modifier = Modifier
-            .size(36.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
+            .size(32.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(18.dp),
         )
     }
-    Spacer(Modifier.width(14.dp))
+    Spacer(Modifier.width(12.dp))
+}
+
+@Composable
+private fun IndexSectionGlyph(icon: ImageVector) {
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .clip(RoundedCornerShape(9.dp))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            modifier = Modifier.size(17.dp),
+        )
+    }
+    Spacer(Modifier.width(12.dp))
 }
 
 /**
- * One tappable row on a list page: the entry's glyph (when it has one), its name, what it covers, and
- * a chevron.
- *
- * The glyph sits in a tinted disc rather than bare on the surface: the rows are a plain list of text
- * otherwise, and at a glance a disc is what tells two neighbouring sections apart before the title is
- * read. [icon] is null for a page that has no glyph of its own (a shortcut sheet's list, an area
- * reached from search), and the row then starts at the text exactly as it used to.
+ * Tappable row inside a [SettingsCard]: optional compact glyph badge, title, optional summary,
+ * optional live trailing readout, and a subtle disclosure chevron.
  */
 @Composable
 internal fun SectionRow(
     title: String,
-    summary: String,
+    summary: String? = null,
     icon: ImageVector? = null,
     valueLabel: String? = null,
     onClick: () -> Unit,
@@ -651,24 +647,41 @@ internal fun SectionRow(
             .padding(horizontal = reach, vertical = settingsCellInset(reach)),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (icon != null) SectionGlyph(icon)
+        if (icon != null) IndexSectionGlyph(icon)
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-            Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = if (summary.isNullOrBlank()) FontWeight.Medium else FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (!summary.isNullOrBlank()) {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-        if (valueLabel != null) {
+        if (!valueLabel.isNullOrBlank()) {
             Spacer(Modifier.width(8.dp))
             Text(
                 text = valueLabel,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 120.dp),
             )
         }
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(6.dp))
         Icon(
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+            modifier = Modifier.size(18.dp),
         )
     }
 }
