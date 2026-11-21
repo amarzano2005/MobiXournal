@@ -34,7 +34,7 @@ class SettingsCardSurfaceTest {
         )
         assertTrue(
             "the click is applied to that surface, not to the caller's modifier",
-            source.substring(clip, click).contains(".floatingRim("),
+            source.substring(clip, click).contains(".border("),
         )
     }
 

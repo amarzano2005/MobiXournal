@@ -426,7 +426,7 @@ private fun TwoPaneDetailPane(
 @Composable
 private fun TabletSectionHeader(section: SettingsSection) {
     val areaTitle = areaOf(section)?.title
-    Column(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, bottom = 16.dp)) {
+    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -648,7 +648,7 @@ internal fun SectionRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) IndexSectionGlyph(icon)
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyLarge,

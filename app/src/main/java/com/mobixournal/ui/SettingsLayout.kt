@@ -31,11 +31,12 @@ import androidx.compose.ui.unit.dp
  * headers to find the one they want instead of reading every subtitle top to bottom.
  */
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.draw.clip
-import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
-import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.ModernTheme
 
 @Composable
 fun SettingsGroup(
@@ -111,14 +112,11 @@ internal fun SettingsCard(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    // A card is a **settings surface**, not a pop-up: the near-solid panel fill (the window's own
-    // settings material), the 20 dp panel corner and the rim as its whole edge — no Material
-    // elevation, whose blur would land inside the card rather than beside it.
     val surface = modifier
         .fillMaxWidth()
         .clip(SettingsCardShape)
-        .background(ModernTheme.settingsPanel(chromeIsDark()))
-        .floatingRim(20.dp)
+        .background(MaterialTheme.colorScheme.surface)
+        .border(1.dp, ModernTheme.hairlineBorder(chromeIsDark()), SettingsCardShape)
     Box(
         modifier = if (onClick == null) surface else surface.clickable(onClick = onClick),
     ) {
@@ -237,13 +235,13 @@ fun SettingsDivider() {
 /** A muted paragraph explaining a group or a control — secondary to the controls around it. */
 @Composable
 fun SettingsNote(text: String, modifier: Modifier = Modifier) {
+    val reach = LocalSettingsCardInset.current
+    val vPad = if (reach > 0.dp) 12.dp else 6.dp
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        // A note is a **block**, not a row ([settingsBlockInset]): the card keeps no air of its own, so a
-        // note opening a card has to clear the rounded edge itself or its first line lands on the curve.
-        modifier = modifier.settingsBlockInset(),
+        modifier = modifier.padding(vertical = vPad),
     )
 }
 
@@ -253,7 +251,7 @@ fun SettingsNote(text: String, modifier: Modifier = Modifier) {
  */
 @Composable
 fun ControlHeader(title: String, subtitle: String?, modifier: Modifier = Modifier) {
-    Column(modifier) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
         if (!subtitle.isNullOrBlank()) {
             Text(
@@ -281,4 +279,4 @@ internal fun Modifier.settingsActionPill(top: Dp = 8.dp, bottom: Dp = 8.dp): Mod
 }
 
 /** The corner radius of every settings card (groups and the index lists). */
-internal val SettingsCardShape = RoundedCornerShape(20.dp)
+internal val SettingsCardShape = RoundedCornerShape(16.dp)

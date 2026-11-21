@@ -100,7 +100,6 @@ internal fun SettingsSidebar(
                         SidebarSectionRow(
                             section = sec,
                             selected = sec == selected,
-                            valueLabel = sectionLiveValue(sec, settings),
                             onClick = { onSelect(sec) },
                         )
                     }
@@ -114,18 +113,12 @@ internal fun SettingsSidebar(
 private fun SidebarSectionRow(
     section: SettingsSection,
     selected: Boolean,
-    valueLabel: String?,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(12.dp)
     val rowBg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent
     val iconTint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     val titleColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-    val valueColor = if (selected) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-    }
 
     Row(
         modifier = Modifier
@@ -154,17 +147,6 @@ private fun SidebarSectionRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        if (!valueLabel.isNullOrBlank()) {
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = valueLabel,
-                style = MaterialTheme.typography.labelSmall,
-                color = valueColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.widthIn(max = 76.dp),
-            )
-        }
     }
 }
 
@@ -188,7 +170,7 @@ internal fun SettingsSearchField(
             .fillMaxWidth()
             .height(44.dp)
             .clip(shape)
-            .background(ModernTheme.settingsPanel(dark))
+            .background(MaterialTheme.colorScheme.surface)
             .border(1.dp, borderColor, shape)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

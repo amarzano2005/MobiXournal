@@ -13,19 +13,19 @@ objects the sections read and write. What the window's own Settings surface look
 Choosing Settings from the ☰ menu swaps in `SettingsScreen`, which has **two responsive shapes** over
 one shared section model. `SettingsChrome` paints the screen container with
 `MaterialTheme.colorScheme.background` (`DeskDark` in dark mode, `DeskLight` in light mode) so every
-`SettingsCard` (`ModernTheme.settingsPanel`) separates cleanly from the backdrop in both themes.
+`SettingsCard` (`16.dp` radius, solid `MaterialTheme.colorScheme.surface` fill, `1.dp` hairline border —
+without floating-glass rim effects) separates cleanly from the backdrop in both themes.
 
 On screens at least `SETTINGS_TWO_PANE_MIN_WIDTH` (600dp) wide (`TwoPaneSettings`), `SettingsSidebar`
 (`SettingsSidebar.kt`) stays permanently visible on the left with a rounded-pill `SettingsSearchField`
 and all fourteen `SettingsSection`s listed directly under their five uppercase `SettingsArea` eyebrows
-(**Input**, **Drawing**, **Interface**, **App & data**, **About**) alongside trailing live value readouts
-(`sectionLiveValue` in `SettingsOverview.kt`). Selecting any row updates the right detail pane
-(`TwoPaneDetailPane`) immediately via `AnimatedContent` (`liquidGlassFadeTransform`), without an
-intermediate area-list screen or top quick-controls bar. Narrower screens (`StackedSettings`) drop the
-sidebar for a flat 1-tap grouped index (`GroupedSettingsIndex`) with compact single-line rows (`SectionRow`
-with `summary = null`), trailing live readouts, and instant search (`SearchResultRows`); tapping any row
-opens its section directly. System back mirrors the title-bar arrow (section → search → exit on phones;
-clear search → exit on tablets).
+(**Input**, **Drawing**, **Interface**, **App & data**, **About**) without trailing preview clutter.
+Selecting any row updates the right detail pane (`TwoPaneDetailPane`) immediately via `AnimatedContent`
+(`liquidGlassFadeTransform`), without an intermediate area-list screen or top quick-controls bar.
+Narrower screens (`StackedSettings`) drop the sidebar for a flat 1-tap grouped index
+(`GroupedSettingsIndex`) with compact single-line rows (`SectionRow` with `summary = null`) and instant
+search (`SearchResultRows`); tapping any row opens its section directly. System back mirrors the title-bar
+arrow (section → search → exit on phones; clear search → exit on tablets).
 
 ## Rows light the card's width
 

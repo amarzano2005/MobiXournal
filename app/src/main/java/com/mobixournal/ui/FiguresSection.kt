@@ -92,7 +92,7 @@ private fun DefaultFigureSize(settings: AppSettings, onChange: (AppSettings) -> 
 /** Default rows/columns for inserted tables, and the relational header line. */
 @Composable
 private fun TableDefaults(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    ControlHeader("Grid", "Default number of data rows and columns for inserted tables.", Modifier.padding(top = 8.dp))
+    ControlHeader("Grid", "Default number of data rows and columns for inserted tables.", Modifier.settingsBlockInset())
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -142,7 +142,7 @@ private fun PolygonGeometry(settings: AppSettings, onChange: (AppSettings) -> Un
     ControlHeader(
         "Sides",
         "Sides the Polygon tool draws. Its slot's own menu sets the same value.",
-        Modifier.padding(top = 8.dp),
+        Modifier.settingsBlockInset(),
     )
     Row(
         verticalAlignment = Alignment.CenterVertically,

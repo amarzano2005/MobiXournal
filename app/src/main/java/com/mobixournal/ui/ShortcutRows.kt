@@ -62,7 +62,7 @@ internal fun ShortcutFilterBar(
         ShortcutFilterTab.entries.forEach { tab ->
             val active = tab == selected
             val label = if (tab == ShortcutFilterTab.BOUND) "${tab.label} ($boundCount)" else tab.label
-            val fill = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else ModernTheme.settingsPanel(dark)
+            val fill = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surface
             val border = if (active) MaterialTheme.colorScheme.primary else ModernTheme.hairlineBorder(dark)
             val ink = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             Box(

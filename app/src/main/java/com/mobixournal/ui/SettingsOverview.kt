@@ -82,7 +82,7 @@ internal fun GroupedSettingsIndex(
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.8.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 12.dp, bottom = 6.dp),
+                    modifier = Modifier.padding(start = 16.dp, bottom = 6.dp),
                 )
                 SettingsCard {
                     area.sections.forEachIndexed { index, entry ->
@@ -90,7 +90,6 @@ internal fun GroupedSettingsIndex(
                             title = entry.title,
                             summary = null,
                             icon = entry.icon,
-                            valueLabel = sectionLiveValue(entry, settings),
                             onClick = { onOpenSection(entry) },
                         )
                         if (index < area.sections.size - 1) {
@@ -125,12 +124,10 @@ internal fun SearchResultRows(
     }
     SettingsCard {
         results.forEachIndexed { index, entry ->
-            val where = areaOf(entry)?.title
             SectionRow(
                 title = entry.title,
-                summary = if (where == null) entry.summary else "$where · ${entry.summary}",
+                summary = areaOf(entry)?.title,
                 icon = entry.icon,
-                valueLabel = sectionLiveValue(entry, settings),
             ) { onOpen(entry) }
             if (index < results.size - 1) {
                 SettingsDivider()
