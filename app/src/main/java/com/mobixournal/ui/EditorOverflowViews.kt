@@ -107,7 +107,7 @@ internal fun DocumentTabView(
             SheetActionRow(
                 icon = ChromeGlyph.EXPORT.imageVector(),
                 badgeTint = accent,
-                title = "Export & Share",
+                title = "Export",
                 subtitle = "PDF, PNG, SVG, Portable .pmobix",
                 ink = ink,
                 enabled = !isReadOnly,

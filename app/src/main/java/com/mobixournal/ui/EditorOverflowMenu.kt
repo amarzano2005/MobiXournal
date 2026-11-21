@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Draw
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupPositionProvider
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.format.SaveFormat
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
@@ -60,7 +62,7 @@ import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 private enum class SheetTab { DOCUMENT, STUDIO }
-private enum class SheetView { DOCUMENT, STUDIO, EXPORT }
+private enum class SheetView { DOCUMENT, STUDIO, EXPORT, SHARE, SAVE_AS }
 
 private const val COMPACT_SHEET_BREAKPOINT_DP = 600
 
@@ -127,6 +129,7 @@ internal fun EditorOverflowMenu(
     onExportPageSvg: () -> Unit,
     onSavePortableCopy: () -> Unit,
     onShare: (ShareFormat) -> Unit = {},
+    onSaveAsFormat: (SaveFormat) -> Unit = { ui.showSaveAs = true },
 ) {
     OverflowMenu(
         isReadOnly = pane.isReadOnly,
@@ -157,6 +160,7 @@ internal fun EditorOverflowMenu(
         onExportPageSvg = onExportPageSvg,
         onSavePortableCopy = onSavePortableCopy,
         onShare = onShare,
+        onSaveAsFormat = onSaveAsFormat,
         onExportAs = { ui.exportAsOpen = true },
         onToggleFullPage = { ui.fullPage = !ui.fullPage },
         onToggleFingerDraws = {
@@ -211,6 +215,7 @@ internal fun OverflowMenu(
     onExportPageSvg: () -> Unit,
     onSavePortableCopy: () -> Unit = {},
     onShare: (ShareFormat) -> Unit = {},
+    onSaveAsFormat: (SaveFormat) -> Unit = {},
     onExportAs: () -> Unit = {},
     onToggleFullPage: () -> Unit = {},
     onToggleFingerDraws: () -> Unit = {},
@@ -222,7 +227,7 @@ internal fun OverflowMenu(
 ) {
     var open by remember { mutableStateOf(false) }
     var activeTab by remember { mutableStateOf(SheetTab.DOCUMENT) }
-    var inExport by remember { mutableStateOf(false) }
+    var subView by remember { mutableStateOf<SheetView?>(null) }
 
     val layout = rememberSheetPopupLayout()
     val isCompact = layout.isCompact
@@ -232,7 +237,7 @@ internal fun OverflowMenu(
         OverflowTriggerButton(
             expanded = open,
             onClick = {
-                inExport = false
+                subView = null
                 open = true
             },
         )
@@ -240,7 +245,7 @@ internal fun OverflowMenu(
             expanded = open,
             onDismissRequest = {
                 open = false
-                inExport = false
+                subView = null
             },
             positionProvider = layout.positionProvider,
             contentWidthPx = layout.contentWidthPx,
@@ -257,20 +262,20 @@ internal fun OverflowMenu(
                 settings = settings,
                 penDiagnostics = penDiagnostics,
                 activeTab = activeTab,
-                inExport = inExport,
+                subView = subView,
                 onSelectTab = { tab ->
                     activeTab = tab
-                    inExport = false
+                    subView = null
                 },
-                onOpenExport = { inExport = true },
-                onBackFromExport = { inExport = false },
+                onOpenSubView = { subView = it },
+                onBackFromSubView = { subView = null },
                 onDismiss = {
                     open = false
-                    inExport = false
+                    subView = null
                 },
                 onNewTab = onNewTab,
                 onOpen = onOpen,
-                onSaveAs = onSaveAs,
+                onSaveAsFormat = onSaveAsFormat,
                 onImportPdf = onImportPdf,
                 onExportPdf = onExportPdf,
                 onExportPagePng = onExportPagePng,
@@ -330,14 +335,14 @@ private fun OverflowSheetBody(
     settings: AppSettings?,
     penDiagnostics: Boolean,
     activeTab: SheetTab,
-    inExport: Boolean,
+    subView: SheetView?,
     onSelectTab: (SheetTab) -> Unit,
-    onOpenExport: () -> Unit,
-    onBackFromExport: () -> Unit,
+    onOpenSubView: (SheetView) -> Unit,
+    onBackFromSubView: () -> Unit,
     onDismiss: () -> Unit,
     onNewTab: () -> Unit,
     onOpen: () -> Unit,
-    onSaveAs: () -> Unit,
+    onSaveAsFormat: (SaveFormat) -> Unit,
     onImportPdf: () -> Unit,
     onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
@@ -352,11 +357,7 @@ private fun OverflowSheetBody(
     onOpenPenParameters: () -> Unit,
     onSettings: () -> Unit,
 ) {
-    val currentView = when {
-        inExport -> SheetView.EXPORT
-        activeTab == SheetTab.STUDIO -> SheetView.STUDIO
-        else -> SheetView.DOCUMENT
-    }
+    val currentView = subView ?: if (activeTab == SheetTab.STUDIO) SheetView.STUDIO else SheetView.DOCUMENT
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -381,9 +382,9 @@ private fun OverflowSheetBody(
             pageLabel = pageLabel,
             hasUnsavedChanges = hasUnsavedChanges,
             isReadOnly = isReadOnly,
-            onExportClick = onOpenExport,
+            onShareClick = { onOpenSubView(SheetView.SHARE) },
         )
-        if (!inExport) {
+        if (subView == null) {
             SheetModeSwitcher(activeTab = activeTab, onSelectTab = onSelectTab)
         }
         OverflowSheetContent(
@@ -392,12 +393,12 @@ private fun OverflowSheetBody(
             fullPage = fullPage,
             settings = settings,
             penDiagnostics = penDiagnostics,
-            onOpenExport = onOpenExport,
-            onBackFromExport = onBackFromExport,
+            onOpenSubView = onOpenSubView,
+            onBackFromSubView = onBackFromSubView,
             onDismiss = onDismiss,
             onNewTab = onNewTab,
             onOpen = onOpen,
-            onSaveAs = onSaveAs,
+            onSaveAsFormat = onSaveAsFormat,
             onImportPdf = onImportPdf,
             onExportPdf = onExportPdf,
             onExportPagePng = onExportPagePng,
@@ -424,12 +425,12 @@ private fun OverflowSheetContent(
     fullPage: Boolean,
     settings: AppSettings?,
     penDiagnostics: Boolean,
-    onOpenExport: () -> Unit,
-    onBackFromExport: () -> Unit,
+    onOpenSubView: (SheetView) -> Unit,
+    onBackFromSubView: () -> Unit,
     onDismiss: () -> Unit,
     onNewTab: () -> Unit,
     onOpen: () -> Unit,
-    onSaveAs: () -> Unit,
+    onSaveAsFormat: (SaveFormat) -> Unit,
     onImportPdf: () -> Unit,
     onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
@@ -452,9 +453,9 @@ private fun OverflowSheetContent(
                 isReadOnly = isReadOnly,
                 onNewTab = { onDismiss(); onNewTab() },
                 onOpen = { onDismiss(); onOpen() },
-                onSaveAs = { onDismiss(); onSaveAs() },
+                onSaveAs = { onOpenSubView(SheetView.SAVE_AS) },
                 onImportPdf = { onDismiss(); onImportPdf() },
-                onOpenExport = onOpenExport,
+                onOpenExport = { onOpenSubView(SheetView.EXPORT) },
             )
             SheetView.STUDIO -> StudioTabView(
                 settings = settings,
@@ -477,12 +478,21 @@ private fun OverflowSheetContent(
             )
             SheetView.EXPORT -> ExportDrilldownView(
                 isReadOnly = isReadOnly,
-                onBack = onBackFromExport,
+                onBack = onBackFromSubView,
                 onExportPdf = { onDismiss(); onExportPdf() },
                 onExportPng = { onDismiss(); onExportPagePng() },
                 onExportSvg = { onDismiss(); onExportPageSvg() },
                 onSavePortable = { onDismiss(); onSavePortableCopy() },
+            )
+            SheetView.SHARE -> ShareDrilldownView(
+                isReadOnly = isReadOnly,
+                onBack = onBackFromSubView,
                 onShare = { format -> onDismiss(); onShare(format) },
+            )
+            SheetView.SAVE_AS -> SaveAsDrilldownView(
+                isReadOnly = isReadOnly,
+                onBack = onBackFromSubView,
+                onPickFormat = { format -> onDismiss(); onSaveAsFormat(format) },
             )
         }
     }
@@ -494,7 +504,7 @@ private fun DocumentHeroCard(
     pageLabel: String,
     hasUnsavedChanges: Boolean,
     isReadOnly: Boolean,
-    onExportClick: () -> Unit,
+    onShareClick: () -> Unit,
 ) {
     val ink = rememberChromeInk()
     val accent = MaterialTheme.colorScheme.primary
@@ -566,12 +576,12 @@ private fun DocumentHeroCard(
                 .size(36.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(accent.copy(alpha = 0.14f))
-                .clickable(enabled = !isReadOnly, onClick = onExportClick),
+                .clickable(enabled = !isReadOnly, onClick = onShareClick),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                ChromeGlyph.EXPORT.imageVector(),
-                contentDescription = "Export and share",
+                Icons.Outlined.Share,
+                contentDescription = "Share",
                 tint = if (isReadOnly) ink.copy(alpha = 0.35f) else accent,
                 modifier = Modifier.size(18.dp),
             )

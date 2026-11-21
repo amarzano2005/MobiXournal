@@ -397,6 +397,7 @@ fun EditorScreen(
                             onExportPageSvg = onExportPageSvg,
                             onSavePortableCopy = onSavePortableCopy,
                             onShare = onShare,
+                            onSaveAsFormat = { format -> onSaveAs(currentSaveName(), format) },
                             splitView = splitView,
                             onToggleSplitView = onToggleSplitView,
                             audio = audio,

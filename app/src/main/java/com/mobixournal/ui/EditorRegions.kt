@@ -153,7 +153,7 @@ fun EditorTopBar(
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
     /** **Save portable copy**: the copy embeds what this notebook only names ([OverflowMenu]). */
-    onSavePortableCopy: () -> Unit = {}, onShare: (ShareFormat) -> Unit = {},
+    onSavePortableCopy: () -> Unit = {}, onShare: (ShareFormat) -> Unit = {}, onSaveAsFormat: (com.mobixournal.format.SaveFormat) -> Unit = {},
     splitView: Boolean,
     onToggleSplitView: () -> Unit,
     audio: AudioUiState = AudioUiState(),
@@ -321,7 +321,7 @@ fun EditorTopBar(
                     onImportPdf = onImportPdf,
                     onExportPagePng = onExportPagePng,
                     onExportPageSvg = onExportPageSvg,
-                    onSavePortableCopy = onSavePortableCopy, onShare = onShare,
+                    onSavePortableCopy = onSavePortableCopy, onShare = onShare, onSaveAsFormat = onSaveAsFormat,
                 )
                 if (settings != null && !railOnLeft && !ui.fullPage) {
                     Spacer(Modifier.width(SideToolbarModernTotalWidth))
