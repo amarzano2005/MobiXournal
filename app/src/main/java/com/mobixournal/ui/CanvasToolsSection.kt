@@ -28,7 +28,7 @@ fun CanvasToolsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 onChange = { onChange(settings.copy(momentum = it)) },
             )
             AnimatedVisibility(visible = settings.momentum > 0f) {
-                Column {
+                SettingsAccentBlock {
                     SettingsDivider()
                     OptionGroup(
                         title = "Momentum curve",

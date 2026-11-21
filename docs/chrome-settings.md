@@ -15,10 +15,10 @@ search topics into **seven dynamic `SettingsDestination`s** (`SettingsDestinatio
 three `SettingsGroupCategory` eyebrows (**Drafting**: *Pen & Input*, *Canvas & Tools*, *Palette & Ring*;
 **Interface**: *Workspace*, *Shortcuts*; **System**: *Files & Data*, *About*). `SettingsChrome` paints
 the screen container with `MaterialTheme.colorScheme.background` (`DeskDark` in dark mode, `DeskLight`
-in light mode) so every `SettingsCard` (`8.dp` architectural radius, solid `MaterialTheme.colorScheme.surface` fill,
-`1.dp` hairline border — without floating-glass rim effects or capsule pills) separates cleanly from the backdrop.
+in light mode) so every `SettingsCard` (`0.dp` edge-to-edge band, solid `MaterialTheme.colorScheme.surface` fill,
+`1.dp` hairline border — without floating-glass rim effects or capsule pills) spans the full width cleanly.
 Controls and action buttons inside Settings use `SettingsActionShape` (`6.dp` corners) and full-bleed rows
-(`BackupSection.kt`) instead of capsule pills.
+(`BackupSection.kt`), while conditional sub-controls sit inside `SettingsAccentBlock` (`2.dp` primary left bar).
 
 Each destination adapts its controls to the active subsection: `PenInputSection` pairs a segmented
 touch-mode control (`SettingsSegmentedControl`) with a live `PressureCurvePreview` that collapses when

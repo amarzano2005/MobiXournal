@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -67,8 +69,8 @@ internal fun SettingsSidebar(
         }
     }
 
-    Column(modifier = modifier.padding(horizontal = 12.dp, vertical = 14.dp)) {
-        SettingsSearchField(query, onQuery)
+    Column(modifier = modifier.padding(vertical = 12.dp)) {
+        SettingsSearchField(query, onQuery, modifier = Modifier.padding(horizontal = 16.dp))
         Spacer(Modifier.height(SettingsSidebarGapAfterField))
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
             if (groups.isEmpty()) {
@@ -111,22 +113,25 @@ private fun SidebarDestinationRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val shape = RoundedCornerShape(6.dp)
-    val rowBg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else Color.Transparent
+    val rowBg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent
     val iconTint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     val titleColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
             .height(SettingsSidebarRowHeight)
-            .clip(shape)
             .background(rowBg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp),
+            .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        Box(
+            Modifier
+                .width(2.dp)
+                .fillMaxHeight()
+                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent),
+        )
+        Spacer(Modifier.width(14.dp))
         Icon(
             imageVector = destination.icon,
             contentDescription = null,
@@ -143,6 +148,7 @@ private fun SidebarDestinationRow(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
+        Spacer(Modifier.width(12.dp))
     }
 }
 
@@ -158,19 +164,15 @@ internal fun SettingsSearchField(
 ) {
     val dark = chromeIsDark()
     var focused by remember { mutableStateOf(false) }
-    val shape = RoundedCornerShape(6.dp)
     val borderColor = if (focused) MaterialTheme.colorScheme.primary else ModernTheme.hairlineBorder(dark)
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(40.dp)
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
-            .border(1.dp, borderColor, shape)
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(40.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
         Icon(
             imageVector = Icons.Filled.Search,
             contentDescription = null,
@@ -219,6 +221,8 @@ internal fun SettingsSearchField(
                 )
             }
         }
+        }
+        HorizontalDivider(thickness = 1.dp, color = borderColor)
     }
 }
 

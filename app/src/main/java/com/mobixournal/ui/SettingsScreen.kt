@@ -391,7 +391,7 @@ private fun TwoPaneDetailPane(
         modifier = modifier
             .settingsViewport(viewport)
             .verticalScroll(viewport.state)
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .padding(vertical = 12.dp),
     ) {
         Column(Modifier.fillMaxWidth()) {
             CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
@@ -480,7 +480,7 @@ private fun StackedSettings(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 12.dp, vertical = 12.dp)
+                .padding(vertical = 8.dp)
                 .settingsViewport(viewport)
                 .verticalScroll(viewport.state),
         ) {
@@ -538,37 +538,40 @@ private fun SettingsChrome(title: String, onBack: () -> Unit, body: @Composable 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
-                navigationIcon = {
-                    Box(
-                        modifier = Modifier
-                            .padding(start = 8.dp, end = 4.dp)
-                            .size(36.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                            .clickable(onClick = onBack),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(18.dp),
+            Column {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
                         )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
+                    },
+                    navigationIcon = {
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 8.dp, end = 4.dp)
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                                .clickable(onClick = onBack),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                )
+                SettingsDivider()
+            }
         },
     ) { padding -> body(padding) }
 }

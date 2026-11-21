@@ -34,6 +34,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.draw.clip
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.ModernTheme
@@ -278,8 +283,40 @@ internal fun Modifier.settingsActionPill(top: Dp = 8.dp, bottom: Dp = 8.dp): Mod
     return fillMaxWidth().padding(start = side, end = side, top = top, bottom = bottom)
 }
 
-/** The corner radius of every settings card (groups and the index lists). */
-internal val SettingsCardShape = RoundedCornerShape(8.dp)
+/** Full-bleed edge-to-edge band shape (0 dp corners, no floating pill cards). */
+internal val SettingsCardShape = RoundedCornerShape(0.dp)
 
 /** Architectural corner radius for action buttons inside settings, avoiding capsule pills. */
 internal val SettingsActionShape = RoundedCornerShape(6.dp)
+
+/**
+ * Dynamic sub-control container with a 2 dp primary left accent bar and subtle surface tint,
+ * matching the hierarchical indentation of expanded conditional controls.
+ */
+@Composable
+internal fun SettingsAccentBlock(
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val reach = LocalSettingsCardInset.current
+    Row(
+        modifier = modifier
+            .fullBleedRow(reach)
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f)),
+    ) {
+        Box(
+            Modifier
+                .width(2.dp)
+                .fillMaxHeight()
+                .background(MaterialTheme.colorScheme.primary),
+        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = reach),
+            content = content,
+        )
+    }
+}

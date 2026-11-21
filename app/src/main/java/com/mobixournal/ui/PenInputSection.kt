@@ -128,7 +128,7 @@ private fun PressureGroup(settings: AppSettings, onChange: (AppSettings) -> Unit
                 SettingsNote("Uniform fixed stroke width active — pressure curve controls hidden.")
             }
             AnimatedVisibility(visible = settings.pressureEnabled) {
-                Column {
+                SettingsAccentBlock {
                     SettingsDivider()
                     PressureCurvePreview(
                         minPressure = settings.minimumPressure,
