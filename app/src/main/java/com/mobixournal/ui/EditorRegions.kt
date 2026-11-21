@@ -244,11 +244,10 @@ fun EditorTopBar(
                 val glassColor = rememberGlassSurfaceColor()
                 val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
-                // Order is deliberate: the navigation capsule and the search, then split view, then the
-                // paired undo/redo, then a compact Export PDF and Save — the most-used under the thumb.
+                val chromePolicy = com.mobixournal.ui.theme.LocalChromeLayoutPolicy.current
                 NavigationCapsule(ui)
-                SearchControls(pane)
-                Surface(
+                if (chromePolicy.showInlineSearchWhenClosed || pane.searchOpen) SearchControls(pane)
+                if (chromePolicy.showInlineSplitView) Surface(
                     shape = CircleShape,
                     color = glassColor,
                     tonalElevation = 0.dp,

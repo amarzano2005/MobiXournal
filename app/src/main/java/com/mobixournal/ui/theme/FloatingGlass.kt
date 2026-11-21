@@ -6,7 +6,9 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LocalContentColor
@@ -283,17 +285,35 @@ fun FloatingDialog(
 ) {
     val surface = ModernTheme.glassSurface(chromeIsDark()).copy(alpha = 0.90f)
     val scheme = MaterialTheme.colorScheme
+    val policy = LocalChromeLayoutPolicy.current
+    val resolvedProperties = if (policy.isCompact && properties.usePlatformDefaultWidth) {
+        DialogProperties(
+            dismissOnBackPress = properties.dismissOnBackPress,
+            dismissOnClickOutside = properties.dismissOnClickOutside,
+            securePolicy = properties.securePolicy,
+            usePlatformDefaultWidth = false,
+            decorFitsSystemWindows = properties.decorFitsSystemWindows,
+        )
+    } else {
+        properties
+    }
+    val sizeModifier = if (policy.isCompact && properties.usePlatformDefaultWidth) {
+        Modifier.fillMaxWidth(policy.dialogWidthFraction).widthIn(max = policy.dialogMaxWidthDp.dp)
+    } else {
+        Modifier
+    }
     MaterialTheme(colorScheme = scheme.copy(surface = surface, surfaceTint = surface)) {
         AlertDialog(
             onDismissRequest = onDismissRequest,
             containerColor = surface,
             modifier = modifier
+                .then(sizeModifier)
                 .liquidGlassSpringAnimation(
                     expanded = !LocalFloatingSurfaceClosing.current,
                     origin = TransformOrigin(0.5f, 0.5f),
                 )
                 .floatingRim(),
-            properties = properties,
+            properties = resolvedProperties,
             // No tonal wash: with `surface` and `surfaceTint` the same colour the RGB would survive it,
             // but the composite still stacks the tint's alpha over the fill's and lands the panel a
             // shade more opaque than the token. Zero elevation keeps the material exact.

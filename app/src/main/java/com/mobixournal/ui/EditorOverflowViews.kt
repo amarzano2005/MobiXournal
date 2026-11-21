@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Fullscreen
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.TouchApp
@@ -56,11 +57,13 @@ import java.util.Locale
 @Composable
 internal fun DocumentTabView(
     isReadOnly: Boolean,
+    showSearchAction: Boolean = false,
     onNewTab: () -> Unit,
     onOpen: () -> Unit,
     onSaveAs: () -> Unit,
     onImportPdf: () -> Unit,
     onOpenExport: () -> Unit,
+    onOpenSearch: () -> Unit = {},
 ) {
     val ink = rememberChromeInk()
     val accent = MaterialTheme.colorScheme.primary
@@ -95,6 +98,17 @@ internal fun DocumentTabView(
                 .clip(RoundedCornerShape(16.dp))
                 .background(rememberSheetSurfaceColor()),
         ) {
+            if (showSearchAction) {
+                SheetActionRow(
+                    icon = Icons.Outlined.Search,
+                    badgeTint = accent,
+                    title = "Search in document",
+                    subtitle = null,
+                    ink = ink,
+                    enabled = true,
+                    onClick = onOpenSearch,
+                )
+            }
             SheetActionRow(
                 icon = ChromeGlyph.PDF.imageVector(),
                 badgeTint = DocumentRed,

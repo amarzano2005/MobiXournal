@@ -8,18 +8,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
-import com.mobixournal.design.DocumentNavigationLayout
 import com.mobixournal.ui.theme.DocumentRed
+import com.mobixournal.ui.theme.LocalChromeLayoutPolicy
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /** The overflow menu retains PDF export on compact windows; the duplicate shortcut yields to navigation. */
 @Composable
 internal fun QuickPdfExport(ui: EditorUiState, pane: PaneState) {
-    if (LocalConfiguration.current.screenWidthDp < DocumentNavigationLayout.COMPACT_WIDTH_DP) return
+    if (!LocalChromeLayoutPolicy.current.showInlinePdfExport) return
     Surface(
         shape = CircleShape, color = rememberGlassSurfaceColor(), tonalElevation = 0.dp,
         shadowElevation = 4.dp,

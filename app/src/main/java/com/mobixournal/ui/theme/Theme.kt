@@ -19,9 +19,12 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.mobixournal.design.ChromeLayoutPolicy
+import com.mobixournal.design.WindowChromePolicy
 import com.mobixournal.ui.ThemeMode
 
 /**
@@ -35,6 +38,11 @@ import com.mobixournal.ui.ThemeMode
  * wearing the wrong shade. Read it through [chromeIsDark].
  */
 val LocalChromeIsDark = staticCompositionLocalOf { false }
+
+/**
+ * Coarse responsive layout policy for the current window width, published once by [XoppTheme].
+ */
+val LocalChromeLayoutPolicy = staticCompositionLocalOf { WindowChromePolicy.forWidthDp(840) }
 
 /**
  * The chrome's dark/light answer for this composition: the app's `ThemeMode`, resolved once by
@@ -221,7 +229,11 @@ fun XoppTheme(
     }
     // The chrome's own dark/light answer is published from the *same* decision as the scheme above:
     // one source for both, so a bar cannot be lit for a theme its ink does not come from.
-    CompositionLocalProvider(LocalChromeIsDark provides darkTheme) {
+    val chromePolicy = WindowChromePolicy.forWidthDp(LocalConfiguration.current.screenWidthDp)
+    CompositionLocalProvider(
+        LocalChromeIsDark provides darkTheme,
+        LocalChromeLayoutPolicy provides chromePolicy,
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = ModernTypography,

@@ -43,7 +43,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -55,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupPositionProvider
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.format.SaveFormat
+import com.mobixournal.ui.theme.LocalChromeLayoutPolicy
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeInk
@@ -63,8 +63,6 @@ import com.mobixournal.ui.theme.rememberPopupPanelColor
 
 private enum class SheetTab { DOCUMENT, STUDIO }
 private enum class SheetView { DOCUMENT, STUDIO, EXPORT, SHARE, SAVE_AS }
-
-private const val COMPACT_SHEET_BREAKPOINT_DP = 600
 
 /**
  * Anchors the Command Sheet to the bottom-center of the window on compact phone screens so the
@@ -93,14 +91,22 @@ private data class SheetPopupLayout(
 
 @Composable
 private fun rememberSheetPopupLayout(): SheetPopupLayout {
-    val screenWidthDp = LocalConfiguration.current.screenWidthDp
-    val isCompact = screenWidthDp < COMPACT_SHEET_BREAKPOINT_DP
+    val policy = LocalChromeLayoutPolicy.current
     val density = LocalDensity.current
-    return remember(density, screenWidthDp, isCompact) {
-        val widthDp = if (isCompact) (screenWidthDp.dp - 24.dp).coerceAtMost(420.dp) else 328.dp
+    val screenWidthDp = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp
+    return remember(density, screenWidthDp, policy) {
+        val widthDp = if (policy.overflowSheetIsBottom) {
+            (screenWidthDp.dp - 24.dp).coerceAtMost(policy.overflowSheetMaxWidthDp.dp)
+        } else {
+            policy.overflowSheetMaxWidthDp.dp
+        }
         val widthPx = with(density) { widthDp.roundToPx() }
-        val provider = if (isCompact) BottomSheetPopupPositionProvider(with(density) { 12.dp.roundToPx() }) else null
-        SheetPopupLayout(isCompact = isCompact, contentWidthPx = widthPx, positionProvider = provider)
+        val provider = if (policy.overflowSheetIsBottom) {
+            BottomSheetPopupPositionProvider(with(density) { 12.dp.roundToPx() })
+        } else {
+            null
+        }
+        SheetPopupLayout(isCompact = policy.isCompact, contentWidthPx = widthPx, positionProvider = provider)
     }
 }
 
@@ -161,6 +167,7 @@ internal fun EditorOverflowMenu(
         onSavePortableCopy = onSavePortableCopy,
         onShare = onShare,
         onSaveAsFormat = onSaveAsFormat,
+        onOpenSearch = { pane.searchOpen = true },
         onExportAs = { ui.exportAsOpen = true },
         onToggleFullPage = { ui.fullPage = !ui.fullPage },
         onToggleFingerDraws = {
@@ -216,6 +223,7 @@ internal fun OverflowMenu(
     onSavePortableCopy: () -> Unit = {},
     onShare: (ShareFormat) -> Unit = {},
     onSaveAsFormat: (SaveFormat) -> Unit = {},
+    onOpenSearch: () -> Unit = {},
     onExportAs: () -> Unit = {},
     onToggleFullPage: () -> Unit = {},
     onToggleFingerDraws: () -> Unit = {},
@@ -276,6 +284,7 @@ internal fun OverflowMenu(
                 onNewTab = onNewTab,
                 onOpen = onOpen,
                 onSaveAsFormat = onSaveAsFormat,
+                onOpenSearch = onOpenSearch,
                 onImportPdf = onImportPdf,
                 onExportPdf = onExportPdf,
                 onExportPagePng = onExportPagePng,
@@ -343,6 +352,7 @@ private fun OverflowSheetBody(
     onNewTab: () -> Unit,
     onOpen: () -> Unit,
     onSaveAsFormat: (SaveFormat) -> Unit,
+    onOpenSearch: () -> Unit,
     onImportPdf: () -> Unit,
     onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
@@ -399,6 +409,7 @@ private fun OverflowSheetBody(
             onNewTab = onNewTab,
             onOpen = onOpen,
             onSaveAsFormat = onSaveAsFormat,
+            onOpenSearch = onOpenSearch,
             onImportPdf = onImportPdf,
             onExportPdf = onExportPdf,
             onExportPagePng = onExportPagePng,
@@ -431,6 +442,7 @@ private fun OverflowSheetContent(
     onNewTab: () -> Unit,
     onOpen: () -> Unit,
     onSaveAsFormat: (SaveFormat) -> Unit,
+    onOpenSearch: () -> Unit,
     onImportPdf: () -> Unit,
     onExportPdf: () -> Unit,
     onExportPagePng: () -> Unit,
@@ -451,11 +463,13 @@ private fun OverflowSheetContent(
         when (view) {
             SheetView.DOCUMENT -> DocumentTabView(
                 isReadOnly = isReadOnly,
+                showSearchAction = LocalChromeLayoutPolicy.current.isCompact,
                 onNewTab = { onDismiss(); onNewTab() },
                 onOpen = { onDismiss(); onOpen() },
                 onSaveAs = { onOpenSubView(SheetView.SAVE_AS) },
                 onImportPdf = { onDismiss(); onImportPdf() },
                 onOpenExport = { onOpenSubView(SheetView.EXPORT) },
+                onOpenSearch = { onDismiss(); onOpenSearch() },
             )
             SheetView.STUDIO -> StudioTabView(
                 settings = settings,
