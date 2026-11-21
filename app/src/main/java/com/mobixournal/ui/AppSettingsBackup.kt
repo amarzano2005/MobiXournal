@@ -61,6 +61,7 @@ object AppSettingsBackup {
             .append(settings.penWidths.joinToString(", "))
             .append("],\n")
         b.append("  \"customColor\": ").append(settings.customColor?.toString() ?: "null").append(",\n")
+        b.append("  \"ringSlots\": ").append(settings.ringSlots?.let { "\"${escape(it)}\"" } ?: "null").append(",\n")
         b.append("  \"defaultTool\": \"").append(settings.defaultTool.name).append("\",\n")
         b.append("  \"penEraserToggleKey\": \"").append(escape(settings.penEraserToggleKey)).append("\",\n")
         b.append("  \"handToggleKey\": \"").append(escape(settings.handToggleKey)).append("\",\n")
@@ -75,6 +76,7 @@ object AppSettingsBackup {
         b.append("  \"stemSatelliteOffsetX\": ").append(settings.stemSatelliteOffsetX).append(",\n")
         b.append("  \"stemSatelliteOffsetY\": ").append(settings.stemSatelliteOffsetY).append(",\n")
         b.append("  \"newDocumentFormat\": \"").append(settings.newDocumentFormat.name).append("\",\n")
+        b.append("  \"autoSave\": ").append(settings.autoSave).append(",\n")
         b.append("  \"penColors\": [")
             .append(settings.penColors.joinToString(", "))
             .append("],\n")
@@ -292,6 +294,11 @@ object AppSettingsBackup {
             } else {
                 fallback.customColor
             },
+            ringSlots = if (root.map.containsKey("ringSlots")) {
+                root.getStrOrNull("ringSlots")
+            } else {
+                fallback.ringSlots
+            },
             defaultTool = readEnum("defaultTool", EditorTool.values(), fallback.defaultTool),
             penEraserToggleKey = root.getStr("penEraserToggleKey", fallback.penEraserToggleKey),
             handToggleKey = root.getStr("handToggleKey", fallback.handToggleKey),
@@ -313,6 +320,7 @@ object AppSettingsBackup {
             stemSatelliteOffsetX = root.getFloat("stemSatelliteOffsetX", fallback.stemSatelliteOffsetX),
             stemSatelliteOffsetY = root.getFloat("stemSatelliteOffsetY", fallback.stemSatelliteOffsetY),
             newDocumentFormat = readEnum("newDocumentFormat", NewDocumentFormat.values(), fallback.newDocumentFormat),
+            autoSave = root.getBool("autoSave", fallback.autoSave),
             penColors = root.getIntList("penColors") ?: fallback.penColors,
             penFavorites = root.getIntList("penFavorites") ?: fallback.penFavorites,
             highlighterFavorites = root.getIntList("highlighterFavorites") ?: fallback.highlighterFavorites,
