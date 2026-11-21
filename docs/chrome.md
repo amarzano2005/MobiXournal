@@ -10,7 +10,7 @@ _One spoke of the architecture docs; the index is [architecture.md](architecture
 **Chrome (`ui/`).** `EditorScreen` is the one editor screen: a top bar (`EditorTopBar`) with undo/redo
 icon buttons, a quick **Export PDF** button on wide windows (compact windows keep it in the overflow menu) and a one-tap **Save** button after it (Save
 outermost, i.e. under the thumb), and a
-**☰ overflow menu** (`ToolbarMenu` Command Sheet, bottom-anchored on compact phones and anchored popover on tablets) holding a live document hero card with a quick **Share** button (inline **PDF**, **PNG**, **SVG**, and `.pmobix` share sheet), a **Document** view (New, Open, inline **Save As** format picker for `.mobix`/`.xopp`/zipped `.xopp`, Import PDF, and inline **Export** for PDF, PNG, SVG, and `.pmobix`), a **Pen & View** view (pressure-curve preset cards, Finger drawing, Focus mode, Toolbar side, and Pen diagnostics), and a footer for Pen Tuning and Settings; a **Main Toolbar `SideToolbar`** with core drawing tool slots and pop-up panels; a secondary toolbar (`TopBarToolsRow`) for geometric figures and STEM tools embedded in the top bar. Both toolbars follow the modern design system floating glass capsule style.
+**☰ overflow menu** (`ToolbarMenu` Command Sheet, bottom-anchored on compact phones `< 600 dp` via `WindowChromePolicy` / `LocalChromeLayoutPolicy` and anchored popover on tablets; on compact phones `EditorTopBar` also hides Split View, Quick Export PDF, and closed Search, exposing **Search in document** inside the Command Sheet's `Document` view while `FloatingDialog` sizes proportionally at 94% width) holding a live document hero card with a quick **Share** button (inline **PDF**, **PNG**, **SVG**, and `.pmobix` share sheet), a **Document** view (New, Open, inline **Save As** format picker for `.mobix`/`.xopp`/zipped `.xopp`, Import PDF, and inline **Export** for PDF, PNG, SVG, and `.pmobix`), a **Pen & View** view (pressure-curve preset cards, Finger drawing, Focus mode, Toolbar side, and Pen diagnostics), and a footer for Pen Tuning and Settings; a **Main Toolbar `SideToolbar`** with core drawing tool slots and pop-up panels; a secondary toolbar (`TopBarToolsRow`) for geometric figures and STEM tools embedded in the top bar. Both toolbars follow the modern design system floating glass capsule style.
 
 There is **one layout**, and each bar has one job. The Main Toolbar is the vertical docked capsule
 (Left or Right, per `ToolbarPosition`) of **writing tools only**: pen, highlighter, eraser, pan, select,
@@ -117,9 +117,7 @@ is anchored to that button (opening to the right of the rail) rather than fillin
 one of those menus — the rail's, the dock's, the views'/pages'/layers' panels and the ☰ overflow —
 is built by `ToolbarMenu` (`ToolbarPopup.kt`), the app's **one menu
 material**: the frosted glass the bars paint with its see-through turned down
-(`rememberFloatingSurfaceColor()`, the `floatingPanelAlpha` token at 0.88 — a floating surface is read
-on, a bar is not), the same fill the action bars (`FloatingSurface`), the STEM editors
-(`FloatingDialog`), the badges, the hand-rolled dialogs and the transfer overlay take, the same lit
+(`rememberFloatingSurfaceColor()`, the `floatingPanelAlpha` token at 0.88 for action bars `FloatingSurface`, badges, hand-rolled dialogs and transfer overlays; `rememberPopupPanelColor()` at 0.93 for editor `ToolbarMenu` popups and the Command Sheet; and 0.90 for `FloatingDialog` over its modal scrim), the same lit
 hairline (`floatingRim`, one implementation for all of them), and the same corner (`panelCornerRadiusDp`, which `AppShapes.extraLarge` hands Material's
 own `AlertDialog`s too, so a dialog and a menu cannot turn at two radii)
 and `surfaceTint` pinned to it (M3 paints the
