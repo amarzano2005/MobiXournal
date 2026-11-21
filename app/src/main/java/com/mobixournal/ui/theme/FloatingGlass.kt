@@ -1,9 +1,15 @@
 package com.mobixournal.ui.theme
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +48,14 @@ import androidx.compose.ui.window.DialogProperties
 import com.mobixournal.design.DesignTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+/** Smoothly resizes a container when switching inline views or expanding options. */
+internal fun Modifier.liquidGlassContentSize(): Modifier =
+    animateContentSize(animationSpec = spring(dampingRatio = 0.85f, stiffness = 420f))
+
+/** Shared crossfade transition for inline view switches inside panels, sheets, and dialogs. */
+internal fun <S> AnimatedContentTransitionScope<S>.liquidGlassFadeTransform(): ContentTransform =
+    fadeIn(tween(180)) togetherWith fadeOut(tween(140))
 
 /**
  * The **one edge** a floating surface wears.

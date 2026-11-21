@@ -57,6 +57,8 @@ import com.mobixournal.format.SaveFormat
 import com.mobixournal.ui.theme.LocalChromeLayoutPolicy
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.liquidGlassContentSize
+import com.mobixournal.ui.theme.liquidGlassFadeTransform
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberPopupPanelColor
@@ -371,6 +373,7 @@ private fun OverflowSheetBody(
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .liquidGlassContentSize()
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -457,7 +460,7 @@ private fun OverflowSheetContent(
 ) {
     AnimatedContent(
         targetState = currentView,
-        transitionSpec = { fadeIn() togetherWith fadeOut() },
+        transitionSpec = { liquidGlassFadeTransform() },
         label = "OverflowSheetView",
     ) { view ->
         when (view) {

@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -61,6 +62,7 @@ import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.ui.theme.PanelEdgeAir
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberChromeInk
+import com.mobixournal.ui.theme.liquidGlassFadeTransform
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 internal enum class NavigationTab(val label: String) { PAGES("Pages"), BOOKMARKS("Bookmarks") }
@@ -238,10 +240,17 @@ private fun DocumentNavigationLane(
                     pane.surface?.goToPage(it)
                     if (compact) close()
                 }
-                if (ui.navigationTab == NavigationTab.BOOKMARKS) {
-                    BookmarkNavigationBody(pane, session, goToPage, Modifier.weight(1f))
-                } else {
-                    NavigationPages(ui, pane, goToPage, Modifier.weight(1f))
+                AnimatedContent(
+                    targetState = ui.navigationTab,
+                    transitionSpec = { liquidGlassFadeTransform() },
+                    modifier = Modifier.weight(1f),
+                    label = "NavigationTab",
+                ) { tab ->
+                    if (tab == NavigationTab.BOOKMARKS) {
+                        BookmarkNavigationBody(pane, session, goToPage, Modifier.fillMaxSize())
+                    } else {
+                        NavigationPages(ui, pane, goToPage, Modifier.fillMaxSize())
+                    }
                 }
             }
         }

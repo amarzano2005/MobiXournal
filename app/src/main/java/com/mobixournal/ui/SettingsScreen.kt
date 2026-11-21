@@ -1,6 +1,8 @@
 package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import com.mobixournal.ui.theme.liquidGlassFadeTransform
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.CircleShape
@@ -427,26 +429,30 @@ private fun StackedSettings(
                 .verticalScroll(viewport.state),
         ) {
             CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
-                when {
-                    openSection != null -> SectionBody(openSection, settings, onChange)
-                    openArea != null -> {
-                        val page = openArea.inlineOnly()
-                        if (page != null) SectionBody(page, settings, onChange)
-                        else SectionRows(openArea, settings, onChange, onSection)
-                    }
-                    else -> {
-                        // The search lives on the index: it is the one page both shapes share, and the
-                        // answer to "where is this setting" is a section, not an area.
-                        SettingsSearchField(query, onQuery, Modifier.padding(bottom = 12.dp))
-                        if (query.isNotEmpty()) {
-                            SearchResultRows(query, results, onSection)
-                        } else {
-                            SettingsCard {
-                                val areas = SettingsArea.values()
-                                areas.forEachIndexed { index, entry ->
-                                    SectionRow(entry.title, entry.summary, entry.icon) { onArea(entry) }
-                                    if (index < areas.size - 1) {
-                                        SettingsDivider()
+                AnimatedContent(
+                    targetState = Triple(openSection, openArea, query.isNotEmpty()),
+                    transitionSpec = { liquidGlassFadeTransform() },
+                    label = "StackedSettingsPane",
+                ) { (sec, areaState, hasQuery) ->
+                    when {
+                        sec != null -> SectionBody(sec, settings, onChange)
+                        areaState != null -> {
+                            val page = areaState.inlineOnly()
+                            if (page != null) SectionBody(page, settings, onChange)
+                            else SectionRows(areaState, settings, onChange, onSection)
+                        }
+                        else -> {
+                            SettingsSearchField(query, onQuery, Modifier.padding(bottom = 12.dp))
+                            if (hasQuery) {
+                                SearchResultRows(query, results, onSection)
+                            } else {
+                                SettingsCard {
+                                    val areas = SettingsArea.values()
+                                    areas.forEachIndexed { index, entry ->
+                                        SectionRow(entry.title, entry.summary, entry.icon) { onArea(entry) }
+                                        if (index < areas.size - 1) {
+                                            SettingsDivider()
+                                        }
                                     }
                                 }
                             }

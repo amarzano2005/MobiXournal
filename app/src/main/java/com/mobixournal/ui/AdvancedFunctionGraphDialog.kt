@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import com.mobixournal.ui.theme.PillTextInset
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -54,6 +55,8 @@ import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.PlotKind
 import com.mobixournal.format.model.PlotShading
 import com.mobixournal.render.CriticalPoint
+import com.mobixournal.ui.theme.liquidGlassContentSize
+import com.mobixournal.ui.theme.liquidGlassFadeTransform
 import com.mobixournal.ui.theme.rememberToolbarColor
 import com.mobixournal.render.FunctionAnalysis
 import com.mobixournal.render.FunctionPlot
@@ -330,20 +333,26 @@ internal fun DialogInputsColumn(
     shade: PlotShadeState,
 ) {
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
+        modifier = modifier.verticalScroll(rememberScrollState()).liquidGlassContentSize(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         ModeSelectorPill(modeTab = modeTab, onModeTabChange = onModeTabChange)
 
-        if (modeTab == 0) {
-            CartesianCurveList(curves = curves)
-        } else {
-            ParametricInputs(
-                paramX = paramX,
-                paramY = paramY,
-                onXChange = onParamXChange,
-                onYChange = onParamYChange,
-            )
+        AnimatedContent(
+            targetState = modeTab,
+            transitionSpec = { liquidGlassFadeTransform() },
+            label = "PlotMode",
+        ) { tab ->
+            if (tab == 0) {
+                CartesianCurveList(curves = curves)
+            } else {
+                ParametricInputs(
+                    paramX = paramX,
+                    paramY = paramY,
+                    onXChange = onParamXChange,
+                    onYChange = onParamYChange,
+                )
+            }
         }
 
         RangeInputs(
