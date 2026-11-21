@@ -1,6 +1,8 @@
 package com.mobixournal.ui
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -30,6 +32,7 @@ import com.mobixournal.render.ShapeRecognition
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
 import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.liquidGlassContentSize
 import kotlin.math.roundToInt
 
 /**
@@ -181,20 +184,22 @@ private fun TriangleGeometry(settings: AppSettings, onChange: (AppSettings) -> U
             onDismiss = { showDialog = false },
         )
     }
-    OptionGroup(
-        title = "Type",
-        subtitle = "Default variant for the triangle tool.",
-        options = TriangleKind.values().toList(),
-        selected = settings.triangleKind,
-        label = { it.label },
-        icon = { triangleKindIcon(it) },
-        onSelect = { onChange(settings.copy(triangleKind = it)) },
-    )
-    if (settings.triangleKind == TriangleKind.SCALENE) {
-        CustomAnglesRow(
-            "Angles: A=${settings.scaleneAngleA.roundToInt()}°, B=${settings.scaleneAngleB.roundToInt()}°, " +
-                "C=${settings.scaleneAngleC.roundToInt()}°",
-        ) { showDialog = true }
+    Column(Modifier.liquidGlassContentSize()) {
+        OptionGroup(
+            title = "Type",
+            subtitle = "Default variant for the triangle tool.",
+            options = TriangleKind.values().toList(),
+            selected = settings.triangleKind,
+            label = { it.label },
+            icon = { triangleKindIcon(it) },
+            onSelect = { onChange(settings.copy(triangleKind = it)) },
+        )
+        AnimatedVisibility(visible = settings.triangleKind == TriangleKind.SCALENE) {
+            CustomAnglesRow(
+                "Angles: A=${settings.scaleneAngleA.roundToInt()}°, B=${settings.scaleneAngleB.roundToInt()}°, " +
+                    "C=${settings.scaleneAngleC.roundToInt()}°",
+            ) { showDialog = true }
+        }
     }
 }
 
@@ -219,20 +224,22 @@ private fun TrapezoidGeometry(settings: AppSettings, onChange: (AppSettings) -> 
             onDismiss = { showDialog = false },
         )
     }
-    OptionGroup(
-        title = "Type",
-        subtitle = "Default variant for the trapezoid tool.",
-        options = TrapezoidKind.values().toList(),
-        selected = settings.trapezoidKind,
-        label = { it.label },
-        icon = { trapezoidKindIcon(it) },
-        onSelect = { onChange(settings.copy(trapezoidKind = it)) },
-    )
-    if (settings.trapezoidKind == TrapezoidKind.SCALENE) {
-        CustomAnglesRow(
-            "Base angles: left=${settings.trapezoidAngleA.roundToInt()}°, " +
-                "right=${settings.trapezoidAngleB.roundToInt()}°",
-        ) { showDialog = true }
+    Column(Modifier.liquidGlassContentSize()) {
+        OptionGroup(
+            title = "Type",
+            subtitle = "Default variant for the trapezoid tool.",
+            options = TrapezoidKind.values().toList(),
+            selected = settings.trapezoidKind,
+            label = { it.label },
+            icon = { trapezoidKindIcon(it) },
+            onSelect = { onChange(settings.copy(trapezoidKind = it)) },
+        )
+        AnimatedVisibility(visible = settings.trapezoidKind == TrapezoidKind.SCALENE) {
+            CustomAnglesRow(
+                "Base angles: left=${settings.trapezoidAngleA.roundToInt()}°, " +
+                    "right=${settings.trapezoidAngleB.roundToInt()}°",
+            ) { showDialog = true }
+        }
     }
 }
 

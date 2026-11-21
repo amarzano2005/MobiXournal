@@ -47,27 +47,23 @@ import com.mobixournal.ui.theme.chromeIsDark
 import java.util.Locale
 
 /**
- * The settings' permanent wide-screen side menu: a live search field, then every [SettingsSection]
- * directly grouped under its uppercase [SettingsArea] eyebrow with live trailing value readouts.
- *
- * Clicking any section updates the adjacent detail pane immediately without an intermediate area-list
- * step, keeping tablet navigation 1:1 with the desktop panel and the grouped mobile index.
+ * The settings' permanent wide-screen side menu: a live search field, then the seven consolidated
+ * [SettingsDestination]s grouped under their uppercase [SettingsGroupCategory] eyebrows.
  */
 @Composable
 internal fun SettingsSidebar(
     query: String,
     onQuery: (String) -> Unit,
-    selected: SettingsSection?,
-    visibleSections: List<SettingsSection>,
-    settings: AppSettings,
-    onSelect: (SettingsSection) -> Unit,
+    selected: SettingsDestination?,
+    visibleDestinations: List<SettingsDestination>,
+    onSelect: (SettingsDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val visibleSet = remember(visibleSections) { visibleSections.toSet() }
+    val visibleSet = remember(visibleDestinations) { visibleDestinations.toSet() }
     val groups = remember(visibleSet) {
-        SettingsArea.entries.mapNotNull { area ->
-            val rows = area.sections.filter { it in visibleSet }
-            if (rows.isEmpty()) null else area to rows
+        SettingsGroupCategory.entries.mapNotNull { category ->
+            val rows = SettingsDestination.entries.filter { it.category == category && it in visibleSet }
+            if (rows.isEmpty()) null else category to rows
         }
     }
 
@@ -83,9 +79,9 @@ internal fun SettingsSidebar(
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 20.dp),
                 )
             } else {
-                groups.forEachIndexed { idx, (area, rows) ->
+                groups.forEachIndexed { idx, (category, rows) ->
                     Text(
-                        text = area.title.uppercase(Locale.US),
+                        text = category.title.uppercase(Locale.US),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Medium,
                         letterSpacing = 0.8.sp,
@@ -96,11 +92,11 @@ internal fun SettingsSidebar(
                             bottom = 4.dp,
                         ),
                     )
-                    rows.forEach { sec ->
-                        SidebarSectionRow(
-                            section = sec,
-                            selected = sec == selected,
-                            onClick = { onSelect(sec) },
+                    rows.forEach { dest ->
+                        SidebarDestinationRow(
+                            destination = dest,
+                            selected = dest == selected,
+                            onClick = { onSelect(dest) },
                         )
                     }
                 }
@@ -110,8 +106,8 @@ internal fun SettingsSidebar(
 }
 
 @Composable
-private fun SidebarSectionRow(
-    section: SettingsSection,
+private fun SidebarDestinationRow(
+    destination: SettingsDestination,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
@@ -132,14 +128,14 @@ private fun SidebarSectionRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
-            imageVector = section.icon,
+            imageVector = destination.icon,
             contentDescription = null,
             tint = iconTint,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(10.dp))
         Text(
-            text = section.title,
+            text = destination.title,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
             color = titleColor,

@@ -66,18 +66,19 @@ private fun ThemeMode.shortLabel(): String = when (this) {
 }
 
 /**
- * Flat 1-tap grouped index of all [SettingsArea]s and their [SettingsSection]s for narrow screens.
+ * Flat 1-tap grouped index of the seven dynamic [SettingsDestination]s for narrow screens.
  */
 @Composable
 internal fun GroupedSettingsIndex(
-    settings: AppSettings,
-    onOpenSection: (SettingsSection) -> Unit,
+    onOpenDestination: (SettingsDestination) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-        SettingsArea.entries.forEach { area ->
+        SettingsGroupCategory.entries.forEach { category ->
+            val destinations = SettingsDestination.entries.filter { it.category == category }
+            if (destinations.isEmpty()) return@forEach
             Column {
                 Text(
-                    text = area.title.uppercase(Locale.US),
+                    text = category.title.uppercase(Locale.US),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Medium,
                     letterSpacing = 0.8.sp,
@@ -85,14 +86,14 @@ internal fun GroupedSettingsIndex(
                     modifier = Modifier.padding(start = 16.dp, bottom = 6.dp),
                 )
                 SettingsCard {
-                    area.sections.forEachIndexed { index, entry ->
+                    destinations.forEachIndexed { index, dest ->
                         SectionRow(
-                            title = entry.title,
+                            title = dest.title,
                             summary = null,
-                            icon = entry.icon,
-                            onClick = { onOpenSection(entry) },
+                            icon = dest.icon,
+                            onClick = { onOpenDestination(dest) },
                         )
-                        if (index < area.sections.size - 1) {
+                        if (index < destinations.size - 1) {
                             SettingsDivider()
                         }
                     }
@@ -103,14 +104,13 @@ internal fun GroupedSettingsIndex(
 }
 
 /**
- * Search matches across all [SettingsSection]s, each showing its parent area and live value.
+ * Search matches across all [SettingsSection] aliases, routing each hit to its [SettingsDestination].
  */
 @Composable
 internal fun SearchResultRows(
     query: String,
     results: List<SettingsSection>,
-    settings: AppSettings,
-    onOpen: (SettingsSection) -> Unit,
+    onOpen: (SettingsDestination) -> Unit,
 ) {
     if (results.isEmpty()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
@@ -124,11 +124,12 @@ internal fun SearchResultRows(
     }
     SettingsCard {
         results.forEachIndexed { index, entry ->
+            val dest = entry.toDestination()
             SectionRow(
                 title = entry.title,
-                summary = areaOf(entry)?.title,
+                summary = if (dest.title == entry.title) dest.category.title else dest.title,
                 icon = entry.icon,
-            ) { onOpen(entry) }
+            ) { onOpen(dest) }
             if (index < results.size - 1) {
                 SettingsDivider()
             }

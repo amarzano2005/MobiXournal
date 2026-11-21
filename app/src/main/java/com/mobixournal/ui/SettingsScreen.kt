@@ -269,9 +269,9 @@ enum class SettingsSection(
 
 /**
  * Settings screen: on wide screens ([SETTINGS_TWO_PANE_MIN_WIDTH] and above) a permanent sidebar
- * lists all [SettingsSection]s grouped under their [SettingsArea] eyebrows with live values beside
- * the selected section's controls; on narrower screens a flat 1-tap grouped index opens any section
- * directly. Both shapes share live keyword search via [settingsSearchResults].
+ * lists the seven dynamic [SettingsDestination]s grouped under their [SettingsGroupCategory]
+ * eyebrows beside the active destination; on narrower screens a flat 1-tap grouped index opens any
+ * destination directly. Both shapes share live keyword search via [settingsSearchResults].
  */
 @Composable
 fun SettingsScreen(
@@ -280,7 +280,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var selectedSection by remember { mutableStateOf<SettingsSection?>(null) }
+    var selectedDestination by remember { mutableStateOf<SettingsDestination?>(null) }
     var query by remember { mutableStateOf("") }
     val results = remember(query) { settingsSearchResults(query) }
 
@@ -292,7 +292,7 @@ fun SettingsScreen(
                 if (query.isNotEmpty()) query = "" else onBack()
             } else {
                 when {
-                    selectedSection != null -> selectedSection = null
+                    selectedDestination != null -> selectedDestination = null
                     query.isNotEmpty() -> query = ""
                     else -> onBack()
                 }
@@ -304,8 +304,8 @@ fun SettingsScreen(
                 query = query,
                 onQuery = { query = it },
                 results = results,
-                selected = selectedSection,
-                onSelect = { selectedSection = it },
+                selected = selectedDestination,
+                onSelect = { selectedDestination = it },
                 settings = settings,
                 onChange = onChange,
                 onBack = onBack,
@@ -315,8 +315,8 @@ fun SettingsScreen(
                 query = query,
                 onQuery = { query = it },
                 results = results,
-                section = selectedSection,
-                onSection = { selectedSection = it },
+                destination = selectedDestination,
+                onDestination = { selectedDestination = it },
                 settings = settings,
                 onChange = onChange,
                 onBack = onBack,
@@ -325,25 +325,26 @@ fun SettingsScreen(
     }
 }
 
-/** Wide master/detail layout: grouped searchable sidebar on the left, active section on the right. */
+/** Wide master/detail layout: grouped searchable sidebar on the left, active destination on the right. */
 @Composable
 private fun TwoPaneSettings(
     query: String,
     onQuery: (String) -> Unit,
     results: List<SettingsSection>,
-    selected: SettingsSection?,
-    onSelect: (SettingsSection) -> Unit,
+    selected: SettingsDestination?,
+    onSelect: (SettingsDestination) -> Unit,
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
     onBack: () -> Unit,
 ) {
-    val visibleSections = remember(query, results) {
-        if (query.isBlank()) SettingsSection.entries else results
+    val visibleDestinations = remember(query, results) {
+        if (query.isBlank()) SettingsDestination.entries
+        else results.map { it.toDestination() }.distinct()
     }
-    val activeSection = when {
-        query.isBlank() -> selected ?: SettingsSection.STYLUS
-        selected in results -> selected
-        else -> results.firstOrNull()
+    val activeDestination = when {
+        query.isBlank() -> selected ?: SettingsDestination.PEN_INPUT
+        selected in visibleDestinations -> selected
+        else -> visibleDestinations.firstOrNull()
     }
 
     SettingsChrome(
@@ -354,11 +355,10 @@ private fun TwoPaneSettings(
             SettingsSidebar(
                 query = query,
                 onQuery = onQuery,
-                selected = activeSection,
-                visibleSections = visibleSections,
-                settings = settings,
+                selected = activeDestination,
+                visibleDestinations = visibleDestinations,
                 onSelect = onSelect,
-                modifier = Modifier.width(272.dp).fillMaxHeight(),
+                modifier = Modifier.width(248.dp).fillMaxHeight(),
             )
             Box(
                 Modifier
@@ -367,7 +367,7 @@ private fun TwoPaneSettings(
                     .background(ModernTheme.hairlineBorder(chromeIsDark())),
             )
             TwoPaneDetailPane(
-                activeSection = activeSection,
+                activeDestination = activeDestination,
                 query = query,
                 settings = settings,
                 onChange = onChange,
@@ -379,14 +379,14 @@ private fun TwoPaneSettings(
 
 @Composable
 private fun TwoPaneDetailPane(
-    activeSection: SettingsSection?,
+    activeDestination: SettingsDestination?,
     query: String,
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewport = rememberSettingsScrollViewport()
-    LaunchedEffect(activeSection) { viewport.state.scrollTo(0) }
+    LaunchedEffect(activeDestination) { viewport.state.scrollTo(0) }
     Column(
         modifier = modifier
             .settingsViewport(viewport)
@@ -395,7 +395,7 @@ private fun TwoPaneDetailPane(
     ) {
         Column(Modifier.widthIn(max = 720.dp).fillMaxWidth()) {
             CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
-                if (activeSection == null) {
+                if (activeDestination == null) {
                     Box(
                         Modifier.fillMaxWidth().padding(vertical = 32.dp),
                         contentAlignment = Alignment.Center,
@@ -408,13 +408,13 @@ private fun TwoPaneDetailPane(
                     }
                 } else {
                     AnimatedContent(
-                        targetState = activeSection,
+                        targetState = activeDestination,
                         transitionSpec = { liquidGlassFadeTransform() },
                         label = "TwoPaneSettingsContent",
-                    ) { sec ->
+                    ) { dest ->
                         Column(Modifier.fillMaxWidth()) {
-                            TabletSectionHeader(sec)
-                            SectionBody(sec, settings, onChange)
+                            TabletSectionHeader(dest)
+                            DestinationBody(dest, settings, onChange)
                         }
                     }
                 }
@@ -424,8 +424,7 @@ private fun TwoPaneDetailPane(
 }
 
 @Composable
-private fun TabletSectionHeader(section: SettingsSection) {
-    val areaTitle = areaOf(section)?.title
+private fun TabletSectionHeader(destination: SettingsDestination) {
     Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -433,52 +432,50 @@ private fun TabletSectionHeader(section: SettingsSection) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = section.title,
+                text = destination.title,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
-            if (areaTitle != null) {
-                Text(
-                    text = areaTitle,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            Text(
+                text = destination.category.title,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Spacer(Modifier.height(4.dp))
         Text(
-            text = section.summary,
+            text = destination.subtitle,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
 
-/** Narrow single-pane layout: 1-tap grouped index (with live search) and section detail pages. */
+/** Narrow single-pane layout: 1-tap grouped index (with live search) and dynamic destination pages. */
 @Composable
 private fun StackedSettings(
     query: String,
     onQuery: (String) -> Unit,
     results: List<SettingsSection>,
-    section: SettingsSection?,
-    onSection: (SettingsSection?) -> Unit,
+    destination: SettingsDestination?,
+    onDestination: (SettingsDestination?) -> Unit,
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
     onBack: () -> Unit,
 ) {
     SettingsChrome(
-        title = section?.title ?: "Settings",
+        title = destination?.title ?: "Settings",
         onBack = {
             when {
-                section != null -> onSection(null)
+                destination != null -> onDestination(null)
                 query.isNotEmpty() -> onQuery("")
                 else -> onBack()
             }
         },
     ) { padding ->
         val viewport = rememberSettingsScrollViewport()
-        LaunchedEffect(section) { viewport.state.scrollTo(0) }
+        LaunchedEffect(destination) { viewport.state.scrollTo(0) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -489,13 +486,13 @@ private fun StackedSettings(
         ) {
             CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
                 AnimatedContent(
-                    targetState = section,
+                    targetState = destination,
                     transitionSpec = { liquidGlassFadeTransform() },
                     label = "StackedSettingsPane",
-                ) { openSec ->
-                    if (openSec != null) {
+                ) { openDest ->
+                    if (openDest != null) {
                         Column(Modifier.fillMaxWidth()) {
-                            SectionBody(openSec, settings, onChange)
+                            DestinationBody(openDest, settings, onChange)
                         }
                     } else {
                         Column(Modifier.fillMaxWidth()) {
@@ -505,12 +502,9 @@ private fun StackedSettings(
                                 modifier = Modifier.padding(bottom = 16.dp),
                             )
                             if (query.isNotEmpty()) {
-                                SearchResultRows(query, results, settings) { onSection(it) }
+                                SearchResultRows(query, results) { onDestination(it) }
                             } else {
-                                GroupedSettingsIndex(
-                                    settings = settings,
-                                    onOpenSection = { onSection(it) },
-                                )
+                                GroupedSettingsIndex(onOpenDestination = { onDestination(it) })
                             }
                         }
                     }
@@ -520,28 +514,20 @@ private fun StackedSettings(
     }
 }
 
-/** The controls of one section page: the `when` that maps a [SettingsSection] onto its composable. */
 @Composable
-private fun SectionBody(
-    section: SettingsSection,
+private fun DestinationBody(
+    destination: SettingsDestination,
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
 ) {
-    when (section) {
-        SettingsSection.STYLUS -> StylusSection(settings, onChange)
-        SettingsSection.GESTURES -> FingerGesturesSection(settings, onChange)
-        SettingsSection.EDITOR -> EditorSection(settings, onChange)
-        SettingsSection.TOOLBAR -> ToolbarSection(settings, onChange)
-        SettingsSection.FIGURES -> FiguresSection(settings, onChange)
-        SettingsSection.COLORS -> ColorsSection(settings, onChange)
-        SettingsSection.RING -> RingSection(settings, onChange)
-        SettingsSection.SHORTCUTS -> ShortcutsSection(settings, onChange)
-        SettingsSection.NAVIGATION -> NavigationSection(settings, onChange)
-        SettingsSection.APPEARANCE -> AppearanceSection(settings, onChange)
-        SettingsSection.DOCUMENTS -> DocumentsSection(settings, onChange)
-        SettingsSection.STORAGE -> StorageSection(settings, onChange)
-        SettingsSection.BACKUP -> BackupSection(settings, onChange)
-        SettingsSection.ABOUT -> AboutSection()
+    when (destination) {
+        SettingsDestination.PEN_INPUT -> PenInputSection(settings, onChange)
+        SettingsDestination.CANVAS_TOOLS -> CanvasToolsSection(settings, onChange)
+        SettingsDestination.PALETTE_RING -> PaletteRingSection(settings, onChange)
+        SettingsDestination.WORKSPACE -> WorkspaceSection(settings, onChange)
+        SettingsDestination.SHORTCUTS -> ShortcutsSection(settings, onChange)
+        SettingsDestination.FILES_DATA -> FilesDataSection(settings, onChange)
+        SettingsDestination.ABOUT -> AboutSection()
     }
 }
 

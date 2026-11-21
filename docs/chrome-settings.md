@@ -8,24 +8,30 @@ objects the sections read and write. What the window's own Settings surface look
 [desktop-settings.md](desktop-settings.md)'s, and the chrome the screen is reached from is
 [chrome.md](chrome.md)'s.
 
-## Settings: two shapes, one set of areas
+## Settings: two shapes, seven dynamic destinations
 
-Choosing Settings from the ☰ menu swaps in `SettingsScreen`, which has **two responsive shapes** over
-one shared section model. `SettingsChrome` paints the screen container with
-`MaterialTheme.colorScheme.background` (`DeskDark` in dark mode, `DeskLight` in light mode) so every
-`SettingsCard` (`16.dp` radius, solid `MaterialTheme.colorScheme.surface` fill, `1.dp` hairline border —
-without floating-glass rim effects) separates cleanly from the backdrop in both themes.
+Choosing Settings from the ☰ menu swaps in `SettingsScreen`, which consolidates the 14 `SettingsSection`
+search topics into **seven dynamic `SettingsDestination`s** (`SettingsDestinations.kt`) grouped under
+three `SettingsGroupCategory` eyebrows (**Drafting**: *Pen & Input*, *Canvas & Tools*, *Palette & Ring*;
+**Interface**: *Workspace*, *Shortcuts*; **System**: *Files & Data*, *About*). `SettingsChrome` paints
+the screen container with `MaterialTheme.colorScheme.background` (`DeskDark` in dark mode, `DeskLight`
+in light mode) so every `SettingsCard` (`16.dp` radius, solid `MaterialTheme.colorScheme.surface` fill,
+`1.dp` hairline border — without floating-glass rim effects) separates cleanly from the backdrop.
+
+Each destination adapts its controls to the active subsection: `PenInputSection` pairs a segmented
+touch-mode control (`SettingsSegmentedControl`) with a live `PressureCurvePreview` that collapses when
+`pressureEnabled` is off; `CanvasToolsSection` reveals custom angle editors only for `Scalene` figures
+and the glide curve only while `momentum > 0`; `PaletteRingSection` combines the interactive Ring wheel
+with palette swatches; `WorkspaceSection` renders a 3-card visual theme picker, segmented rail-side
+toggle, and collapsible toolbar-button accordion; `FilesDataSection` offers visual `.mobix` / `.xopp`
+format cards alongside storage and backup actions.
 
 On screens at least `SETTINGS_TWO_PANE_MIN_WIDTH` (600dp) wide (`TwoPaneSettings`), `SettingsSidebar`
-(`SettingsSidebar.kt`) stays permanently visible on the left with a rounded-pill `SettingsSearchField`
-and all fourteen `SettingsSection`s listed directly under their five uppercase `SettingsArea` eyebrows
-(**Input**, **Drawing**, **Interface**, **App & data**, **About**) without trailing preview clutter.
-Selecting any row updates the right detail pane (`TwoPaneDetailPane`) immediately via `AnimatedContent`
-(`liquidGlassFadeTransform`), without an intermediate area-list screen or top quick-controls bar.
-Narrower screens (`StackedSettings`) drop the sidebar for a flat 1-tap grouped index
-(`GroupedSettingsIndex`) with compact single-line rows (`SectionRow` with `summary = null`) and instant
-search (`SearchResultRows`); tapping any row opens its section directly. System back mirrors the title-bar
-arrow (section → search → exit on phones; clear search → exit on tablets).
+(`SettingsSidebar.kt`) stays visible on the left with `SettingsSearchField` and the seven destinations
+without trailing preview clutter, while `TwoPaneDetailPane` renders the selected destination beside it.
+Narrower screens (`StackedSettings`) show a flat 1-tap grouped index (`GroupedSettingsIndex`) and
+route `SearchResultRows` hits directly to their hosting `SettingsDestination` (`toDestination`). System
+back mirrors the title-bar arrow (destination → search → exit on phones; clear search → exit on tablets).
 
 ## Rows light the card's width
 

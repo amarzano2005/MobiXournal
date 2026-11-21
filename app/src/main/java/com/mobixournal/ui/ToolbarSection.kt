@@ -40,7 +40,7 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 
 /** The Main Toolbar's reorderable button list. */
 @Composable
-private fun MainToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+internal fun MainToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsNote("Toggle switch to show or hide; hold and drag to reorder. Pages and Layers remain pinned at bottom.")
     ReorderableRowList(
         items = orderedRailItems(settings.railOrder).filterNot { it.id in PINNED_RAIL_IDS },
@@ -55,7 +55,7 @@ private fun MainToolbarButtons(settings: AppSettings, onChange: (AppSettings) ->
  * a reorder or hide here is written through to [AppSettings.shapeOrder] / [AppSettings.shapeHidden].
  */
 @Composable
-private fun SecondaryToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+internal fun SecondaryToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsNote("The figures and tools in the top bar. Switch one off to hide it; hold a row to reorder.")
     ReorderableRowList(
         items = orderedTopBarItems(settings.topBarOrder),

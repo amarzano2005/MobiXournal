@@ -12,9 +12,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DragIndicator
@@ -563,6 +567,49 @@ fun RailItemRow(
             Spacer(Modifier.width(12.dp))
             Text(item.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
             Switch(checked = shown, onCheckedChange = onShown)
+        }
+    }
+}
+
+/** Compact segmented pill selector for binary or ternary choices inside a [SettingsCard]. */
+@Composable
+internal fun <T> SettingsSegmentedControl(
+    options: List<T>,
+    selected: T,
+    label: (T) -> String,
+    onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val containerShape = RoundedCornerShape(12.dp)
+    val itemShape = RoundedCornerShape(9.dp)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(containerShape)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f))
+            .padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        options.forEach { option ->
+            val active = option == selected
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(itemShape)
+                    .background(if (active) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .clickable { onSelect(option) }
+                    .padding(vertical = 8.dp, horizontal = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = label(option),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                    color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
     }
 }
