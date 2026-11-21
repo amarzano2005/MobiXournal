@@ -122,7 +122,7 @@ internal fun SettingsCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val isTappableCard = onClick != null
-    val fill = if (isTappableCard) MaterialTheme.colorScheme.surface else Color.Transparent
+    val fill = if (isTappableCard) MaterialTheme.colorScheme.surfaceContainerLow else Color.Transparent
     val borderColor = if (isTappableCard) ModernTheme.hairlineBorder(chromeIsDark()) else Color.Transparent
     val surface = modifier
         .fillMaxWidth()
@@ -310,7 +310,7 @@ internal fun SettingsAccentBlock(
             .fillMaxWidth()
             .padding(vertical = 6.dp)
             .clip(SettingsCardShape)
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .border(1.dp, ModernTheme.hairlineBorder(chromeIsDark()), SettingsCardShape)
             .padding(16.dp),
         content = content,

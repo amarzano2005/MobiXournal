@@ -358,7 +358,10 @@ private fun TwoPaneSettings(
                 selected = activeDestination,
                 visibleDestinations = visibleDestinations,
                 onSelect = onSelect,
-                modifier = Modifier.width(248.dp).fillMaxHeight(),
+                modifier = Modifier
+                    .width(248.dp)
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.surfaceContainerLow),
             )
             Box(
                 Modifier
@@ -532,7 +535,7 @@ private fun DestinationBody(
 @Composable
 private fun SettingsChrome(title: String, onBack: () -> Unit, body: @Composable (PaddingValues) -> Unit) {
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             Column {
                 TopAppBar(

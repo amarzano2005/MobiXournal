@@ -206,7 +206,7 @@ private fun PressureCurvePreview(
     val fillColor = lineColor.copy(alpha = 0.10f)
     val inkColor = MaterialTheme.colorScheme.onSurface
     val guideColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.30f)
-    val bgColor = MaterialTheme.colorScheme.background
+    val bgColor = MaterialTheme.colorScheme.surface
     val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 6f))
     Column(modifier = modifier.fillMaxWidth()) {
         Canvas(

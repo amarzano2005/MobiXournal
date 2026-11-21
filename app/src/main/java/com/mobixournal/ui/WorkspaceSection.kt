@@ -211,7 +211,7 @@ private fun RailSideDiagram(railOnRight: Boolean, modifier: Modifier = Modifier)
             .fillMaxWidth()
             .height(64.dp)
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surface)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow)
             .border(1.dp, border, shape)
             .padding(6.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -222,7 +222,7 @@ private fun RailSideDiagram(railOnRight: Boolean, modifier: Modifier = Modifier)
                 .weight(1f)
                 .fillMaxHeight()
                 .clip(RoundedCornerShape(4.dp))
-                .background(MaterialTheme.colorScheme.background),
+                .background(MaterialTheme.colorScheme.surface),
             contentAlignment = Alignment.Center,
         ) {
             Text(

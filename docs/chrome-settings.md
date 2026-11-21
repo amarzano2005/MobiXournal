@@ -14,12 +14,12 @@ Choosing Settings from the ☰ menu swaps in `SettingsScreen`, which consolidate
 search topics into **seven dynamic `SettingsDestination`s** (`SettingsDestinations.kt`) grouped under
 three `SettingsGroupCategory` eyebrows (**Drafting**: *Pen & Input*, *Canvas & Tools*, *Palette & Ring*;
 **Interface**: *Workspace*, *Shortcuts*; **System**: *Files & Data*, *About*). `SettingsChrome` paints
-the screen container with `MaterialTheme.colorScheme.background` (`DeskDark` in dark mode, `DeskLight`
-in light mode — always theme tokens, never absolute black/white literals). Open `SettingsGroup` lists sit
+the screen container with `MaterialTheme.colorScheme.surface` (`#161618` slate charcoal in dark mode, `White`
+in light mode — always theme tokens, never `DeskDark` OLED black or absolute literals). Open `SettingsGroup` lists sit
 directly on the backdrop with full-width rows, uppercase muted headers, and inset hairlines (no floating
 card boxes or capsule pills), while tappable door cards and rich visual studios (`SettingsAccentBlock` for
 the live pressure curve + tapered stroke preview, `RailSideDiagram`, and `.mobix` / `.xopp` format cards)
-use a subtle `12.dp` tonal `MaterialTheme.colorScheme.surface` panel with a `1.dp` hairline border.
+use a subtle `12.dp` tonal `MaterialTheme.colorScheme.surfaceContainerLow` panel with a `1.dp` hairline border.
 Binary and ternary selectors (`SettingsSegmentedControl`) use underline tabs without capsules, and action
 buttons use `SettingsActionShape` (`8.dp`).
 

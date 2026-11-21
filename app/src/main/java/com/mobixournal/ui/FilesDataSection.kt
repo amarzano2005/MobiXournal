@@ -78,7 +78,7 @@ private fun FormatOptionCard(
     val fill = if (selected) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
     } else {
-        MaterialTheme.colorScheme.surface
+        MaterialTheme.colorScheme.surfaceContainerLow
     }
     Column(
         modifier = modifier
