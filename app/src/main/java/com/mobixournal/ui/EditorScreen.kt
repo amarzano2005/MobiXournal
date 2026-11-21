@@ -288,6 +288,7 @@ fun EditorScreen(
     onExportPagePng: () -> Unit = {},
     onExportPageSvg: () -> Unit = {},
     onSavePortableCopy: () -> Unit = {},   // a second `.mobix` carrying the files this one only names
+    onShare: (ShareFormat) -> Unit = {},
     /** What the last `.xopp` export could not draw, reported rather than dropped. Empty is normal. */
     exportGaps: List<Uncompilable> = emptyList(),
     onDismissExportGaps: () -> Unit = {},
@@ -395,6 +396,7 @@ fun EditorScreen(
                             onExportPagePng = onExportPagePng,
                             onExportPageSvg = onExportPageSvg,
                             onSavePortableCopy = onSavePortableCopy,
+                            onShare = onShare,
                             splitView = splitView,
                             onToggleSplitView = onToggleSplitView,
                             audio = audio,

@@ -126,6 +126,7 @@ internal fun EditorOverflowMenu(
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
     onSavePortableCopy: () -> Unit,
+    onShare: (ShareFormat) -> Unit = {},
 ) {
     OverflowMenu(
         isReadOnly = pane.isReadOnly,
@@ -155,6 +156,7 @@ internal fun EditorOverflowMenu(
         onExportPagePng = onExportPagePng,
         onExportPageSvg = onExportPageSvg,
         onSavePortableCopy = onSavePortableCopy,
+        onShare = onShare,
         onExportAs = { ui.exportAsOpen = true },
         onToggleFullPage = { ui.fullPage = !ui.fullPage },
         onToggleFingerDraws = {
@@ -208,6 +210,7 @@ internal fun OverflowMenu(
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
     onSavePortableCopy: () -> Unit = {},
+    onShare: (ShareFormat) -> Unit = {},
     onExportAs: () -> Unit = {},
     onToggleFullPage: () -> Unit = {},
     onToggleFingerDraws: () -> Unit = {},
@@ -273,6 +276,7 @@ internal fun OverflowMenu(
                 onExportPagePng = onExportPagePng,
                 onExportPageSvg = onExportPageSvg,
                 onSavePortableCopy = onSavePortableCopy,
+                onShare = onShare,
                 onSelectPenPreset = onSelectPenPreset,
                 onToggleFingerDraws = onToggleFingerDraws,
                 onToggleFullPage = onToggleFullPage,
@@ -339,6 +343,7 @@ private fun OverflowSheetBody(
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
     onSavePortableCopy: () -> Unit,
+    onShare: (ShareFormat) -> Unit,
     onSelectPenPreset: (PenPreset) -> Unit,
     onToggleFingerDraws: () -> Unit,
     onToggleFullPage: () -> Unit,
@@ -398,6 +403,7 @@ private fun OverflowSheetBody(
             onExportPagePng = onExportPagePng,
             onExportPageSvg = onExportPageSvg,
             onSavePortableCopy = onSavePortableCopy,
+            onShare = onShare,
             onSelectPenPreset = onSelectPenPreset,
             onToggleFingerDraws = onToggleFingerDraws,
             onToggleFullPage = onToggleFullPage,
@@ -429,6 +435,7 @@ private fun OverflowSheetContent(
     onExportPagePng: () -> Unit,
     onExportPageSvg: () -> Unit,
     onSavePortableCopy: () -> Unit,
+    onShare: (ShareFormat) -> Unit,
     onSelectPenPreset: (PenPreset) -> Unit,
     onToggleFingerDraws: () -> Unit,
     onToggleFullPage: () -> Unit,
@@ -475,6 +482,7 @@ private fun OverflowSheetContent(
                 onExportPng = { onDismiss(); onExportPagePng() },
                 onExportSvg = { onDismiss(); onExportPageSvg() },
                 onSavePortable = { onDismiss(); onSavePortableCopy() },
+                onShare = { format -> onDismiss(); onShare(format) },
             )
         }
     }

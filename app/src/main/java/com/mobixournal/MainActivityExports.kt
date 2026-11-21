@@ -1,7 +1,10 @@
 package com.mobixournal
 
+import android.content.Intent
 import android.net.Uri
+import androidx.core.content.FileProvider
 import com.mobixournal.render.DocumentExportSnapshot
+import com.mobixournal.ui.ShareFormat
 import java.io.File
 import java.io.OutputStream
 
@@ -20,16 +23,63 @@ internal fun MainActivity.exportPdf(uri: Uri) {
 internal fun MainActivity.exportPagePng(uri: Uri) = exportSnapshot(uri, "PNG") { snapshot, out -> snapshot.writePng(out) }
 internal fun MainActivity.exportPageSvg(uri: Uri) = exportSnapshot(uri, "SVG") { snapshot, out -> snapshot.writeSvg(out) }
 
-private fun MainActivity.exportSnapshot(
-    uri: Uri, kind: String, write: (DocumentExportSnapshot, OutputStream) -> Unit,
+internal fun MainActivity.shareDocument(format: ShareFormat) {
+    when (format) {
+        ShareFormat.PDF -> shareSnapshot(suggestedPdfName(), "application/pdf", "Share PDF") { snapshot, out ->
+            snapshot.writePdf(out, null)
+        }
+        ShareFormat.PNG -> shareSnapshot(suggestedPageImageName("png"), "image/png", "Share PNG") { snapshot, out ->
+            snapshot.writePng(out)
+        }
+        ShareFormat.SVG -> shareSnapshot(suggestedPageImageName("svg"), "image/svg+xml", "Share SVG") { snapshot, out ->
+            snapshot.writeSvg(out)
+        }
+        ShareFormat.PORTABLE -> sharePortableCopy()
+    }
+}
+
+private fun MainActivity.shareSnapshot(
+    fileName: String,
+    mimeType: String,
+    chooserTitle: String,
+    write: (DocumentExportSnapshot, OutputStream) -> Unit,
 ) {
-    val view = surface ?: return
+    val snapshot = buildExportSnapshot() ?: return
+    val target = shareCacheFile(fileName)
+    inBackground("Preparing $chooserTitle.", {
+        target.outputStream().buffered().use { out -> write(snapshot, out) }
+        target
+    }) { result ->
+        result.onFailure { toast("Share failed: ${it.message}") }
+            .onSuccess { file -> launchShareChooser(file, mimeType, chooserTitle) }
+    }
+}
+
+internal fun MainActivity.shareCacheFile(fileName: String): File {
+    val dir = File(cacheDir, "shared").apply { mkdirs() }
+    dir.listFiles()?.forEach { it.delete() }
+    val safeName = fileName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+    return File(dir, safeName)
+}
+
+internal fun MainActivity.launchShareChooser(file: File, mimeType: String, chooserTitle: String) {
+    val uri = FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = mimeType
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    startActivity(Intent.createChooser(intent, chooserTitle))
+}
+
+private fun MainActivity.buildExportSnapshot(): DocumentExportSnapshot? {
+    val view = surface ?: return null
     if (tabs.active?.isReadOnly == true || view.isReadOnly) {
         toast("Document is read-only")
-        return
+        return null
     }
     val resolver = contentResolver
-    val snapshot = DocumentExportSnapshot(
+    return DocumentExportSnapshot(
         view.toDocument(), view.currentPageIndex(), view.pdfSourceFile(), view.imageSources().toMap(),
         view.backgroundResolver,
     ) { reference ->
@@ -38,6 +88,12 @@ private fun MainActivity.exportSnapshot(
             else File(reference).takeIf(File::isFile)?.inputStream()
         }.getOrNull()
     }
+}
+
+private fun MainActivity.exportSnapshot(
+    uri: Uri, kind: String, write: (DocumentExportSnapshot, OutputStream) -> Unit,
+) {
+    val snapshot = buildExportSnapshot() ?: return
     inBackground("Exporting $kind.", { staging.writeTo(uri) { write(snapshot, it) } }) { result ->
         result.onFailure { toast("$kind export failed: ${it.message}") }
     }

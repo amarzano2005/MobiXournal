@@ -81,6 +81,52 @@ internal fun MainActivity.savePortableCopy(uri: Uri) {
     }
 }
 
+internal fun MainActivity.sharePortableCopy() {
+    val tab = tabs.active ?: return
+    if (!tab.hydrated || tab.opening) {
+        toast("Wait for the document to finish opening")
+        return
+    }
+    if (tab.isReadOnly) {
+        toast("Document is read-only")
+        return
+    }
+    snapshotActiveTab()
+    val open = pane
+    val document = open.surface?.takeIf { open.tabs.active?.id == tab.id }?.toDocument() ?: tab.document
+    val source = tab.uri?.let(Uri::parse)
+    val name = tab.title.ifBlank { "notes" }
+    val dest = shareCacheFile(suggestedPortableCopyName())
+    inBackground("Preparing portable copy.", {
+        val staged = stageArchive(source)
+        try {
+            PortableCopy.write(
+                source = PageSource.of(document.pages),
+                archiveEntries = archiveEntries(staged),
+                document = document,
+                destination = dest,
+                appVersion = BuildConfig.VERSION_NAME,
+                nowMillis = System.currentTimeMillis(),
+                openBytes = { entry ->
+                    io.portableReference(entry, name, source)?.use { it.readBytes() }
+                        ?: audio.recordingFile(entry.reference)?.takeIf { it.isFile }?.readBytes()
+                },
+                carried = carriedPayloads(
+                    document = document,
+                    archive = staged,
+                    suppliedAudio = { recording -> audio.recordingFile(recording)?.let(MobixPayload::of) },
+                ),
+            )
+            dest
+        } finally {
+            staged?.delete()
+        }
+    }) { result ->
+        result.onFailure { toast("Share failed: ${it.message}") }
+            .onSuccess { file -> launchShareChooser(file, "application/octet-stream", "Share .pmobix") }
+    }
+}
+
 /** The name an export opens on: the document's own, with the portable format's own extension. */
 internal fun MainActivity.suggestedPortableCopyName(): String =
     suggestedSaveName().substringBeforeLast('.') + PortableCopy.EXTENSION

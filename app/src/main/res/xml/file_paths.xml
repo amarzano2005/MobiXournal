@@ -6,4 +6,5 @@
 <paths>
     <cache-path name="clipboard" path="clipboard/" />
     <cache-path name="updates" path="updates/" />
+    <cache-path name="shared" path="shared/" />
 </paths>

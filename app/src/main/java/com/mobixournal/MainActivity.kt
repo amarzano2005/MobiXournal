@@ -514,6 +514,7 @@ class MainActivity : ComponentActivity() {
                     onDismissToast = { glassToast.value = null },
                     onExportPagePng = { exportPagePngLauncher.launch(suggestedPageImageName("png")) },
                     onSavePortableCopy = { portableCopyLauncher.launch(suggestedPortableCopyName()) },
+                    onShare = ::shareDocument,
                     onExportPageSvg = { exportPageSvgLauncher.launch(suggestedPageImageName("svg")) },
                     onPickImage = { placement ->
                         pendingImagePlacement = placement

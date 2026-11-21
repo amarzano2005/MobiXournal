@@ -1,4 +1,4 @@
-package com.mobixournal.ui
+﻿package com.mobixournal.ui
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Canvas
@@ -22,8 +22,10 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Fullscreen
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
@@ -31,6 +33,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,6 +51,7 @@ import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.rememberChromeInk
 import java.util.Locale
+
 
 @Composable
 internal fun DocumentTabView(
@@ -423,134 +429,6 @@ private fun SheetValueRow(
                 .clip(RoundedCornerShape(6.dp))
                 .background(ink.copy(alpha = 0.10f))
                 .padding(horizontal = 8.dp, vertical = 3.dp),
-        )
-    }
-}
-
-@Composable
-internal fun ExportDrilldownView(
-    isReadOnly: Boolean,
-    onBack: () -> Unit,
-    onExportPdf: () -> Unit,
-    onExportPng: () -> Unit,
-    onExportSvg: () -> Unit,
-    onSavePortable: () -> Unit,
-) {
-    val ink = rememberChromeInk()
-    val accent = MaterialTheme.colorScheme.primary
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable(onClick = onBack)
-                    .padding(horizontal = 4.dp, vertical = 2.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.AutoMirrored.Outlined.KeyboardArrowLeft,
-                    contentDescription = "Back",
-                    tint = accent,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text("Back", style = MaterialTheme.typography.labelLarge, color = accent)
-            }
-            Text("Export & Share", style = MaterialTheme.typography.labelLarge, color = ink)
-            Spacer(Modifier.width(48.dp))
-        }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ExportFormatCard(
-                badge = "PDF",
-                title = "PDF Document",
-                subtitle = "All pages · Vector",
-                tint = DocumentRed,
-                ink = ink,
-                enabled = !isReadOnly,
-                onClick = onExportPdf,
-                modifier = Modifier.weight(1f),
-            )
-            ExportFormatCard(
-                badge = "PNG",
-                title = "Page Image",
-                subtitle = "Raster · High-res",
-                tint = accent,
-                ink = ink,
-                enabled = !isReadOnly,
-                onClick = onExportPng,
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ExportFormatCard(
-                badge = "SVG",
-                title = "Scalable Vector",
-                subtitle = "Editable strokes",
-                tint = accent,
-                ink = ink,
-                enabled = !isReadOnly,
-                onClick = onExportSvg,
-                modifier = Modifier.weight(1f),
-            )
-            ExportFormatCard(
-                badge = "PKG",
-                title = "Portable .pmobix",
-                subtitle = "Includes assets",
-                tint = accent,
-                ink = ink,
-                enabled = !isReadOnly,
-                onClick = onSavePortable,
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ExportFormatCard(
-    badge: String,
-    title: String,
-    subtitle: String,
-    tint: Color,
-    ink: Color,
-    enabled: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val effectiveTint = if (enabled) tint else ink.copy(alpha = 0.35f)
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
-            .background(rememberSheetSurfaceColor())
-            .clickable(enabled = enabled, onClick = onClick)
-            .padding(10.dp),
-    ) {
-        Text(
-            text = badge,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = effectiveTint,
-            modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(effectiveTint.copy(alpha = 0.14f))
-                .padding(horizontal = 6.dp, vertical = 2.dp),
-        )
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = if (enabled) ink else ink.copy(alpha = 0.38f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.labelSmall,
-            color = ink.copy(alpha = if (enabled) 0.55f else 0.3f),
-            maxLines = 1,
         )
     }
 }
