@@ -8,7 +8,6 @@ import com.mobixournal.desktop.settings.SettingsSwitch
 
 import androidx.compose.runtime.Composable
 import com.mobixournal.design.PenPalette
-import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.ShapeRecognition
 import com.mobixournal.render.TrapezoidKind
 import com.mobixournal.render.TriangleKind
@@ -24,7 +23,6 @@ internal fun FiguresSettings(policy: DesktopSettingsState) {
     FigureWidthSettings(policy)
     TriangleSettings(policy, onCustomize = { policy.figures.openDialog(DesktopTool.TRIANGLE) })
     TrapezoidSettings(policy, onCustomize = { policy.figures.openDialog(DesktopTool.TRAPEZOID) })
-    PolygonSettings(policy)
 }
 
 @Composable
@@ -129,26 +127,6 @@ private fun TrapezoidSettings(policy: DesktopSettingsState, onCustomize: () -> U
             FigureAngle("Right base angle", policy.figures.shape.trapezoidAngleB) {
                 policy.figures.chooseShape(policy.figures.shape.copy(trapezoidAngleB = it))
             }
-        }
-    }
-}
-
-@Composable
-private fun PolygonSettings(policy: DesktopSettingsState) {
-    SettingsGroup("Polygon") {
-        SettingsRow(
-            label = "Sides",
-            note = "How many sides the polygon tool draws, from 3 to 12.",
-        ) {
-            SettingsSlider(
-                value = policy.figures.shape.polygonSides.toFloat(),
-                range = ShapeBuilder.MIN_POLYGON_SIDES.toFloat()..ShapeBuilder.MAX_POLYGON_SIDES.toFloat(),
-                step = 1f,
-                format = { String.format(Locale.ROOT, "%.0f sides", it) },
-                onValue = { sides ->
-                    policy.figures.chooseShape(policy.figures.shape.withPolygonSides(sides.roundToInt()))
-                },
-            )
         }
     }
 }

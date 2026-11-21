@@ -17,7 +17,7 @@ class SettingsOrganizationTest {
     }
 
     @Test fun workspaceSearchUsesTheSameOrderAsNavigation() {
-        assertEquals(listOf(Section.APPEARANCE, Section.TOOLBAR, Section.NAVIGATION), Section.search("workspace"))
+        assertEquals(listOf(Section.APPEARANCE, Section.TOOLBAR, Section.SHORTCUTS), Section.search("workspace"))
         assertEquals(Section.ORDERED, Section.search(""))
     }
 
@@ -29,8 +29,8 @@ class SettingsOrganizationTest {
     }
 
     @Test fun penRingAndRecordingHaveTaskAppropriateHomes() {
-        assertEquals(DesktopSettingArea.INPUT, Section.RING.area)
-        assertEquals(DesktopSettingArea.INPUT, Section.AUDIO.area)
+        assertEquals(DesktopSettingArea.DRAWING, Section.RING.area)
+        assertEquals(DesktopSettingArea.APP, Section.AUDIO.area)
         assertFalse(Section.BACKUP.summary.contains("recovery"))
         assertTrue(Section.NAVIGATION.summary.contains("scrolling"))
     }

@@ -48,11 +48,11 @@ import com.mobixournal.render.PressureCurve
 import java.util.Locale
 import kotlin.math.roundToInt
 
-/** Desktop task areas, in their visible navigation order; section IDs remain stable. */
+/** Desktop task areas, in their visible navigation order (matching mobile); section IDs remain stable. */
 enum class DesktopSettingArea(val title: String) {
-    INTERFACE("Workspace"),
     INPUT("Input"),
     DRAWING("Drawing"),
+    INTERFACE("Workspace"),
     APP("Files & app"),
 }
 
@@ -162,10 +162,10 @@ enum class DesktopSettingSection(
     /** The area of the index this section is listed under. */
     val area: DesktopSettingArea
         get() = when (this) {
-            STYLUS, SHORTCUTS, RING, AUDIO -> DesktopSettingArea.INPUT
-            FIGURES, COLORS -> DesktopSettingArea.DRAWING
-            TOOLBAR, APPEARANCE, NAVIGATION -> DesktopSettingArea.INTERFACE
-            DOCUMENTS, BACKUP, ABOUT -> DesktopSettingArea.APP
+            STYLUS -> DesktopSettingArea.INPUT
+            FIGURES, NAVIGATION, RING, COLORS -> DesktopSettingArea.DRAWING
+            APPEARANCE, TOOLBAR, SHORTCUTS -> DesktopSettingArea.INTERFACE
+            DOCUMENTS, AUDIO, BACKUP, ABOUT -> DesktopSettingArea.APP
         }
 
     /** Whether this section answers [needle] — its title, its summary, aliases or commands. */
@@ -178,10 +178,12 @@ enum class DesktopSettingSection(
     }
 
     companion object {
-        /** One order for the visible index, searches and their fallback page. */
+        /** One order for the visible index, searches and their fallback page (aligned with mobile). */
         val ORDERED: List<DesktopSettingSection> = listOf(
-            APPEARANCE, TOOLBAR, NAVIGATION, STYLUS, SHORTCUTS, RING, AUDIO,
-            FIGURES, COLORS, DOCUMENTS, BACKUP, ABOUT,
+            STYLUS,
+            FIGURES, NAVIGATION, RING, COLORS,
+            APPEARANCE, TOOLBAR, SHORTCUTS,
+            DOCUMENTS, AUDIO, BACKUP, ABOUT,
         )
         /** The section a window opens on: the **pen**, the page every session starts from. */
         val DEFAULT: DesktopSettingSection = STYLUS
