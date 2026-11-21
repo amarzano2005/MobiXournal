@@ -122,7 +122,7 @@ internal fun DocumentTabView(
                 icon = ChromeGlyph.EXPORT.imageVector(),
                 badgeTint = accent,
                 title = "Export",
-                subtitle = "PDF, PNG, SVG, Portable .pmobix",
+                subtitle = "PDF, PNG, SVG, PMOBIX",
                 ink = ink,
                 enabled = !isReadOnly,
                 onClick = onOpenExport,
