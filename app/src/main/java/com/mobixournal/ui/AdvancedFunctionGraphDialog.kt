@@ -270,6 +270,7 @@ internal fun DialogBodyContent(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .liquidGlassContentSize()
             .heightIn(max = maxBodyHeight),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {

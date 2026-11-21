@@ -1,5 +1,11 @@
 package com.mobixournal.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.PlotShading
+import com.mobixournal.ui.theme.liquidGlassContentSize
 
 /**
  * The **shaded integral area** control of the plot editor: the switch that decides whether a plot stands
@@ -83,13 +90,20 @@ internal class PlotShadeState(
  */
 @Composable
 internal fun PlotShadeInputs(state: PlotShadeState) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(
+        modifier = Modifier.liquidGlassContentSize(),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
         FilterChip(
             selected = state.on,
             onClick = { state.toggle(!state.on) },
             label = { Text("Shade integral area") },
         )
-        if (state.on) {
+        AnimatedVisibility(
+            visible = state.on,
+            enter = fadeIn(tween(180)) + expandVertically(),
+            exit = fadeOut(tween(140)) + shrinkVertically(),
+        ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,

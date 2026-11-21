@@ -1,5 +1,11 @@
 package com.mobixournal.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +46,7 @@ import com.mobixournal.render.PlotBox
 import com.mobixournal.render.PlotCurve
 import com.mobixournal.render.PlotElementFactory
 import com.mobixournal.render.PlotPreviewPalette
+import com.mobixournal.ui.theme.liquidGlassContentSize
 
 /** The box the preview draws a plot in, in its own canvas's points. */
 private val PREVIEW_BOX = PlotBox(left = 10.0, top = 10.0, width = 360.0, height = 160.0)
@@ -78,7 +85,7 @@ internal fun DialogPreviewColumn(
     onInfoSideChange: (PlotInfoSide) -> Unit,
 ) {
     Column(
-        modifier = modifier.verticalScroll(rememberScrollState()),
+        modifier = modifier.verticalScroll(rememberScrollState()).liquidGlassContentSize(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         if (rangeOk && xMin != null && xMax != null) {
@@ -116,7 +123,10 @@ internal fun OptionsRow(
     infoSide: PlotInfoSide,
     onInfoSideChange: (PlotInfoSide) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(
+        modifier = Modifier.liquidGlassContentSize(),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(checked = showCriticalPoints, onCheckedChange = onShowCriticalPointsChange)
             Text("Detect critical points (roots, extrema, poles)", style = MaterialTheme.typography.bodySmall)
@@ -131,7 +141,11 @@ internal fun OptionsRow(
         }
         // Which side the report is written on. It only means something while the report is on, so the
         // chips appear with it rather than sitting there as a choice about nothing.
-        if (includeSummary) {
+        AnimatedVisibility(
+            visible = includeSummary,
+            enter = fadeIn(tween(180)) + expandVertically(),
+            exit = fadeOut(tween(140)) + shrinkVertically(),
+        ) {
             // The four sides wrap (`FlowRow`), and the label sits above them: on a phone the four chips
             // and their label together are wider than the inspector's column, and a `Row` silently cut
             // the last chip ("Left") off at the edge. A flow line wraps, so the choice is whole at any

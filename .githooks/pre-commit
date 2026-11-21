@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+set -eu
+
+if [ -x "/c/Users/amarz/AppData/Local/Python/bin/python.exe" ]; then
+    exec "/c/Users/amarz/AppData/Local/Python/bin/python.exe" scripts/check-doc-sync.py
+elif command -v python3 >/dev/null 2>&1; then
+    exec python3 scripts/check-doc-sync.py
+elif command -v python >/dev/null 2>&1; then
+    exec python scripts/check-doc-sync.py
+fi

@@ -17,6 +17,7 @@ The design declaration that closes a UI change is [design-workflow.md](design-wo
 |-----------------|---------------|--------|
 | Host selection | OS, machine profiles and local toolchain paths | [host-profiles.md](host-profiles.md) |
 | Agent task workflow | `scripts/todo.sh` / `scripts/todo.cmd`, active-task validation and instruction checks | [agent-workflow.md](agent-workflow.md) |
+| Doc-sync commit guard | `scripts/check-doc-sync.py` + `.githooks/pre-commit` (blocks UI/design commits missing a `docs/` update) | [writing-docs.md](writing-docs.md) |
 | Task verification | Sequential validate, test, guard, and distributable runner | [below](#task-verification-wrapper) |
 | Android build | Compile & package the app (APK/AAB) | [below](#android-build) |
 | Android emulator | Run & test the app on a virtual device | [tools-emulator.md](tools-emulator.md) |
