@@ -117,7 +117,7 @@ is anchored to that button (opening to the right of the rail) rather than fillin
 one of those menus — the rail's, the dock's, the views'/pages'/layers' panels and the ☰ overflow —
 is built by `ToolbarMenu` (`ToolbarPopup.kt`), the app's **one menu
 material**: the frosted glass the bars paint with its see-through turned down
-(`rememberFloatingSurfaceColor()`, the `floatingPanelAlpha` token at 0.88 for action bars `FloatingSurface`, badges, hand-rolled dialogs and transfer overlays; `rememberPopupPanelColor()` at 0.93 for editor `ToolbarMenu` popups and the Command Sheet; and 0.90 for `FloatingDialog` over its modal scrim), the same lit
+(`rememberFloatingSurfaceColor()`, the `floatingPanelAlpha` token at 0.88 for action bars `FloatingSurface`, badges, hand-rolled dialogs and transfer overlays; `rememberPopupPanelColor()` at 0.93 for editor `ToolbarMenu` popups and the Command Sheet; and 0.90 for `FloatingDialog` over its modal scrim), the same inline content transitions (`liquidGlassContentSize()` and `liquidGlassFadeTransform()` in `FloatingGlass.kt`, shared across the Command Sheet, `PlotGraphDialog`, `DocumentNavigationPanel`, and `SettingsScreen`), the same lit
 hairline (`floatingRim`, one implementation for all of them), and the same corner (`panelCornerRadiusDp`, which `AppShapes.extraLarge` hands Material's
 own `AlertDialog`s too, so a dialog and a menu cannot turn at two radii)
 and `surfaceTint` pinned to it (M3 paints the
