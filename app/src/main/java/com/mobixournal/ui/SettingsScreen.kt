@@ -5,6 +5,7 @@ import androidx.compose.animation.AnimatedContent
 import com.mobixournal.ui.theme.liquidGlassFadeTransform
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -376,13 +377,22 @@ private fun TwoPaneSettings(
                     .padding(16.dp),
             ) {
                 CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
-                    when {
-                        section != null -> SectionBody(section, settings, onChange)
-                        query.isNotEmpty() -> SearchResultRows(query, results, onSection)
-                        else -> {
-                            val page = shownArea.inlineOnly()
-                            if (page != null) SectionBody(page, settings, onChange)
-                            else SectionRows(shownArea, settings, onChange, onSection)
+                    AnimatedContent(
+                        targetState = Triple(section, query.isNotEmpty(), shownArea),
+                        transitionSpec = { liquidGlassFadeTransform() },
+                        label = "TwoPaneSettingsContent",
+                    ) { (openSec, hasQuery, activeArea) ->
+                        when {
+                            openSec != null -> SectionBody(openSec, settings, onChange)
+                            hasQuery -> SearchResultRows(query, results, onSection)
+                            else -> {
+                                val page = activeArea.inlineOnly()
+                                if (page != null) SectionBody(page, settings, onChange)
+                                else Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                    SettingsQuickControls(settings = settings, onChange = onChange)
+                                    SectionRows(activeArea, settings, onChange, onSection)
+                                }
+                            }
                         }
                     }
                 }
@@ -446,15 +456,11 @@ private fun StackedSettings(
                             if (hasQuery) {
                                 SearchResultRows(query, results, onSection)
                             } else {
-                                SettingsCard {
-                                    val areas = SettingsArea.values()
-                                    areas.forEachIndexed { index, entry ->
-                                        SectionRow(entry.title, entry.summary, entry.icon) { onArea(entry) }
-                                        if (index < areas.size - 1) {
-                                            SettingsDivider()
-                                        }
-                                    }
-                                }
+                                GroupedSettingsIndex(
+                                    settings = settings,
+                                    onChange = onChange,
+                                    onOpenSection = onSection,
+                                )
                             }
                         }
                     }
@@ -523,7 +529,12 @@ private fun SectionRows(
             if (entry.inline) {
                 SectionBody(entry, settings, onChange)
             } else {
-                SectionRow(entry.title, entry.summary, entry.icon) { onOpen(entry) }
+                SectionRow(
+                    title = entry.title,
+                    summary = entry.summary,
+                    icon = entry.icon,
+                    valueLabel = sectionLiveValue(entry, settings),
+                ) { onOpen(entry) }
             }
             if (index < area.sections.size - 1) {
                 SettingsDivider()
@@ -628,6 +639,7 @@ internal fun SectionRow(
     title: String,
     summary: String,
     icon: ImageVector? = null,
+    valueLabel: String? = null,
     onClick: () -> Unit,
 ) {
     val reach = LocalSettingsCardInset.current
@@ -644,7 +656,15 @@ internal fun SectionRow(
             Text(title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Spacer(Modifier.width(12.dp))
+        if (valueLabel != null) {
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = valueLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(8.dp))
         Icon(
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,

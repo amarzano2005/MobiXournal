@@ -14,12 +14,7 @@ Choosing Settings
 from the ☰ menu swaps in `SettingsScreen`, which is shaped like a tablet's system settings and has **two
 shapes** for one set of areas. On a screen at least `SETTINGS_TWO_PANE_MIN_WIDTH` (600dp) wide the five
 `SettingsArea`s — **Input**, **Drawing**, **Interface**, **App & data** and **About** — are a **permanent side menu**
-(`SettingsSidebar.kt`: its own search field and one row per area) with the selected area's
-`SettingsSection`s in the pane beside it, and an opened section replaces that pane (the title bar and the
-back arrow return to the list). Narrower than that the side menu is dropped for the pushed flow — index,
-then area, then section — because a permanent list on a phone would leave the controls a strip to live
-in. Back pops whichever shape is on screen one step at a time (section → search results → area → out of
-settings), so the system back button mirrors the title-bar arrow either way.
+(`SettingsSidebar.kt`: its own search field and one row per area) with `SettingsQuickControls` (`SettingsOverview.kt`: Theme, Finger, Toolbar) and the selected area's `SettingsSection`s (with live trailing value readouts via `sectionLiveValue`) in the pane beside it, and an opened section replaces that pane (the title bar and the back arrow return to the list). Narrower than that the side menu is dropped for a flat 1-tap grouped index (`GroupedSettingsIndex`, showing `SettingsQuickControls` and all `SettingsSection`s grouped under their `SettingsArea` headings with live value readouts, opening any section in one tap), while keeping the area drill-down path for search/back. Back pops whichever shape is on screen one step at a time (section → search results → index/area → out of settings), so the system back button mirrors the title-bar arrow either way.
 
 ## Rows light the card's width
 

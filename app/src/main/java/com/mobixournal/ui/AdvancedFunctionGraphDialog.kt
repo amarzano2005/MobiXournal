@@ -294,7 +294,8 @@ internal fun DialogBodyContent(
         Box(
             modifier = Modifier
                 .width(1.dp)
-                .fillMaxHeight()
+                .height(180.dp)
+                .align(Alignment.CenterVertically)
                 .background(MaterialTheme.colorScheme.outlineVariant),
         )
 
