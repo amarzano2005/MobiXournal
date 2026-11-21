@@ -33,32 +33,23 @@ import com.mobixournal.ui.theme.chromeIsDark
 @Composable
 fun FilesDataSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     SettingsGroup("New documents") {
-        val reach = LocalSettingsCardInset.current
         Row(
-            modifier = Modifier
-                .fullBleedRow(reach)
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             FormatOptionCard(
                 title = "MobiXournal (.mobix)",
                 subtitle = "Editable plots, tables & circuits",
                 selected = settings.newDocumentFormat == NewDocumentFormat.MOBIX,
                 onClick = { onChange(settings.copy(newDocumentFormat = NewDocumentFormat.MOBIX)) },
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-            )
-            Box(
-                Modifier
-                    .width(1.dp)
-                    .fillMaxHeight()
-                    .background(ModernTheme.hairlineBorder(chromeIsDark())),
+                modifier = Modifier.weight(1f),
             )
             FormatOptionCard(
                 title = "Xournal++ (.xopp)",
                 subtitle = "Universal flattened ink",
                 selected = settings.newDocumentFormat == NewDocumentFormat.XOPP,
                 onClick = { onChange(settings.copy(newDocumentFormat = NewDocumentFormat.XOPP)) },
-                modifier = Modifier.weight(1f).fillMaxHeight(),
+                modifier = Modifier.weight(1f),
             )
         }
         SettingsDivider()
@@ -81,16 +72,21 @@ private fun FormatOptionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val shape = SettingsCardShape
+    val borderColor = if (selected) MaterialTheme.colorScheme.primary else ModernTheme.hairlineBorder(chromeIsDark())
+    val borderWidth = if (selected) 1.5.dp else 1.dp
     val fill = if (selected) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
     } else {
-        Color.Transparent
+        MaterialTheme.colorScheme.surface
     }
     Column(
         modifier = modifier
+            .clip(shape)
             .background(fill)
+            .border(borderWidth, borderColor, shape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(14.dp),
     ) {
         Text(
             text = title,

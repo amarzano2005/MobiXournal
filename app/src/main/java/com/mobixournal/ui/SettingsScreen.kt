@@ -391,7 +391,7 @@ private fun TwoPaneDetailPane(
         modifier = modifier
             .settingsViewport(viewport)
             .verticalScroll(viewport.state)
-            .padding(vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Column(Modifier.fillMaxWidth()) {
             CompositionLocalProvider(LocalSettingsScrollViewport provides viewport) {
@@ -425,25 +425,21 @@ private fun TwoPaneDetailPane(
 
 @Composable
 private fun TabletSectionHeader(destination: SettingsDestination) {
-    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = destination.title,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = destination.category.title,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+    Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 20.dp)) {
+        Text(
+            text = destination.category.title.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.primary,
+        )
         Spacer(Modifier.height(4.dp))
+        Text(
+            text = destination.title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Spacer(Modifier.height(2.dp))
         Text(
             text = destination.subtitle,
             style = MaterialTheme.typography.bodySmall,
@@ -553,7 +549,6 @@ private fun SettingsChrome(title: String, onBack: () -> Unit, body: @Composable 
                                 .padding(start = 8.dp, end = 4.dp)
                                 .size(36.dp)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
                                 .clickable(onClick = onBack),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -598,21 +593,13 @@ internal fun SectionGlyph(icon: ImageVector) {
 
 @Composable
 private fun IndexSectionGlyph(icon: ImageVector) {
-    Box(
-        modifier = Modifier
-            .size(30.dp)
-            .clip(RoundedCornerShape(9.dp))
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
-            modifier = Modifier.size(17.dp),
-        )
-    }
-    Spacer(Modifier.width(12.dp))
+    Icon(
+        icon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(20.dp),
+    )
+    Spacer(Modifier.width(14.dp))
 }
 
 /**

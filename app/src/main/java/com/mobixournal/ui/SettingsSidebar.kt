@@ -113,42 +113,38 @@ private fun SidebarDestinationRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    val rowBg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent
+    val shape = RoundedCornerShape(8.dp)
+    val rowBg = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent
     val iconTint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    val titleColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+    val titleColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 2.dp)
             .height(SettingsSidebarRowHeight)
+            .clip(shape)
             .background(rowBg)
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            Modifier
-                .width(2.dp)
-                .fillMaxHeight()
-                .background(if (selected) MaterialTheme.colorScheme.primary else Color.Transparent),
-        )
-        Spacer(Modifier.width(14.dp))
         Icon(
             imageVector = destination.icon,
             contentDescription = null,
             tint = iconTint,
             modifier = Modifier.size(18.dp),
         )
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(12.dp))
         Text(
             text = destination.title,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
             color = titleColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.width(12.dp))
     }
 }
 

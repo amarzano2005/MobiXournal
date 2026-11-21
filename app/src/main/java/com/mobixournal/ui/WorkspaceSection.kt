@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -92,7 +94,11 @@ fun WorkspaceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 selected = selectedSide,
                 label = { it.label },
                 onSelect = { onChange(settings.copy(toolbarPosition = it)) },
-                modifier = Modifier.padding(top = 8.dp, bottom = 12.dp),
+                modifier = Modifier.padding(top = 8.dp, bottom = 10.dp),
+            )
+            RailSideDiagram(
+                railOnRight = selectedSide == ToolbarPosition.RIGHT,
+                modifier = Modifier.padding(bottom = 12.dp),
             )
             SettingsDivider()
             Row(
@@ -177,5 +183,54 @@ private fun ThemeSwatchPreview(mode: ThemeMode, dark: Boolean) {
             Box(Modifier.weight(1f).fillMaxHeight().background(DeskLight))
             Box(Modifier.weight(1f).fillMaxHeight().background(DeskDark))
         }
+    }
+}
+
+/** Miniature editor layout preview showing the tool rail docked on the chosen side. */
+@Composable
+private fun RailSideDiagram(railOnRight: Boolean, modifier: Modifier = Modifier) {
+    val shape = RoundedCornerShape(8.dp)
+    val border = ModernTheme.hairlineBorder(chromeIsDark())
+    val railStrip: @Composable () -> Unit = {
+        Column(
+            modifier = Modifier
+                .width(22.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)),
+            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.primary))
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)))
+            Box(Modifier.size(8.dp).clip(RoundedCornerShape(2.dp)).background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)))
+        }
+    }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(64.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, border, shape)
+            .padding(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (!railOnRight) railStrip()
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(4.dp))
+                .background(MaterialTheme.colorScheme.background),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "Canvas area",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (railOnRight) railStrip()
     }
 }

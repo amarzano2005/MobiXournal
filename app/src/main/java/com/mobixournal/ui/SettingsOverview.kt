@@ -107,7 +107,7 @@ internal fun GroupedSettingsIndex(
                     destinations.forEachIndexed { index, dest ->
                         SectionRow(
                             title = dest.title,
-                            summary = null,
+                            summary = dest.subtitle,
                             icon = dest.icon,
                             valueLabel = destinationLiveValue(dest, settings),
                             onClick = { onOpenDestination(dest) },

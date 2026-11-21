@@ -15,10 +15,13 @@ search topics into **seven dynamic `SettingsDestination`s** (`SettingsDestinatio
 three `SettingsGroupCategory` eyebrows (**Drafting**: *Pen & Input*, *Canvas & Tools*, *Palette & Ring*;
 **Interface**: *Workspace*, *Shortcuts*; **System**: *Files & Data*, *About*). `SettingsChrome` paints
 the screen container with `MaterialTheme.colorScheme.background` (`DeskDark` in dark mode, `DeskLight`
-in light mode) so every `SettingsCard` (`0.dp` edge-to-edge band, solid `MaterialTheme.colorScheme.surface` fill,
-`1.dp` hairline border — without floating-glass rim effects or capsule pills) spans the full width cleanly.
-Controls and action buttons inside Settings use `SettingsActionShape` (`6.dp` corners) and full-bleed rows
-(`BackupSection.kt`), while conditional sub-controls sit inside `SettingsAccentBlock` (`2.dp` primary left bar).
+in light mode — always theme tokens, never absolute black/white literals). Open `SettingsGroup` lists sit
+directly on the backdrop with full-width rows, uppercase muted headers, and inset hairlines (no floating
+card boxes or capsule pills), while tappable door cards and rich visual studios (`SettingsAccentBlock` for
+the live pressure curve + tapered stroke preview, `RailSideDiagram`, and `.mobix` / `.xopp` format cards)
+use a subtle `12.dp` tonal `MaterialTheme.colorScheme.surface` panel with a `1.dp` hairline border.
+Binary and ternary selectors (`SettingsSegmentedControl`) use underline tabs without capsules, and action
+buttons use `SettingsActionShape` (`8.dp`).
 
 Each destination adapts its controls to the active subsection: `PenInputSection` pairs a segmented
 touch-mode control (`SettingsSegmentedControl`) with a live `PressureCurvePreview` that collapses when

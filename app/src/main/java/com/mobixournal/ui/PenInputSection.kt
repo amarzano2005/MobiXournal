@@ -129,11 +129,10 @@ private fun PressureGroup(settings: AppSettings, onChange: (AppSettings) -> Unit
             }
             AnimatedVisibility(visible = settings.pressureEnabled) {
                 SettingsAccentBlock {
-                    SettingsDivider()
                     PressureCurvePreview(
                         minPressure = settings.minimumPressure,
                         multiplier = settings.pressureMultiplier,
-                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                        modifier = Modifier.padding(bottom = 8.dp),
                     )
                     PenPresetsRow(
                         presets = settings.penPresets,
@@ -204,34 +203,76 @@ private fun PressureCurvePreview(
     modifier: Modifier = Modifier,
 ) {
     val lineColor = MaterialTheme.colorScheme.primary
-    val guideColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
-    val bgColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.04f)
+    val fillColor = lineColor.copy(alpha = 0.10f)
+    val inkColor = MaterialTheme.colorScheme.onSurface
+    val guideColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.30f)
+    val bgColor = MaterialTheme.colorScheme.background
     val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 6f))
-    Canvas(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(bgColor)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-    ) {
-        val nominalY = size.height * (1f - 1f / 1.5f)
-        drawLine(
-            color = guideColor,
-            start = Offset(0f, nominalY),
-            end = Offset(size.width, nominalY),
-            strokeWidth = 1.5f,
-            pathEffect = dash,
-        )
-        val path = Path()
-        val steps = 32
-        for (i in 0..steps) {
-            val t = i / steps.toFloat()
-            val widthFactor = max(minPressure, t * multiplier).coerceIn(0f, 1.5f)
-            val x = t * size.width
-            val y = size.height * (1f - widthFactor / 1.5f)
-            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
+    Column(modifier = modifier.fillMaxWidth()) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(76.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(bgColor)
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+        ) {
+            val nominalY = size.height * (1f - 1f / 1.5f)
+            drawLine(
+                color = guideColor,
+                start = Offset(0f, nominalY),
+                end = Offset(size.width, nominalY),
+                strokeWidth = 1.5f,
+                pathEffect = dash,
+            )
+            val strokePath = Path()
+            val fillPath = Path()
+            val steps = 32
+            var startY = size.height
+            var endY = 0f
+            for (i in 0..steps) {
+                val t = i / steps.toFloat()
+                val widthFactor = max(minPressure, t * multiplier).coerceIn(0f, 1.5f)
+                val x = t * size.width
+                val y = size.height * (1f - widthFactor / 1.5f)
+                if (i == 0) {
+                    startY = y
+                    strokePath.moveTo(x, y)
+                    fillPath.moveTo(x, size.height)
+                    fillPath.lineTo(x, y)
+                } else {
+                    strokePath.lineTo(x, y)
+                    fillPath.lineTo(x, y)
+                }
+                if (i == steps) endY = y
+            }
+            fillPath.lineTo(size.width, size.height)
+            fillPath.close()
+            drawPath(fillPath, color = fillColor)
+            drawPath(strokePath, color = lineColor, style = Stroke(width = 4.5f, cap = StrokeCap.Round))
+            drawCircle(color = lineColor, radius = 6f, center = Offset(0f, startY))
+            drawCircle(color = lineColor, radius = 6f, center = Offset(size.width, endY))
         }
-        drawPath(path, color = lineColor, style = Stroke(width = 4f, cap = StrokeCap.Round))
+        Spacer(Modifier.height(8.dp))
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(14.dp)
+                .padding(horizontal = 4.dp),
+        ) {
+            val cy = size.height / 2f
+            val minR = (minPressure * 4.5f).coerceIn(1.2f, 5.5f)
+            val maxR = (multiplier * 4.2f).coerceIn(minR, 6.5f)
+            val taper = Path().apply {
+                moveTo(minR, cy - minR)
+                lineTo(size.width - maxR, cy - maxR)
+                lineTo(size.width - maxR, cy + maxR)
+                lineTo(minR, cy + minR)
+                close()
+            }
+            drawPath(taper, color = inkColor.copy(alpha = 0.85f))
+            drawCircle(color = inkColor.copy(alpha = 0.85f), radius = minR, center = Offset(minR, cy))
+            drawCircle(color = inkColor.copy(alpha = 0.85f), radius = maxR, center = Offset(size.width - maxR, cy))
+        }
     }
 }

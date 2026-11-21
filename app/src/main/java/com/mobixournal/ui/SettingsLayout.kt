@@ -18,6 +18,8 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import java.util.Locale
 
 /**
  * The building blocks every settings page is laid out with, so the pages share one look:
@@ -40,6 +42,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.ModernTheme
 
@@ -65,10 +68,11 @@ fun SettingsGroup(
 @Composable
 internal fun SettingsGroupTitle(title: String) {
     Text(
-        text = title,
-        style = MaterialTheme.typography.labelLarge,
+        text = title.uppercase(Locale.US),
+        style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Medium,
-        color = MaterialTheme.colorScheme.primary,
+        letterSpacing = 0.9.sp,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(start = 16.dp, bottom = SettingsHeaderGap),
     )
 }
@@ -117,11 +121,14 @@ internal fun SettingsCard(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val isTappableCard = onClick != null
+    val fill = if (isTappableCard) MaterialTheme.colorScheme.surface else Color.Transparent
+    val borderColor = if (isTappableCard) ModernTheme.hairlineBorder(chromeIsDark()) else Color.Transparent
     val surface = modifier
         .fillMaxWidth()
         .clip(SettingsCardShape)
-        .background(MaterialTheme.colorScheme.surface)
-        .border(1.dp, ModernTheme.hairlineBorder(chromeIsDark()), SettingsCardShape)
+        .background(fill)
+        .border(1.dp, borderColor, SettingsCardShape)
     Box(
         modifier = if (onClick == null) surface else surface.clickable(onClick = onClick),
     ) {
@@ -283,40 +290,29 @@ internal fun Modifier.settingsActionPill(top: Dp = 8.dp, bottom: Dp = 8.dp): Mod
     return fillMaxWidth().padding(start = side, end = side, top = top, bottom = bottom)
 }
 
-/** Full-bleed edge-to-edge band shape (0 dp corners, no floating pill cards). */
-internal val SettingsCardShape = RoundedCornerShape(0.dp)
+/** Corner radius for tappable door cards and subtle studio panels inside settings. */
+internal val SettingsCardShape = RoundedCornerShape(12.dp)
 
 /** Architectural corner radius for action buttons inside settings, avoiding capsule pills. */
-internal val SettingsActionShape = RoundedCornerShape(6.dp)
+internal val SettingsActionShape = RoundedCornerShape(8.dp)
 
 /**
- * Dynamic sub-control container with a 2 dp primary left accent bar and subtle surface tint,
- * matching the hierarchical indentation of expanded conditional controls.
+ * Subtle tonal panel inside an open settings group for rich visual studios (pressure curve,
+ * radial wheel, conditional editors). Uses theme tokens only.
  */
 @Composable
 internal fun SettingsAccentBlock(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val reach = LocalSettingsCardInset.current
-    Row(
+    Column(
         modifier = modifier
-            .fullBleedRow(reach)
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.03f)),
-    ) {
-        Box(
-            Modifier
-                .width(2.dp)
-                .fillMaxHeight()
-                .background(MaterialTheme.colorScheme.primary),
-        )
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = reach),
-            content = content,
-        )
-    }
+            .padding(vertical = 6.dp)
+            .clip(SettingsCardShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, ModernTheme.hairlineBorder(chromeIsDark()), SettingsCardShape)
+            .padding(16.dp),
+        content = content,
+    )
 }

@@ -98,6 +98,8 @@ fun BackupSection(
             title = "Export to JSON",
             subtitle = "Save all settings to a backup file.",
             icon = Icons.Outlined.FileDownload,
+            actionLabel = "Export",
+            actionTint = MaterialTheme.colorScheme.primary,
             onClick = { exportLauncher.launch("mobixournal-settings.json") },
         )
         SettingsDivider()
@@ -105,6 +107,8 @@ fun BackupSection(
             title = "Import from JSON",
             subtitle = "Restore settings from a previous backup file.",
             icon = Icons.Outlined.FileUpload,
+            actionLabel = "Import",
+            actionTint = MaterialTheme.colorScheme.primary,
             onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
         )
         SettingsDivider()
@@ -113,6 +117,8 @@ fun BackupSection(
             subtitle = "Restore all settings to factory defaults.",
             icon = Icons.Outlined.RestartAlt,
             tint = MaterialTheme.colorScheme.error,
+            actionLabel = "Reset",
+            actionTint = MaterialTheme.colorScheme.error,
             onClick = { showResetDialog = true },
         )
     }
@@ -150,6 +156,8 @@ private fun BackupActionRow(
     subtitle: String,
     icon: ImageVector,
     tint: Color = MaterialTheme.colorScheme.onSurface,
+    actionLabel: String,
+    actionTint: Color,
     onClick: () -> Unit,
 ) {
     val reach = LocalSettingsCardInset.current
@@ -164,5 +172,10 @@ private fun BackupActionRow(
     ) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         ControlHeader(title, subtitle, Modifier.weight(1f))
+        Text(
+            text = actionLabel,
+            style = MaterialTheme.typography.labelLarge,
+            color = actionTint,
+        )
     }
 }

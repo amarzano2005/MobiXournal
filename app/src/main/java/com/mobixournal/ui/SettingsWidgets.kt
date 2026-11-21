@@ -572,7 +572,7 @@ fun RailItemRow(
     }
 }
 
-/** Compact segmented selector for binary or ternary choices inside a [SettingsCard]. */
+/** Clean underline tab selector for binary or ternary choices (zero capsules, zero boxes). */
 @Composable
 internal fun <T> SettingsSegmentedControl(
     options: List<T>,
@@ -581,37 +581,37 @@ internal fun <T> SettingsSegmentedControl(
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val containerShape = RoundedCornerShape(6.dp)
-    val itemShape = RoundedCornerShape(4.dp)
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(containerShape)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-            .border(1.dp, ModernTheme.hairlineBorder(chromeIsDark()), containerShape)
-            .padding(3.dp),
-        horizontalArrangement = Arrangement.spacedBy(3.dp),
-    ) {
-        options.forEach { option ->
-            val active = option == selected
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(itemShape)
-                    .background(if (active) MaterialTheme.colorScheme.primary else Color.Transparent)
-                    .clickable { onSelect(option) }
-                    .padding(vertical = 8.dp, horizontal = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = label(option),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
-                    color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            options.forEach { option ->
+                val active = option == selected
+                Column(
+                    modifier = Modifier
+                        .clickable { onSelect(option) }
+                        .padding(top = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = label(option),
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = if (active) FontWeight.Bold else FontWeight.Medium,
+                        color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(bottom = 8.dp),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .height(2.dp)
+                            .width(48.dp)
+                            .background(if (active) MaterialTheme.colorScheme.primary else Color.Transparent),
+                    )
+                }
             }
         }
+        HorizontalDivider(color = ModernTheme.hairlineBorder(chromeIsDark()))
     }
 }
