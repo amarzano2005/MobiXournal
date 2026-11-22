@@ -17,7 +17,7 @@ kind = "finished"
 purpose = "The archive of completed work for this project."
 documentation_map = "AGENTS.md"
 order = "newest first"
-latest_release = "2.3.1"
+latest_release = "2.4.0"
 
 [meta.rules]
 finish_work = "Tasks arrive here via `todo.py done <id> --shipped`, which replaces the plan with what actually shipped; newest first, append-only."
@@ -33,6 +33,7 @@ level = "task"
 category = "bug"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.4.0"
 tags = []
 design = "material: glass popup + hover highlight; states: hover, focus, and open popup verified; tokens: ModernTheme + DesktopTheme; parity: both shells; copy: English."
 
@@ -45,6 +46,7 @@ level = "task"
 category = "bug"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.4.0"
 tags = []
 design = "none: document import flow fix with no new UI surface."
 
@@ -57,6 +59,7 @@ level = "task"
 category = "bug"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.4.0"
 tags = []
 design = "none: mobix-core save codec fix with no UI surface."
 
@@ -69,6 +72,7 @@ level = "task"
 category = "bug"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.4.0"
 tags = []
 design = "none: pointer tap handler behavior in Desktop canvas, no chrome surface change."
 
@@ -81,6 +85,7 @@ level = "task"
 category = "bug"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.4.0"
 tags = []
 design = "material: Command Sheet glass; states: Document/Studio/Share/Save As/Export transitions; tokens: liquidGlassFadeTransform; parity: Android overflow menu; copy: English."
 
@@ -93,6 +98,7 @@ level = "task"
 category = "feature"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.4.0"
 tags = []
 design = "material: floatingRim + GlassMotion tokens; states: open/close springs verified by GlassMotionTest and ModernThemeTest; tokens: DesignTokens.GlassMotion; parity: shared across Android and Desktop; copy: none."
 
@@ -105,6 +111,7 @@ level = "task"
 category = "feature"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.4.0"
 tags = []
 design = "none: pure JSON serialization and guard test with no UI surface."
 
@@ -117,6 +124,7 @@ level = "task"
 category = "feature"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.4.0"
 tags = []
 design = "material: SettingsCard + surface tokens; states: search, selection, and tabs verified; tokens: ModernTheme + DesktopTheme; parity: aligned across Android and Desktop; copy: English."
 
@@ -129,6 +137,7 @@ level = "task"
 category = "feature"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.4.0"
 tags = []
 design = "material: Command Sheet format grid; states: disabled when read-only; tokens: ModernTheme; parity: Android system share sheet; copy: English."
 
@@ -141,6 +150,7 @@ level = "task"
 category = "feature"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.4.0"
 tags = []
 design = "material: rememberPopupPanelColor + floatingRim; states: Document/Studio tabs and subviews verified; tokens: ModernTheme + ChromeGlyph; parity: Android overflow sheet; copy: English."
 
@@ -153,6 +163,7 @@ level = "task"
 category = "bug"
 created = 2026-11-20
 completed = 2026-11-20
+release = "2.4.0"
 tags = []
 design = "material: the copy command sits in a settings card with the standard action pill, the doors stay whole cards whose clip is their own corner; tokens: no new literals, settingsActionPill/SettingsHeaderGap/SectionGlyph only, glyph at 20 dp in the 36 dp disc; glyph: SectionGlyph plus the AutoMirrored KeyboardArrowRight the section rows use; states: the copy row's press states and its Copied answer, the doors' press state clipped by the card; copy: English, 'Copy app details'/'Copied'; parity: the window already carries its copy row inside the Tell the project card with one inline answer; docs: guide-settings-and-shortcuts.md updated, chrome-settings.md already described the card; tests: assembleDebug, testDebugUnitTest (1709), createDistributable"
 
@@ -165,6 +176,7 @@ level = "task"
 category = "feature"
 created = 2026-11-20
 completed = 2026-11-20
+release = "2.4.0"
 tags = []
 design = "material: settings cards only, one new step (a group title before two side-by-side cards) and no new surface class; tokens: no literals — card fill, corner and rim come from SettingsCard, colours from MaterialTheme; glyph: no new catalogue mark — the doors wear ChromeGlyph.DESCRIPTION and ChromeGlyph.ADD, SettingsGlyph.FEEDBACK removed; states: hero, door cards and disclosure rows are full-bleed clickable rows on the card's shape, disclosure chevron turns, copy row answers inline; copy: English, each door says where it goes; parity: same three steps and same two issue forms on Android and Windows; docs: chrome-settings.md names the inline single-child area, desktop-settings.md back to twelve sections and four areas, guide updated; tests: SettingsAreaTest refined for the inline-only area, guard and copy-parity suites green"
 
@@ -177,6 +189,7 @@ level = "task"
 category = "feature"
 created = 2026-11-20
 completed = 2026-11-20
+release = "2.4.0"
 tags = []
 design = "material: no new surface class — the Feedback page is the existing settings card and full-bleed rows, the desktop page uses SettingsCommand; tokens: no literals added, glyph geometry uses the 24-unit grid only; glyph: SettingsGlyph.FEEDBACK added to the shared catalogue and drawn by both adapters; states: rows keep the existing tappable full-bleed/default state, desktop commands keep their four variants; copy: English, sentence case, each row says where it goes; parity: same About/Feedback split and the same two issue forms on Android and Windows; docs: chrome-settings.md, desktop-settings.md and guide-settings-and-shortcuts.md updated; tests: DocClaimsTest vocabulary extended, no render test added for the new glyph beyond the existing SettingsGlyphRenderTest sweep"
 
@@ -189,6 +202,7 @@ level = "task"
 category = "bug"
 created = 2026-11-17
 completed = 2026-11-19
+release = "2.4.0"
 tags = []
 design = "material: PdfContentsDialog full-title popup and Rename/Delete menu both use the shared ToolbarMenu surface (commit ac2be374); states: ToolbarMenu preserves presence through exit animation, focus/dismissal and accessibility actions; tests: ToolbarMenuGuardTest and DocumentNavigationTest pass"
 

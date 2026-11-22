@@ -5,7 +5,7 @@
 
 _A guide page for Android and Windows: what a query reaches, and the page furniture that keeps a long document navigable. The internal map is [architecture.md](architecture.md)._
 
-This page is true for Android **2.3.1** and desktop **1.4.0**.
+This page is true for Android **2.4.0** and desktop **1.4.1**.
 
 ## What one search looks through
 

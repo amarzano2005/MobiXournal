@@ -58,14 +58,14 @@ read the host profile for the Python and Bash stub traps rather than assuming PA
 
 The active task's `rebuild` and `emulator_debug` are binding, not hints:
 
-- `rebuild = false` skips a fresh Android APK; `true` builds the **signed release** APK via `scripts/release-apk.sh` (never `assembleDebug`, and never bare `:app:assembleRelease` alone, which leaves the APK unsigned).
+- `rebuild = false` skips a fresh Android APK; `true` builds the **signed release** APK via
+  `scripts/release-apk.sh` (never `assembleDebug`, and never bare `:app:assembleRelease` alone).
 - `emulator_debug = false` skips booting, installing and driving the emulator entirely.
 - `emulator_debug = true` requires installing and exercising the app, screenshots, error logs and
-  simulated input; a successful compile alone does not meet the requirement.
-- Ad-hoc implementation defaults to a **signed release** APK build via `scripts/release-apk.sh` (never `assembleDebug` or bare `:app:assembleRelease` alone) and unit tests, without an emulator pass. Read-only questions and audits do not require application builds.
-- Whenever generating an Android APK, always run `scripts/release-apk.sh` (on Windows via Git Bash: `& "C:\Program Files\Git\bin\bash.exe" scripts/release-apk.sh`) so `:app:assembleRelease` is followed by signing into `MobiXournal-<version>.apk` (see [docs/tools.md](docs/tools.md)).
-- For a series of quick tweaks, build once at the end if required, and exercise the emulator once
-  if any task requires it. A task with no rebuild requirement does not acquire one from this rule.
+  simulated input; compilation alone does not meet it.
+- Ad-hoc implementation defaults to a **signed release** APK via `scripts/release-apk.sh` (on
+  Windows: `& "C:\Program Files\Git\bin\bash.exe" scripts/release-apk.sh`) and unit tests.
+- For a series of quick tweaks, build once at the end if required, and exercise the emulator once if needed.
 
 If a task description contradicts its flags, resolve that contradiction before executing dependent
 steps. An explicit current user instruction can change the task's flags; record that change through
@@ -113,14 +113,11 @@ through children rather than being implemented in one pass. Specify atomic tasks
 small model: target files/functions, desired behaviour and verification without missing decisions.
 
 Record proposed work with `add` and dropped work with `remove --reason`; keep bookkeeping in the
-commit that changes the work. **Even for ad-hoc features or user-facing fixes that did not start
-from `TODO.toml`**, record them in `FINISHED.toml` via `add` + `done --shipped ... --design ...`
-in the same commit so no shipped change is missing from the next release. After build, verification
-and documentation, close with `done --shipped` describing the delivery, supply the required design
-declaration, then run `stats` and report the remaining open count. Never leave completed work active.
-Freeze a release through `release --version`, which stamps the pending archive set and drafts its
-changelog; do not hand-write or hand-pick release notes. If task files were hand-edited, validate
-them before proceeding.
+commit that changes the work. **Even for ad-hoc features/fixes not started from `TODO.toml`**,
+record them in `FINISHED.toml` via `add` + `done --shipped ... --design ...` in the same commit.
+After verification and docs, close with `done --shipped`, supply the design declaration, run `stats`
+and report the remaining open count. Never leave completed work active. Freeze a release through
+`release --version` (stamps pending archive and drafts changelog; never hand-write notes).
 
 Commit your own work atomically, at will and frequently, with concise imperative subjects that say
 why. Commit before risky changes; use a branch for speculative work so main stays runnable.
