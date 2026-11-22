@@ -10,6 +10,8 @@ import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -19,7 +21,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -213,7 +217,9 @@ private fun copyAppDetails(context: Context): Boolean {
 @Composable
 private fun ProjectDoors(open: (String) -> Unit) {
     Row(
-        modifier = Modifier.height(IntrinsicSize.Min),
+        modifier = Modifier
+            .padding(horizontal = SettingsRowInset)
+            .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         DoorCard(
@@ -252,66 +258,119 @@ private fun BuildIdentity(
 ) {
     val reach = LocalSettingsCardInset.current
     SettingsCard {
-        Column(modifier = Modifier.fillMaxWidth().padding(vertical = settingsCellInset(reach))) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(R.drawable.ic_splash_logo),
-                    contentDescription = null,
-                    modifier = Modifier.size(56.dp).clip(RoundedCornerShape(16.dp)),
-                )
-                Spacer(Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("MobiXournal", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        version,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                    Text(
-                        status,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                    Text(
-                        platform,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.settingsActionPill(top = 12.dp, bottom = 0.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Button(
-                    onClick = onCheck,
-                    enabled = !checking,
-                    shape = SettingsActionShape,
-                    modifier = Modifier.weight(1f).height(48.dp),
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(vertical = settingsCellInset(reach))) {
+            val inlineActions = maxWidth >= 520.dp
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(if (checking) "Checking…" else "Check for updates")
+                    // `ic_splash_logo` has ~27% transparent padding around the mark for the splash
+                    // screen; crop/scale to its visible bounds so the left edge aligns with the
+                    // "About" heading at 16.dp and there is no phantom gap before the title text.
+                    Box(
+                        modifier = Modifier.size(width = 78.dp, height = 80.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Image(
+                            painter = painterResource(R.drawable.ic_splash_logo),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .requiredSize(148.dp)
+                                .offset(x = (-5).dp, y = 5.dp),
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text("MobiXournal", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                version,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                        Text(
+                            "${status.trimEnd('.')} · $platform",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                    if (inlineActions) {
+                        Spacer(Modifier.width(16.dp))
+                        BuildIdentityActions(
+                            checking = checking,
+                            onCheck = onCheck,
+                            onOpenProject = onOpenProject,
+                        )
+                    }
                 }
-                // The **compact door out**, beside the check its releases answer: one glyph, one tap to the
-                // repository (its source, its downloads and its issue list), with the name in the icon's
-                // own label so a screen reader still says what the button is.
-                OutlinedButton(
-                    onClick = onOpenProject,
-                    shape = SettingsActionShape,
-                    modifier = Modifier.size(width = 56.dp, height = 48.dp),
-                    contentPadding = PaddingValues(0.dp),
-                ) {
-                    Icon(
-                        ChromeGlyph.GITHUB.imageVector(),
-                        contentDescription = "Open the project on GitHub",
-                        modifier = Modifier.size(22.dp),
-                    )
+                if (!inlineActions) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Button(
+                            onClick = onCheck,
+                            enabled = !checking,
+                            shape = SettingsActionShape,
+                            modifier = Modifier.weight(1f).height(40.dp),
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+                        ) {
+                            Text(if (checking) "Checking…" else "Check for updates")
+                        }
+                        GitHubIconButton(onOpenProject)
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BuildIdentityActions(
+    checking: Boolean,
+    onCheck: () -> Unit,
+    onOpenProject: () -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Button(
+            onClick = onCheck,
+            enabled = !checking,
+            shape = SettingsActionShape,
+            modifier = Modifier.height(40.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 0.dp),
+        ) {
+            Text(if (checking) "Checking…" else "Check for updates")
+        }
+        GitHubIconButton(onOpenProject)
+    }
+}
+
+@Composable
+private fun GitHubIconButton(onOpenProject: () -> Unit) {
+    // The **compact door out**, beside the check its releases answer: one glyph, one tap to the
+    // repository (its source, its downloads and its issue list), with the name in the icon's
+    // own label so a screen reader still says what the button is.
+    OutlinedButton(
+        onClick = onOpenProject,
+        shape = SettingsActionShape,
+        modifier = Modifier.size(40.dp),
+        contentPadding = PaddingValues(0.dp),
+    ) {
+        Icon(
+            ChromeGlyph.GITHUB.imageVector(),
+            contentDescription = "Open the project on GitHub",
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

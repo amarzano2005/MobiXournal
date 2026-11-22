@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -8,8 +9,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -22,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -267,38 +271,59 @@ internal fun PaperSection(
 ) {
     FlowRow(
         modifier = if (fillWidth) Modifier.fillMaxWidth() else Modifier,
-        horizontalArrangement = Arrangement.spacedBy(if (fillWidth) 8.dp else 4.dp),
+        horizontalArrangement = if (fillWidth) Arrangement.SpaceBetween else Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        for (preset in PAGE_PRESETS) {
-            SizeTab(
-                label = preset.name,
-                selected = matchesPageSize(paper.widthPt, paper.heightPt, preset.widthPt, preset.heightPt),
-                onClick = {
-                    paper.widthPt = preset.widthPt
-                    paper.heightPt = preset.heightPt
-                    paper.resync()
-                    onChanged?.invoke(paper.widthPt, paper.heightPt)
-                },
-            )
-        }
-    }
-    Row(
-        modifier = if (fillWidth) Modifier.fillMaxWidth() else Modifier,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Units:", style = MaterialTheme.typography.labelMedium)
-        for (u in PageSizeUnit.entries) {
-            TextButton(onClick = {
-                if (u != paper.unit) {
-                    paper.unit = u
-                    paper.resync()
-                    onUnit?.invoke(u)
-                }
-            }) {
-                Text(
-                    u.label,
-                    fontWeight = if (u == paper.unit) FontWeight.Bold else FontWeight.Normal,
+        Row(
+            modifier = Modifier.align(Alignment.CenterVertically),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            for (preset in PAGE_PRESETS) {
+                SizeTab(
+                    label = preset.name,
+                    selected = matchesPageSize(paper.widthPt, paper.heightPt, preset.widthPt, preset.heightPt),
+                    onClick = {
+                        paper.widthPt = preset.widthPt
+                        paper.heightPt = preset.heightPt
+                        paper.resync()
+                        onChanged?.invoke(paper.widthPt, paper.heightPt)
+                    },
                 )
+            }
+        }
+        Row(
+            modifier = Modifier.align(Alignment.CenterVertically),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                "Units",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            for (u in PageSizeUnit.entries) {
+                val selected = u == paper.unit
+                Surface(
+                    onClick = {
+                        if (u != paper.unit) {
+                            paper.unit = u
+                            paper.resync()
+                            onUnit?.invoke(u)
+                        }
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    border = if (selected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)) else null,
+                ) {
+                    Text(
+                        text = u.label,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    )
+                }
             }
         }
     }
@@ -321,13 +346,16 @@ internal fun PaperSection(
             },
             modifier = fieldModifier,
         )
-        IconButton(onClick = {
-            val w = paper.widthPt
-            paper.widthPt = paper.heightPt
-            paper.heightPt = w
-            paper.resync()
-            onChanged?.invoke(paper.widthPt, paper.heightPt)
-        }) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
+        IconButton(
+            onClick = {
+                val w = paper.widthPt
+                paper.widthPt = paper.heightPt
+                paper.heightPt = w
+                paper.resync()
+                onChanged?.invoke(paper.widthPt, paper.heightPt)
+            },
+            modifier = Modifier.size(36.dp),
+        ) { Icon(Icons.Outlined.SwapHoriz, contentDescription = "Swap width and height") }
         SizeField(
             label = "Height",
             text = paper.heightText,
@@ -364,10 +392,21 @@ private fun SizeField(
     )
 }
 
-/** One entry in the page-size preset row: bold while the current size matches the entry. */
+/** One entry in the page-size preset row: highlighted compact pill while the current size matches the entry. */
 @Composable
 private fun SizeTab(label: String, selected: Boolean, onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
-        Text(label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = if (selected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)) else null,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        )
     }
 }

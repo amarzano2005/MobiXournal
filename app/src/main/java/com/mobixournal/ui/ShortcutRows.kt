@@ -56,7 +56,7 @@ internal fun ShortcutFilterBar(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(bottom = 16.dp),
+            .padding(start = SettingsRowInset, end = SettingsRowInset, bottom = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ShortcutFilterTab.entries.forEach { tab ->

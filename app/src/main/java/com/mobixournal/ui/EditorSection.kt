@@ -107,7 +107,10 @@ private fun DefaultDimensionsControl(settings: AppSettings, onChange: (AppSettin
         "Dimensions for new documents and newly created pages.",
         Modifier.settingsBlockInset(),
     )
-    Column(modifier = Modifier.padding(bottom = 8.dp)) {
+    Column(
+        modifier = Modifier.padding(top = 6.dp, bottom = 10.dp),
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp),
+    ) {
         PaperSection(
             paper = paper,
             onChanged = { w, h ->
