@@ -25,6 +25,126 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "focus-mode-settings-popups-polish"
+title = "Fix Focus mode, Settings select popups, and UI polish"
+description = "Fixed Focus mode, anchored Settings select popups under their chevron with 12dp spacing, added quick color hover highlights, scaled radial HUD ring stroke, and compacted Desktop PageSelectionBar."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "material: glass popup + hover highlight; states: hover, focus, and open popup verified; tokens: ModernTheme + DesktopTheme; parity: both shells; copy: English."
+
+[[task]]
+id = "android-pdf-append-pages"
+title = "Bring pages when appending a PDF to a PDF document on Android"
+description = "Appending a PDF to an existing PDF-backed document on Android now brings the appended pages into the open document."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "none: document import flow fix with no new UI surface."
+
+[[task]]
+id = "incremental-mobix-unbundled-audio"
+title = "Rebuild pages with unbundled audio on incremental .mobix save"
+description = "Incremental .mobix save now rebuilds pages that reference newly available unbundled audio instead of skipping them."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "none: mobix-core save codec fix with no UI surface."
+
+[[task]]
+id = "desktop-audio-tap-seek-timestamp"
+title = "Seek to stroke timestamp on Desktop audio tap"
+description = "Tapping an audio-linked stroke on Desktop now seeks to that stroke timestamp instead of restarting playback at 0:00."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "none: pointer tap handler behavior in Desktop canvas, no chrome surface change."
+
+[[task]]
+id = "fix-overflow-sheet-drilldown-bounce"
+title = "Fix overflow sheet bounce when entering Share or Save As"
+description = "Kept SheetModeSwitcher inside the root AnimatedContent branch and removed competing animateContentSize from OverflowSheetBody so Share, Save As, and Export drilldowns transition smoothly without bouncing."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "material: Command Sheet glass; states: Document/Studio/Share/Save As/Export transitions; tokens: liquidGlassFadeTransform; parity: Android overflow menu; copy: English."
+
+[[task]]
+id = "role-based-crisp-glass-motion"
+title = "Role-based crisp glass motion across Android and Desktop"
+description = "Replaced the under-damped splash bounce with near-critically damped role-specific motion (POPOVER, SHEET, DIALOG) across DesignTokens.GlassMotion, Android FloatingGlass/ToolbarPopup, and Desktop GlassMotion, plus animated InspectorLane and scrim transitions."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "material: floatingRim + GlassMotion tokens; states: open/close springs verified by GlassMotionTest and ModernThemeTest; tokens: DesignTokens.GlassMotion; parity: shared across Android and Desktop; copy: none."
+
+[[task]]
+id = "settings-backup-autosave-ringslots"
+title = "Complete settings backup for autoSave and ringSlots"
+description = "Included autoSave and ringSlots in AppSettingsBackup JSON export/import and added SettingsBackupGuardTest to enforce backup coverage for all settings."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "none: pure JSON serialization and guard test with no UI surface."
+
+[[task]]
+id = "unified-adaptive-settings-parity"
+title = "Unified adaptive Settings hierarchy and Desktop parity"
+description = "Consolidated Settings into seven adaptive destinations with underline tabs, full-width cards, dynamic previews, and aligned Desktop areas, section order, and Figures contents."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "material: SettingsCard + surface tokens; states: search, selection, and tabs verified; tokens: ModernTheme + DesktopTheme; parity: aligned across Android and Desktop; copy: English."
+
+[[task]]
+id = "android-share-sheet-export"
+title = "Android Share Sheet integration for Export & Share"
+description = "Added real Android Share Sheet support in MainActivityExports.kt and EditorExportSheet.kt to share PDF, PNG, SVG, and Portable .mobix (.pmobix) copies."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "material: Command Sheet format grid; states: disabled when read-only; tokens: ModernTheme; parity: Android system share sheet; copy: English."
+
+[[task]]
+id = "adaptive-command-sheet-for-android-overflow-menu"
+title = "Adaptive Command Sheet for Android overflow menu"
+description = "Redesigned the Android overflow menu as an adaptive Command Sheet (bottom-anchored on compact phones, popover on tablets) with live document card, Document / Pen & View tabs, and inline Export, Share, and Save As subviews."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "material: rememberPopupPanelColor + floatingRim; states: Document/Studio tabs and subviews verified; tokens: ModernTheme + ChromeGlyph; parity: Android overflow sheet; copy: English."
+
+[[task]]
 id = "about-page-copy-and-doors-polish"
 title = "About page: settle the copy row and the doors' affordance"
 description = "AboutSection.kt: Copy app details now sits in its own SettingsCard under the two doors and uses the standard settingsActionPill(), so it matches the other pills on the page instead of floating outside every card; copyAppDetails() returns true without a toast, leaving the row's own 'Copied' label as the single success answer (the missing-clipboard error toast stays); DoorCard wears SectionGlyph (36 dp disc, 20 dp glyph) with the trailing KeyboardArrowRight chevron in a header row above the title and note, marking the card as something that opens without narrowing the text column on a phone; the stale 'a tap on the hero asks GitHub' comment is replaced with the button-and-state description. docs/guide-settings-and-shortcuts.md: About's commands are named (Check for updates, Copy app details) instead of 'tap the card'. Verified: :app:assembleDebug and :app:testDebugUnitTest green (1709 tests, 0 failures, incl. DocsGuardTest and SourceStructureTest); :desktop:createDistributable green. Not done: desktop code unchanged (its commands are already rows in a group card with one inline answer); the page was not viewed on a device, so the disc/chevron layout is compile-checked only. APK built and uploaded (u29i64.apk)."

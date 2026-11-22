@@ -113,11 +113,14 @@ through children rather than being implemented in one pass. Specify atomic tasks
 small model: target files/functions, desired behaviour and verification without missing decisions.
 
 Record proposed work with `add` and dropped work with `remove --reason`; keep bookkeeping in the
-commit that changes the work. After build, verification and documentation, close with
-`done --shipped` describing the delivery, supply the required design declaration, then run `stats`
-and report the remaining open count. Never leave completed work active. Freeze a release through
-`release --version`, which stamps the pending archive set and drafts its changelog; do not hand-write
-or hand-pick release notes. If task files were hand-edited, validate them before proceeding.
+commit that changes the work. **Even for ad-hoc features or user-facing fixes that did not start
+from `TODO.toml`**, record them in `FINISHED.toml` via `add` + `done --shipped ... --design ...`
+in the same commit so no shipped change is missing from the next release. After build, verification
+and documentation, close with `done --shipped` describing the delivery, supply the required design
+declaration, then run `stats` and report the remaining open count. Never leave completed work active.
+Freeze a release through `release --version`, which stamps the pending archive set and drafts its
+changelog; do not hand-write or hand-pick release notes. If task files were hand-edited, validate
+them before proceeding.
 
 Commit your own work atomically, at will and frequently, with concise imperative subjects that say
 why. Commit before risky changes; use a branch for speculative work so main stays runnable.
