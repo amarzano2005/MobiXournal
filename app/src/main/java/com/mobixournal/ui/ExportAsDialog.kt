@@ -88,7 +88,7 @@ private fun ExportAsDialog(
                 )
                 FormatOption(
                     selected = picked == ExportAnswer.PORTABLE,
-                    title = "Portable MobiXournal (.pmobix)",
+                    title = "Portable .mobix (.pmobix)",
                     subtitle = "The whole notebook as one file, with the files it only names embedded.",
                     onClick = { picked = ExportAnswer.PORTABLE },
                 )

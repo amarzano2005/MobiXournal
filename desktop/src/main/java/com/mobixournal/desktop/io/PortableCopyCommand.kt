@@ -37,7 +37,7 @@ import java.util.zip.ZipFile
 internal val PORTABLE_COPY_TYPES: List<PickerType> =
     listOf(
         PickerType(
-            "Portable MobiXournal notebook (*${PortableCopy.EXTENSION})",
+            "Portable .mobix notebook (*${PortableCopy.EXTENSION})",
             listOf(PortableCopy.EXTENSION),
         ),
     )

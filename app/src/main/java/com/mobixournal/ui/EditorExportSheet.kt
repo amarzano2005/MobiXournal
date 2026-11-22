@@ -177,7 +177,7 @@ private fun ExportFormatGrid(
             )
             ExportFormatCard(
                 badge = "PMOBIX",
-                title = "Portable MobiXournal",
+                title = "Portable .mobix",
                 subtitle = if (shareMode) "Send notebook file" else "Includes assets",
                 tint = accent,
                 ink = ink,

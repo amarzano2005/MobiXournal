@@ -66,7 +66,7 @@ internal fun ExportAsDialog(
             ExportAnswerRow("SVG", "One vector file per page.", onSvg)
             ExportAnswerRule()
             ExportAnswerRow(
-                "Portable MobiXournal (.pmobix)",
+                "Portable .mobix (.pmobix)",
                 "The notebook as one file, with what it only names embedded.",
                 onPortable,
             )
