@@ -70,8 +70,9 @@ toolchain supplies JDK 21 + the Android SDK (`platforms;android-34/35`, `build-t
 
 No `applicationIdSuffix` is set, so every APK installs as `com.mobixournal`, upgrading in place rather
 than beside it (`emulator.sh launch com.mobixournal`, `adb logcat`) — and the build you install *is*
-the app on the device, tabs and settings included. **Always generate a signed release APK (`:app:assembleRelease` /
-`scripts/release-apk.sh`), never the debug APK (`assembleDebug`) or an unsigned release APK, whenever building an APK:**
+the app on the device, tabs and settings included. **Always generate a signed release APK via
+`scripts/release-apk.sh` (on Windows via Git Bash: `& "C:\Program Files\Git\bin\bash.exe" scripts/release-apk.sh`),
+never `assembleDebug` or bare `:app:assembleRelease` alone, whenever building an APK:**
 `assembleDebug` runs `debuggable` and keeps Compose's debug checks, so on an inked page it is slower;
 and an unsigned release APK cannot be installed on Android.
 `scripts/release-apk.sh` builds `:app:assembleRelease` and signs it with the debug keystore (so it

@@ -58,12 +58,12 @@ read the host profile for the Python and Bash stub traps rather than assuming PA
 
 The active task's `rebuild` and `emulator_debug` are binding, not hints:
 
-- `rebuild = false` skips a fresh Android APK; `true` builds the **release** APK (`:app:assembleRelease` / `scripts/release-apk.sh`, never debug).
+- `rebuild = false` skips a fresh Android APK; `true` builds the **signed release** APK via `scripts/release-apk.sh` (never `assembleDebug`, and never bare `:app:assembleRelease` alone, which leaves the APK unsigned).
 - `emulator_debug = false` skips booting, installing and driving the emulator entirely.
 - `emulator_debug = true` requires installing and exercising the app, screenshots, error logs and
   simulated input; a successful compile alone does not meet the requirement.
-- Ad-hoc implementation defaults to a **release** APK build (`:app:assembleRelease` / `scripts/release-apk.sh`, never `assembleDebug`) and unit tests, without an emulator pass. Read-only questions and audits do not require application builds.
-- Whenever generating an Android APK, always build a **signed release** APK (`:app:assembleRelease` / `scripts/release-apk.sh`), not `assembleDebug` (see [docs/tools.md](docs/tools.md)).
+- Ad-hoc implementation defaults to a **signed release** APK build via `scripts/release-apk.sh` (never `assembleDebug` or bare `:app:assembleRelease` alone) and unit tests, without an emulator pass. Read-only questions and audits do not require application builds.
+- Whenever generating an Android APK, always run `scripts/release-apk.sh` (on Windows via Git Bash: `& "C:\Program Files\Git\bin\bash.exe" scripts/release-apk.sh`) so `:app:assembleRelease` is followed by signing into `MobiXournal-<version>.apk` (see [docs/tools.md](docs/tools.md)).
 - For a series of quick tweaks, build once at the end if required, and exercise the emulator once
   if any task requires it. A task with no rebuild requirement does not acquire one from this rule.
 
