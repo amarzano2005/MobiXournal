@@ -4,7 +4,7 @@
 # SDK; no JDK/SDK/Gradle on the host). See docs/tools.md.
 #
 # Usage: scripts/build.sh [gradle tasks...]   (default: both unit-test suites, the instrumented-test
-#                                             compile, then the debug APK)
+#                                             compile, then the signed release APK)
 set -eu
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
@@ -19,8 +19,10 @@ fi
 # `mobix-core` — the codecs, the model and the format drift test. CI names the same two (see
 # `CiCoverageTest`), and it also *compiles* the instrumented tests, which no runner device executes:
 # named here too, so an `androidTest` that stopped compiling fails this loop rather than the push.
+# With no args, finish with the signed release APK via scripts/release-apk.sh (never assembleDebug).
 if [ "$#" -eq 0 ]; then
-    set -- :app:testDebugUnitTest :mobix-core:test :app:compileDebugAndroidTestKotlin :app:assembleDebug
+    "$TOOLCHAIN/build.sh" "$REPO" :app:testDebugUnitTest :mobix-core:test :app:compileDebugAndroidTestKotlin
+    exec sh "$REPO/scripts/release-apk.sh"
 fi
 
 exec "$TOOLCHAIN/build.sh" "$REPO" "$@"

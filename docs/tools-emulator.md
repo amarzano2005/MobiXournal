@@ -6,6 +6,15 @@ This spoke owns the device loop — starting the emulator, installing a build on
 driving the screen, and running `androidTest` — on the `/data/android` container host and on a host
 SDK. Compiling the APK itself is [tools.md](tools.md)'s.
 
+## Unified emulator wrapper (`scripts/emulator.cmd` / `scripts/emulator.sh`)
+
+`scripts/emulator.py` (invoked via `scripts/emulator.cmd` on Windows or `scripts/emulator.sh` on POSIX;
+regression suite `scripts/test-emulator.py`) exposes one command set across `/data/android` and host SDKs:
+`status | up | boot-wait | down | install [apk] | launch [component] | screenshot <png> | ui [xml] | logcat | shell | adb`.
+When `install` omits an APK path, it defaults to the signed release build `app/build/outputs/apk/release/MobiXournal-<version>.apk`
+(never `app-debug.apk`); on host SDKs, `up` cold-boots `Pixel_Tablet` with `-no-snapshot-load`, waits for
+`sys.boot_completed`, and sends `KEYCODE_WAKEUP` + unlock automatically.
+
 ## Android emulator
 
 Running the APK on a device/emulator also goes through `/data/android` — a headless Android 14
@@ -17,16 +26,17 @@ change with a runtime surface must be installed and exercised on the emulator, n
   the emulator driver scripts (`emulator.sh`), alongside `adb-targets.sh`
   which lists every target across the two isolated adb worlds (host adb → physical devices,
   container adb → emulator). Full details in that directory's `README.md`; don't duplicate them here.
-- **How to run it:** `emulator.sh` dispatches `status | up | boot-wait | down | install <apk> |
-  launch <pkg> | screenshot [png] | ui | logcat | shell | adb` — so `emulator.sh up` to boot, then
-  `emulator.sh install <apk>`, `emulator.sh launch com.mobixournal`, `emulator.sh screenshot <png>`,
-  `emulator.sh ui`, and `emulator.sh logcat` for logs. Run `adb-targets.sh` to see which devices and
-  the emulator are reachable. Physical devices install via the host adb:
-  `adb -s <ip>:5555 install -r app/build/outputs/apk/debug/app-debug.apk`.
+- **How to run it:** `scripts/emulator.sh` (or `/data/android/emulator.sh`) dispatches `status | up |
+  boot-wait | down | install [apk] | launch [pkg] | screenshot <png> | ui | logcat | shell | adb` — so
+  `emulator.sh up` to boot, then `emulator.sh install` (defaults to the signed release APK),
+  `emulator.sh launch com.mobixournal`, `emulator.sh screenshot <png>`, `emulator.sh ui`, and
+  `emulator.sh logcat` for logs. Run `adb-targets.sh` to see which devices and the emulator are
+  reachable. Physical devices install via the host adb:
+  `adb -s <ip>:5555 install -r app/build/outputs/apk/release/MobiXournal-<version>.apk`.
 - **Testing a change on the emulator (the expected loop):** after a green
-  `scripts/build.sh`, install the fresh APK and actually drive it:
-  1. `emulator.sh install app/build/outputs/apk/debug/app-debug.apk` then
-     `emulator.sh launch com.mobixournal`.
+  `scripts/build.sh` (which builds the signed release APK via `scripts/release-apk.sh`), install and drive it:
+  1. `scripts/emulator.sh install` (or `emulator.sh install app/build/outputs/apk/release/MobiXournal-<version>.apk`) then
+     `scripts/emulator.sh launch`.
   2. **Take screenshots** (`emulator.sh screenshot <png>`) and look at them to confirm the UI
      rendered as intended — this is how you *see* the change, not infer it.
   3. **Read the error logs** — `adb logcat` (filter to the app) — to catch crashes, stack
@@ -55,15 +65,15 @@ change with a runtime surface must be installed and exercised on the emulator, n
 
 ### Host fallback — Android Studio's own emulator
 
-Where `/data/android` isn't present, the SDK's own emulator is the same loop, driven by the SDK's
-`adb` instead of `emulator.sh`:
+Where `/data/android` isn't present, use `scripts/emulator.cmd` (Windows) or `scripts/emulator.sh` (POSIX)
+which wraps the SDK commands below (`up`, `install`, `launch`, `screenshot`, `ui`, `logcat`, `down`):
 
 ```sh
-# The SDK this checkout builds with — `host-build.sh --list` prints the path it picked
+# Equivalent raw SDK commands (scripts/emulator.cmd automates these steps)
 SDK=$(scripts/host-build.sh --list | sed -n 's/^host-build: SDK //p')
 "$SDK/emulator/emulator" -avd Pixel_Tablet &   # `.exe` under Git Bash; or start it from Android Studio
 "$SDK/platform-tools/adb" wait-for-device      # then poll sys.boot_completed for 1
-"$SDK/platform-tools/adb" install -r app/build/outputs/apk/debug/app-debug.apk
+"$SDK/platform-tools/adb" install -r app/build/outputs/apk/release/MobiXournal-<version>.apk
 "$SDK/platform-tools/adb" shell am start -n com.mobixournal/com.mobixournal.MainActivity
 "$SDK/platform-tools/adb" exec-out screencap -p > shot.png   # and: logcat, input tap/swipe
 ```

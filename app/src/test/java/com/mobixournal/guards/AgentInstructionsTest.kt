@@ -59,6 +59,12 @@ class AgentInstructionsTest {
             workflow.any { it.trim() == "python3 scripts/todo/test_plan_rules.py" })
         assertTrue("CI must execute the todo doctor regression suite",
             workflow.any { it.trim() == "python3 scripts/todo/test_doctor.py" })
+        assertTrue("CI must execute the doc-sync pre-commit regression suite",
+            workflow.any { it.trim() == "python3 scripts/test-check-doc-sync.py" })
+        assertTrue("CI must execute the verification wrapper regression suite",
+            workflow.any { it.trim() == "python3 scripts/test-verify.py" })
+        assertTrue("CI must execute the emulator wrapper regression suite",
+            workflow.any { it.trim() == "python3 scripts/test-emulator.py" })
     }
 
     private fun repoRoot(): File = generateSequence(File(".").canonicalFile) { it.parentFile }

@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 # Host fallback for the build/check loop: find a JDK the Gradle wrapper can actually start on,
 # point JAVA_HOME at it, locate the Android SDK, then run the given Gradle tasks (default: both
-# unit-test suites, the instrumented-test compile, then the debug APK — the same loop CI runs).
+# unit-test suites, the instrumented-test compile, then the signed release APK).
 #
 # Why this exists: `scripts/build.sh` is the front door whenever the shared /data/android toolchain
 # (or Docker) is present, but a plain host has no JDK/SDK picker — and `./gradlew` on its own is
@@ -35,7 +35,7 @@ usage() {
     echo "  --jdk PATH  use this JDK (default: the first supported one found)"
     echo "  --sdk PATH  use this Android SDK (default: ANDROID_HOME, then the usual locations)"
     echo "  --list      print the JDK and SDK that would be used, then stop"
-    echo "  (no tasks)  both unit-test suites, the instrumented-test compile, then the debug APK"
+    echo "  (no tasks)  both unit-test suites, the instrumented-test compile, then the signed release APK"
 }
 
 die() {
@@ -252,8 +252,14 @@ export JAVA_HOME ANDROID_HOME ANDROID_SDK_ROOT
 # Both suites by default: `testDebugUnitTest` is the Android module's only, so naming it alone skips
 # `mobix-core` — the codecs, the model and the format drift test. The instrumented tests are compiled
 # rather than run (no device here), as CI does, so a broken `androidTest` fails this loop too.
+# With no args, finish with the signed release APK via scripts/release-apk.sh (never assembleDebug).
 if [ "$#" -eq 0 ]; then
-    set -- :app:testDebugUnitTest :mobix-core:test :app:compileDebugAndroidTestKotlin :app:assembleDebug
+    if [ -x "$REPO/gradlew" ]; then
+        "$REPO/gradlew" :app:testDebugUnitTest :mobix-core:test :app:compileDebugAndroidTestKotlin
+    else
+        sh "$REPO/gradlew" :app:testDebugUnitTest :mobix-core:test :app:compileDebugAndroidTestKotlin
+    fi
+    exec sh "$REPO/scripts/release-apk.sh"
 fi
 
 if [ -x "$REPO/gradlew" ]; then

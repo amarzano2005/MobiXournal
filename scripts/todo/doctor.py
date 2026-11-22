@@ -104,7 +104,10 @@ def _suggested_verification(task):
         f"Linux/macOS: scripts/verify.sh{ui_flag}{build_flag} [-- <gradle-args>]",
     ]
     if task.get("emulator_debug"):
-        steps.append("Emulator pass required (emulator_debug = true): follow docs/tools-emulator.md")
+        steps.append(
+            "Emulator pass required (emulator_debug = true): use scripts/emulator.cmd (Windows) or "
+            "scripts/emulator.sh (POSIX) per docs/tools-emulator.md"
+        )
     return steps
 
 

@@ -4,8 +4,9 @@
 
 The owner works across **multiple machines** (a Linux container host equipped with `/data/android`,
 a Windows 11 laptop and a Windows 11 desktop PC). **Never assume which machine a session is running
-on** — check the OS/shell, the host name (`$env:COMPUTERNAME`) and whether `/data/android` exists at
-the start of a task, then follow the matching profile below:
+on** — run `scripts/verify.cmd --env` (Windows) or `scripts/verify.sh --env` (POSIX) at task start
+(or add `--json` for machine-readable profile, JDK, SDK, AVD, and `.githooks` status), then follow
+the matching profile below:
 
 | Profile | How to recognise it | Build & test front door | Emulator & `androidTest` |
 |---|---|---|---|
@@ -16,8 +17,8 @@ the start of a task, then follow the matching profile below:
 
 ### Profile A — Linux `/data/android` container host
 - **Containerized build & test**: Always use `scripts/build.sh` (which defaults to both unit-test
-  suites plus `assembleDebug`) and `scripts/todo.sh <command>`. Do not rely on host-installed JDK/SDK
-  when `/data/android` is available.
+  suites, the instrumented-test compile, and the signed release APK via `scripts/release-apk.sh`) and
+  `scripts/todo.sh <command>`. Do not rely on host-installed JDK/SDK when `/data/android` is available.
 - **Containerized emulator**: Drive the emulator via `emulator.sh` (`up`, `install`, `launch
   com.mobixournal`, `screenshot`, `ui`, `logcat`) and run instrumented tests via
   `scripts/connected-test.sh` (never plain `connectedDebugAndroidTest` inside the throwaway builder

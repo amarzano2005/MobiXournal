@@ -29,11 +29,13 @@ in [AGENTS.md](../../../AGENTS.md#task-bookkeeping-and-delivery).
 
 3. **Run sequential verification (`scripts/verify.cmd` / `scripts/verify.sh`)**
    - Never run parallel Gradle commands. Pass targeted `--tests` selectors plus
-     flags matching UI scope (`--ui-guards`) and the task's `rebuild` requirement:
+     flags matching UI scope (`--ui-guards`) and the task's `rebuild` requirement
+     (`--build-apk` builds the signed release APK via `scripts/release-apk.sh`):
      - Windows: `scripts/verify.cmd [--ui-guards] [--build-apk] [-- ...]`
      - Linux/macOS: `scripts/verify.sh [--ui-guards] [--build-apk] [-- ...]`
    - Always refresh `:desktop:createDistributable` (the wrapper's default).
-   - If `emulator_debug = true`, run the real device pass via
+   - If `emulator_debug = true`, run the real device pass via `scripts/emulator.cmd`
+     (Windows) or `scripts/emulator.sh` (POSIX) per
      [tools-emulator.md](../../../docs/tools-emulator.md) and capture evidence.
 
 4. **Archive through the `todo` CLI**

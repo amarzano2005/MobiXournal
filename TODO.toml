@@ -151,7 +151,7 @@ urgency = "high"
 order = 120
 created = 2026-11-10
 tags = ["mobix", "migration"]
-reviewed = 2026-11-19
+reviewed = 2026-11-22
 rebuild = true
 emulator_debug = false
 
@@ -208,6 +208,7 @@ order = 200
 created = 2026-11-11
 tags = ["stem", "plot", "polar", "math"]
 epic = "mobix-stem-interactive-notebook"
+reviewed = 2026-11-22
 rebuild = true
 emulator_debug = false
 
@@ -341,6 +342,7 @@ order = 270
 created = 2026-11-19
 tags = ["selection", "pdf", "ui", "desktop", "android"]
 epic = "mobix-stem-interactive-notebook"
+reviewed = 2026-11-22
 rebuild = true
 emulator_debug = false
 
@@ -997,7 +999,7 @@ order = 750
 created = 2026-11-11
 tags = ["stem", "export", "open-format"]
 epic = "mobix-stem-semantic-core"
-reviewed = 2026-11-19
+reviewed = 2026-11-22
 rebuild = true
 emulator_debug = false
 

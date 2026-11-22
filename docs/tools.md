@@ -15,12 +15,12 @@ The design declaration that closes a UI change is [design-workflow.md](design-wo
 
 | Tool / pipeline | What it's for | Detail |
 |-----------------|---------------|--------|
-| Host selection | OS, machine profiles and local toolchain paths | [host-profiles.md](host-profiles.md) |
+| Host selection | OS, machine profiles, `scripts/verify.cmd --env`, and toolchain paths | [host-profiles.md](host-profiles.md) |
 | Agent task workflow | `scripts/todo.sh` / `scripts/todo.cmd`, active-task validation and instruction checks | [agent-workflow.md](agent-workflow.md) |
-| Doc-sync commit guard | `scripts/check-doc-sync.py` + `.githooks/pre-commit` (blocks UI/design commits missing a `docs/` update) | [writing-docs.md](writing-docs.md) |
-| Task verification | Sequential validate, test, guard, and distributable runner | [below](#task-verification-wrapper) |
-| Android build | Compile & package the app (APK/AAB) | [below](#android-build) |
-| Android emulator | Run & test the app on a virtual device | [tools-emulator.md](tools-emulator.md) |
+| Doc-sync commit guard | `scripts/check-doc-sync.py` + `.githooks/pre-commit` (UI/design `docs/` + `todo validate`) | [writing-docs.md](writing-docs.md) |
+| Task verification | Sequential validate, test, guard, signed APK, and distributable runner | [below](#task-verification-wrapper) |
+| Android build | Compile & package the signed release APK | [below](#android-build) |
+| Android emulator | Cross-platform `scripts/emulator.cmd` / `scripts/emulator.sh` device loop | [tools-emulator.md](tools-emulator.md) |
 | Desktop shell | Run, test and package the Compose Multiplatform window (no emulator, no container) | [below](#desktop-shell) |
 | Release publishing | Freeze a version, draft its changelog, tag + publish | [releasing.md](releasing.md) |
 | Design declaration | The declaration that closes a UI change in `todo.sh done` | [below](design-workflow.md) |
@@ -45,14 +45,14 @@ toolchain supplies JDK 21 + the Android SDK (`platforms;android-34/35`, `build-t
   `ANDROID_TOOLCHAIN`).
 - **How to run it:**
   - `scripts/build.sh` — the default check loop: `:app:testDebugUnitTest :mobix-core:test
-    :app:compileDebugAndroidTestKotlin :app:assembleDebug` — **both** suites, because
-    `testDebugUnitTest` exists only in the Android module and would leave the core (codecs, model,
-    `FormatDriftTest`) unrun, plus the instrumented-test **compile** (`docs/testing.md`), because no
-    device executes those here and an uncompiled `androidTest` is a claim nobody checked.
+    :app:compileDebugAndroidTestKotlin`, then the **signed release APK** via `scripts/release-apk.sh` — **both**
+    suites, because `testDebugUnitTest` exists only in the Android module and would leave the core
+    (codecs, model, `FormatDriftTest`) unrun, plus the instrumented-test **compile** (`docs/testing.md`),
+    because no device executes those here and an uncompiled `androidTest` is a claim nobody checked.
   - `scripts/build.sh <tasks…>` — arbitrary Gradle tasks, e.g. `scripts/build.sh :app:testDebugUnitTest`
-    or `scripts/build.sh clean assembleDebug`.
+    or `scripts/build.sh clean :app:assembleRelease`.
   - Direct equivalent: `/data/android/build.sh <project-dir> <tasks…>`.
-- **Outputs:** debug APK at `app/build/outputs/apk/debug/app-debug.apk`; unit-test reports at
+- **Outputs:** signed release APK at `app/build/outputs/apk/release/MobiXournal-<version>.apk`; unit-test reports at
   `app/build/reports/tests/testDebugUnitTest/` and `mobix-core/build/reports/tests/test/`.
 - **Gotchas:**
   - The builder mounts the project's **parent** dir as `/workspace` and runs `./gradlew` in the
@@ -122,7 +122,7 @@ would use without building; `--jdk`/`--sdk` override the search; every other arg
 
 ```sh
 scripts/host-build.sh                       # the loop's default: both suites, the instrumented-test
-                                            # compile, then the debug APK
+                                            # compile, then the signed release APK
 scripts/host-build.sh --list                # which JDK and SDK it picked, then stop
 scripts/host-build.sh :app:testDebugUnitTest   # any Gradle task passes through
 ```
@@ -226,16 +226,18 @@ or locale), so a re-run reproduces the same bytes and a fixture can be reviewed 
 ## Task verification wrapper
 
 `scripts/verify.cmd` (Windows) and `scripts/verify.sh` (Linux/macOS) delegate to `scripts/verify.py`
-to run the full closing check sequence without spawning concurrent Gradle daemons:
+to run host discovery and the full closing check sequence without spawning concurrent Gradle daemons
+(regression suites: `scripts/test-verify.py`, `scripts/test-check-doc-sync.py`):
 
-- Always runs `todo validate`, then the guard suites (`DocsGuardTest`, `DocClaimsTest`,
-  `SourceStructureTest`, `AgentInstructionsTest`, `CiCoverageTest`, `ColorContractGuardTest`,
-  `ChromeGeometryGuardTest`, `TypeContractGuardTest`, `SystemBarsGuardTest`,
-  `SettingsCopyParityTest`, `ToolbarMenuGuardTest`), and refreshes `:desktop:createDistributable`
-  unless `--skip-distributable` is passed.
+- Pass `--env` (`--env --json`) to inspect the active host profile (`A`/`B`/`C`/`D`), JDK, Android SDK,
+  AVDs, shell runner, and `.githooks` configuration in one call without running Gradle.
+- Always runs `todo validate`, then every guard suite under `app/src/test/java/com/mobixournal/guards/`
+  plus `ToolbarMenuGuardTest`, and refreshes `:desktop:createDistributable` unless `--skip-distributable`
+  is passed.
 - Pass `--ui-guards` on UI changes to also run `ShapeFeedbackTest`, `ToolGlyphCoverageTest`, and
   `SettingsGlyphParityTest` plus the 13 desktop UI contract and pixel guard suites (`:desktop:test`),
-  `-- <gradle-args>` for targeted task tests, `--build-apk` when `rebuild = true`, `--todo-tests`
-  for `scripts/todo/test_*.py`, and `--full` to run `:mobix-core:test`, `:app:testDebugUnitTest`,
-  and `:desktop:test` sequentially. On Windows, JDK 17–24 discovery automatically sets `JAVA_HOME`
-  (preferring JDK 21).
+  `-- <gradle-args>` for targeted task tests, `--build-apk` to build the signed release APK via
+  `scripts/release-apk.sh` when `rebuild = true`, `--todo-tests` for both `scripts/todo/test_*.py` and
+  `scripts/test-*.py`, and `--full` to run `:mobix-core:test`, `:app:testDebugUnitTest`,
+  `:app:compileDebugAndroidTestKotlin`, and `:desktop:test` sequentially without repeating `:app:testDebugUnitTest`.
+  On Windows, JDK 17–24 discovery automatically sets `JAVA_HOME` (preferring JDK 21) and locates Git Bash.

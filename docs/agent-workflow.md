@@ -55,6 +55,12 @@ targets, missing paths, and WIP advisories), guarded in CI by `scripts/todo/test
 sequential task closing checks run through `scripts/verify.cmd` and `scripts/verify.sh`
 ([tools.md](tools.md#task-verification-wrapper)).
 
+Pre-commit enforcement runs through `.githooks/pre-commit`, which locates Python 3.11+ portably
+(skipping `WindowsApps` stubs) and runs both `scripts/check-doc-sync.py` (covering Android `ui/`,
+desktop `shell/`/`tools/`/`settings/`/`sheet/`/`navigation/`, and core `design/`) and
+`scripts/todo/todo.py validate`. CI exercises `scripts/test-check-doc-sync.py`,
+`scripts/test-verify.py`, and `scripts/test-emulator.py` alongside the task-tooling suites.
+
 These are conservative checks for known failures, not a parser of every natural-language request.
 A feature description can mention an emulator without requiring a device pass. Review still has
 to reconcile the user's goal, task metadata and evidence before closing the work.

@@ -13,7 +13,11 @@ SOURCE_PREFIXES = (
 )
 WATCHED_PREFIXES = (
     "app/src/main/java/com/mobixournal/ui/",
-    "desktop/src/main/kotlin/com/mobixournal/desktop/shell/",
+    "desktop/src/main/java/com/mobixournal/desktop/shell/",
+    "desktop/src/main/java/com/mobixournal/desktop/tools/",
+    "desktop/src/main/java/com/mobixournal/desktop/settings/",
+    "desktop/src/main/java/com/mobixournal/desktop/sheet/",
+    "desktop/src/main/java/com/mobixournal/desktop/navigation/",
     "mobix-core/src/main/java/com/mobixournal/design/",
 )
 DOC_PREFIXES = ("docs/", "AGENTS.md", "README.md")

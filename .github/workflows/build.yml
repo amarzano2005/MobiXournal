@@ -41,6 +41,9 @@ jobs:
           python3 scripts/todo/test_release.py
           python3 scripts/todo/test_tag.py
           python3 scripts/test-release-signing.py
+          python3 scripts/test-check-doc-sync.py
+          python3 scripts/test-verify.py
+          python3 scripts/test-emulator.py
 
       # The `.mobix` corpora and the validator are the format's own tools: the golden corpus must verify
       # with the script that does not depend on `mobix-core`, and every file in the hostile corpus must be

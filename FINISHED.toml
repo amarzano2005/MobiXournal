@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "agentic-automation-and-signed-apk-gaps"
+title = "Close agentic automation, hook, emulator wrapper, and signed release APK gaps"
+description = "Fixed scripts/check-doc-sync.py desktop java prefixes (shell/tools/settings/sheet/navigation) and made .githooks/pre-commit portable with Python 3.11+ discovery and todo validate. Upgraded scripts/verify.py with --env/--json host detection, all 17 guards + ToolbarMenuGuardTest, non-duplicated --full + compileDebugAndroidTestKotlin, and --build-apk routing to scripts/release-apk.sh (also aligned scripts/build.sh and scripts/host-build.sh default loops to signed release APK). Added cross-platform scripts/emulator.py (.cmd/.sh) defaulting install to signed MobiXournal-<version>.apk, added regression suites scripts/test-check-doc-sync.py, scripts/test-verify.py, and scripts/test-emulator.py wired into .github/workflows/build.yml and AgentInstructionsTest.kt, updated scripts/todo/doctor.py and docs/tools.md, docs/tools-emulator.md, docs/host-profiles.md, docs/agent-workflow.md, and .agents/skills/close-task/SKILL.md, removed empty skills/, and marked 4 stale ready tasks reviewed. Verified via verify.cmd --env/--json, emulator.cmd status, and verify.cmd --todo-tests --build-apk (all Python suites, 18 Android guard classes, signed MobiXournal-2.4.0.apk, and :desktop:createDistributable passed)."
+status = "finished"
+level = "task"
+category = "chore"
+created = 2026-11-22
+completed = 2026-11-22
+tags = []
+design = "none: developer and agent automation scripts, git hooks, CI checks, and tooling docs only (no app UI surface changed)"
+
+[[task]]
 id = "focus-mode-settings-popups-polish"
 title = "Fix Focus mode, Settings select popups, and UI polish"
 description = "Fixed Focus mode, anchored Settings select popups under their chevron with 12dp spacing, added quick color hover highlights, scaled radial HUD ring stroke, and compacted Desktop PageSelectionBar."

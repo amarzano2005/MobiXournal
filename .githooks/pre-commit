@@ -1,10 +1,53 @@
 #!/usr/bin/env sh
 set -eu
 
-if [ -x "/c/Users/amarz/AppData/Local/Python/bin/python.exe" ]; then
-    exec "/c/Users/amarz/AppData/Local/Python/bin/python.exe" scripts/check-doc-sync.py
-elif command -v python3 >/dev/null 2>&1; then
-    exec python3 scripts/check-doc-sync.py
-elif command -v python >/dev/null 2>&1; then
-    exec python scripts/check-doc-sync.py
+export PYTHONUTF8=1
+
+has_py311() {
+    "$1" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1
+}
+
+find_python() {
+    if [ -n "${TODO_PYTHON:-}" ] && has_py311 "$TODO_PYTHON"; then
+        printf '%s\n' "$TODO_PYTHON"
+        return 0
+    fi
+
+    for candidate in \
+        "${LOCALAPPDATA:-}/Python/bin/python.exe" \
+        "${HOME:-}/AppData/Local/Python/bin/python.exe" \
+        "${LOCALAPPDATA:-}/Programs/Python/Python314/python.exe" \
+        "${LOCALAPPDATA:-}/Programs/Python/Python313/python.exe" \
+        "${LOCALAPPDATA:-}/Programs/Python/Python312/python.exe" \
+        "${LOCALAPPDATA:-}/Programs/Python/Python311/python.exe"; do
+        case "$candidate" in
+            "" | /Python/* | /AppData/* | /Programs/*) continue ;;
+        esac
+        if [ -x "$candidate" ] && has_py311 "$candidate"; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+
+    for candidate in python3 python python3.14 python3.13 python3.12 python3.11; do
+        resolved=$(command -v "$candidate" 2>/dev/null || true)
+        case "$resolved" in
+            "" | *WindowsApps*) continue ;;
+        esac
+        if has_py311 "$resolved"; then
+            printf '%s\n' "$resolved"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+PY_BIN=$(find_python || true)
+if [ -z "$PY_BIN" ]; then
+    echo "pre-commit: Python 3.11+ not found (set TODO_PYTHON)." >&2
+    exit 1
 fi
+
+"$PY_BIN" scripts/check-doc-sync.py
+"$PY_BIN" scripts/todo/todo.py validate
