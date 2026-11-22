@@ -198,7 +198,14 @@ The numbers live in **`com.mobixournal.design.DesignTokens`** (plain Kotlin, `mo
       "springStiffness": 380,
       "springDamping": 28,
       "fadeTransitionMs": 150,
-      "glassMotion": { "startScale": 0.82, "openDamping": 0.6, "openStiffness": 620, "fadeInMs": 110, "closeDamping": 0.9, "closeStiffness": 1400, "fadeOutMs": 110, "exitHoldMs": 150 }
+      "glassMotion": {
+        "startScale": 0.94, "popoverSlideDp": 6, "openDamping": 0.96, "openStiffness": 800, "fadeInMs": 90,
+        "closeDamping": 1.0, "closeStiffness": 1400, "fadeOutMs": 90, "exitHoldMs": 130,
+        "sheetStartScale": 0.98, "sheetSlideDp": 24, "sheetOpenDamping": 0.95, "sheetOpenStiffness": 720, "sheetFadeInMs": 110,
+        "sheetCloseDamping": 1.0, "sheetCloseStiffness": 1300, "sheetFadeOutMs": 95,
+        "dialogStartScale": 0.96, "dialogSlideDp": 0, "dialogOpenDamping": 0.96, "dialogOpenStiffness": 800, "dialogFadeInMs": 100,
+        "dialogCloseDamping": 1.0, "dialogCloseStiffness": 1400, "dialogFadeOutMs": 90
+      }
     }
   }
 }

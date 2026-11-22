@@ -158,9 +158,9 @@ const val FLOATING_EXIT_MS = DesignTokens.GlassMotion.EXIT_HOLD_MS
 val LocalFloatingSurfaceClosing = compositionLocalOf { false }
 
 /**
- * Apple-style liquid glass opening and closing animation for popups, menus, and dialogs: a fluid,
- * organic spring on the scale with an alpha fade. Always on — it is the app's own motion language,
- * not a preference, so there is no switch to turn it off.
+ * Crisp liquid-glass opening and closing animation for popups, bottom sheets, and dialogs: a
+ * near-critically damped spring driving scale and role-appropriate anchor glide alongside an alpha
+ * fade, with no splash overshoot. Always on — it is the app's own motion language.
  *
  * Apply it **before** the fill in the chain — `Modifier.liquidGlassSpringAnimation(…).background(…)` —
  * as the desktop's colour panel already does. Composed after `background`, the layer holds only the
@@ -170,23 +170,23 @@ val LocalFloatingSurfaceClosing = compositionLocalOf { false }
 fun Modifier.liquidGlassSpringAnimation(
     expanded: Boolean = !LocalFloatingSurfaceClosing.current,
     origin: TransformOrigin = TransformOrigin(0f, 0f),
+    role: DesignTokens.GlassMotion.SurfaceRole = DesignTokens.GlassMotion.SurfaceRole.POPOVER,
 ): Modifier {
-    val start = DesignTokens.GlassMotion.START_SCALE
-    val scale = remember { Animatable(if (expanded) start else 1f) }
+    val spec = DesignTokens.GlassMotion.spec(role)
+    val slidePx = with(LocalDensity.current) { spec.slideDp.dp.toPx() }
+    val progress = remember { Animatable(if (expanded) 0f else 1f) }
     val alpha = remember { Animatable(if (expanded) 0f else 1f) }
 
-    LaunchedEffect(expanded) {
+    LaunchedEffect(expanded, role) {
         if (expanded) {
-            scale.snapTo(start)
+            progress.snapTo(0f)
             alpha.snapTo(0f)
             launch {
-                scale.animateTo(
+                progress.animateTo(
                     targetValue = 1f,
                     animationSpec = spring(
-                        // Apple iOS fluid spring: rapid release with organic deceleration and cushioned
-                        // snap (no cartoon bouncing). The numbers are the shared glass tokens.
-                        dampingRatio = DesignTokens.GlassMotion.OPEN_DAMPING_RATIO,
-                        stiffness = DesignTokens.GlassMotion.OPEN_STIFFNESS,
+                        dampingRatio = spec.openDamping,
+                        stiffness = spec.openStiffness,
                     ),
                 )
             }
@@ -194,24 +194,20 @@ fun Modifier.liquidGlassSpringAnimation(
                 alpha.animateTo(
                     targetValue = 1f,
                     animationSpec = tween(
-                        durationMillis = DesignTokens.GlassMotion.FADE_IN_MS,
+                        durationMillis = spec.fadeInMs,
                         easing = FastOutSlowInEasing,
                     ),
                 )
             }
         } else {
-            // The closing half, run backwards: it draws back to the same 0.82 scale and fades out. Both
-            // land inside [FLOATING_EXIT_MS], the hold the host keeps the window for — a spring that
-            // settled later would have its tail cut off by the window going away.
+            // The closing half runs backwards inside [FLOATING_EXIT_MS] so the window does not cut
+            // off the departure mid-flight.
             launch {
-                // A spring on the way out too, so the panel reads as drawing back rather than as being
-                // cut: stiffer and better damped than the arrival, so it lands in ~110 ms with no bounce
-                // — a dismissal is something you asked for, not something to watch.
-                scale.animateTo(
-                    targetValue = start,
+                progress.animateTo(
+                    targetValue = 0f,
                     animationSpec = spring(
-                        dampingRatio = DesignTokens.GlassMotion.CLOSE_DAMPING_RATIO,
-                        stiffness = DesignTokens.GlassMotion.CLOSE_STIFFNESS,
+                        dampingRatio = spec.closeDamping,
+                        stiffness = spec.closeStiffness,
                     ),
                 )
             }
@@ -219,7 +215,7 @@ fun Modifier.liquidGlassSpringAnimation(
                 alpha.animateTo(
                     targetValue = 0f,
                     animationSpec = tween(
-                        durationMillis = DesignTokens.GlassMotion.FADE_OUT_MS,
+                        durationMillis = spec.fadeOutMs,
                         easing = FastOutSlowInEasing,
                     ),
                 )
@@ -228,8 +224,11 @@ fun Modifier.liquidGlassSpringAnimation(
     }
 
     return this.graphicsLayer {
-        scaleX = scale.value
-        scaleY = scale.value
+        val p = progress.value
+        val s = spec.startScale + (1f - spec.startScale) * p
+        scaleX = s
+        scaleY = s
+        translationY = DesignTokens.GlassMotion.slideDirectionSign(role, origin.pivotFractionY) * slidePx * (1f - p)
         this.alpha = alpha.value
         transformOrigin = origin
     }
@@ -325,6 +324,7 @@ fun FloatingDialog(
                 .liquidGlassSpringAnimation(
                     expanded = !LocalFloatingSurfaceClosing.current,
                     origin = TransformOrigin(0.5f, 0.5f),
+                    role = DesignTokens.GlassMotion.SurfaceRole.DIALOG,
                 )
                 .floatingRim(),
             properties = resolvedProperties,

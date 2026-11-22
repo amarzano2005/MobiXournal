@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
 import com.mobixournal.design.DesignTokens
@@ -27,10 +29,9 @@ import kotlinx.coroutines.launch
 /**
  * The floating glass's **arrival**, as the tablet already plays it.
  *
- * A panel does not fade in: it grows from 82 % of its size on an under-damped spring while its alpha
- * rises over 110 ms, and it draws back to that scale while fading out over 170 ms. On the tablet this is
- * [com.mobixournal.ui.theme.liquidGlassSpringAnimation]; this is the same movement, reading the same
- * `DesignTokens.GlassMotion` numbers, for the window's surfaces — which is the only way two shells can
+ * Motion is differentiated across [DesignTokens.GlassMotion.SurfaceRole]s on near-critically
+ * damped springs (no splash overshoot), reading the same `DesignTokens.GlassMotion` numbers as
+ * [com.mobixournal.ui.theme.liquidGlassSpringAnimation] — which is the only way two shells can
  * claim one motion language while drawing in two modules.
  *
  * This motion applies to in-shell surfaces. Native menus use [GlassPopup] without scale or fade;
@@ -110,32 +111,33 @@ private class HeldValue<T> {
 }
 
 /**
- * The family's arrival on a surface that composes inside the shell: scale from
- * [DesignTokens.GlassMotion.START_SCALE] to 1 with the shared spring, and alpha over
- * [DesignTokens.GlassMotion.FADE_IN_MS].
+ * The family's arrival on a surface that composes inside the shell: scale from [role]'s
+ * `startScale` to 1 alongside its anchor glide on the shared spring, and alpha over `fadeInMs`.
  *
- * The origin is the panel's centre, so a centred panel grows in place; a surface anchored to a corner
- * passes its own.
+ * The origin is the panel's centre, so a centred panel scales in place; a surface anchored to a corner
+ * or bottom edge passes its own.
  */
 @Composable
 fun Modifier.glassSpring(
     visible: Boolean = !LocalGlassClosing.current,
     origin: TransformOrigin = TransformOrigin(0.5f, 0.5f),
+    role: DesignTokens.GlassMotion.SurfaceRole = DesignTokens.GlassMotion.SurfaceRole.POPOVER,
 ): Modifier {
-    val start = DesignTokens.GlassMotion.START_SCALE
-    val scale = remember { Animatable(if (visible) start else 1f) }
+    val spec = DesignTokens.GlassMotion.spec(role)
+    val slidePx = with(LocalDensity.current) { spec.slideDp.dp.toPx() }
+    val progress = remember { Animatable(if (visible) 0f else 1f) }
     val alpha = remember { Animatable(if (visible) 0f else 1f) }
 
-    LaunchedEffect(visible) {
+    LaunchedEffect(visible, role) {
         if (visible) {
-            scale.snapTo(start)
+            progress.snapTo(0f)
             alpha.snapTo(0f)
             launch {
-                scale.animateTo(
+                progress.animateTo(
                     targetValue = 1f,
                     animationSpec = spring(
-                        dampingRatio = DesignTokens.GlassMotion.OPEN_DAMPING_RATIO,
-                        stiffness = DesignTokens.GlassMotion.OPEN_STIFFNESS,
+                        dampingRatio = spec.openDamping,
+                        stiffness = spec.openStiffness,
                     ),
                 )
             }
@@ -143,19 +145,19 @@ fun Modifier.glassSpring(
                 alpha.animateTo(
                     targetValue = 1f,
                     animationSpec = tween(
-                        durationMillis = DesignTokens.GlassMotion.FADE_IN_MS,
+                        durationMillis = spec.fadeInMs,
                         easing = FastOutSlowInEasing,
                     ),
                 )
             }
         } else {
-            // The closing half runs backwards to the same scale, inside the hold GlassPresence keeps.
+            // The closing half runs backwards inside the hold GlassPresence keeps.
             launch {
-                scale.animateTo(
-                    targetValue = start,
+                progress.animateTo(
+                    targetValue = 0f,
                     animationSpec = spring(
-                        dampingRatio = DesignTokens.GlassMotion.CLOSE_DAMPING_RATIO,
-                        stiffness = DesignTokens.GlassMotion.CLOSE_STIFFNESS,
+                        dampingRatio = spec.closeDamping,
+                        stiffness = spec.closeStiffness,
                     ),
                 )
             }
@@ -163,7 +165,7 @@ fun Modifier.glassSpring(
                 alpha.animateTo(
                     targetValue = 0f,
                     animationSpec = tween(
-                        durationMillis = DesignTokens.GlassMotion.FADE_OUT_MS,
+                        durationMillis = spec.fadeOutMs,
                         easing = FastOutSlowInEasing,
                     ),
                 )
@@ -172,8 +174,11 @@ fun Modifier.glassSpring(
     }
 
     return this.graphicsLayer {
-        scaleX = scale.value
-        scaleY = scale.value
+        val p = progress.value
+        val s = spec.startScale + (1f - spec.startScale) * p
+        scaleX = s
+        scaleY = s
+        translationY = DesignTokens.GlassMotion.slideDirectionSign(role, origin.pivotFractionY) * slidePx * (1f - p)
         this.alpha = alpha.value
         transformOrigin = origin
     }

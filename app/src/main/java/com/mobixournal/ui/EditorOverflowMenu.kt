@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupPositionProvider
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.ui.theme.LocalChromeLayoutPolicy
 import com.mobixournal.ui.theme.chromeIsDark
@@ -85,6 +86,7 @@ private data class SheetPopupLayout(
     val isCompact: Boolean,
     val contentWidthPx: Int,
     val positionProvider: PopupPositionProvider?,
+    val motionRole: DesignTokens.GlassMotion.SurfaceRole,
 )
 
 @Composable
@@ -104,7 +106,17 @@ private fun rememberSheetPopupLayout(): SheetPopupLayout {
         } else {
             null
         }
-        SheetPopupLayout(isCompact = policy.isCompact, contentWidthPx = widthPx, positionProvider = provider)
+        val role = if (policy.overflowSheetIsBottom) {
+            DesignTokens.GlassMotion.SurfaceRole.SHEET
+        } else {
+            DesignTokens.GlassMotion.SurfaceRole.POPOVER
+        }
+        SheetPopupLayout(
+            isCompact = policy.isCompact,
+            contentWidthPx = widthPx,
+            positionProvider = provider,
+            motionRole = role,
+        )
     }
 }
 
@@ -239,23 +251,23 @@ internal fun OverflowMenu(
     val isCompact = layout.isCompact
     val sheetFill = rememberPopupPanelColor()
 
+    val closeSheet = {
+        open = false
+        subView = null
+    }
+
     Box {
         OverflowTriggerButton(
             expanded = open,
-            onClick = {
-                subView = null
-                open = true
-            },
+            onClick = { subView = null; open = true },
         )
         ToolbarMenu(
             expanded = open,
-            onDismissRequest = {
-                open = false
-                subView = null
-            },
+            onDismissRequest = closeSheet,
             positionProvider = layout.positionProvider,
             contentWidthPx = layout.contentWidthPx,
             fill = sheetFill,
+            motionRole = layout.motionRole,
             modifier = if (isCompact) Modifier.navigationBarsPadding() else Modifier,
         ) {
             OverflowSheetBody(
@@ -269,16 +281,10 @@ internal fun OverflowMenu(
                 penDiagnostics = penDiagnostics,
                 activeTab = activeTab,
                 subView = subView,
-                onSelectTab = { tab ->
-                    activeTab = tab
-                    subView = null
-                },
+                onSelectTab = { tab -> activeTab = tab; subView = null },
                 onOpenSubView = { subView = it },
                 onBackFromSubView = { subView = null },
-                onDismiss = {
-                    open = false
-                    subView = null
-                },
+                onDismiss = closeSheet,
                 onNewTab = onNewTab,
                 onOpen = onOpen,
                 onSaveAsFormat = onSaveAsFormat,

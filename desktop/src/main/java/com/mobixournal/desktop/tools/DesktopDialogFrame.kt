@@ -90,7 +90,7 @@ internal fun DesktopDialogFrame(
     val scrimAlpha by animateFloatAsState(
         targetValue = if (closing) 0f else 1f,
         animationSpec = tween(
-            if (closing) DesignTokens.GlassMotion.FADE_OUT_MS else DesignTokens.GlassMotion.FADE_IN_MS,
+            if (closing) DesignTokens.GlassMotion.DIALOG_FADE_OUT_MS else DesignTokens.GlassMotion.DIALOG_FADE_IN_MS,
         ),
     )
     BoxWithConstraints(
@@ -118,7 +118,7 @@ internal fun DesktopDialogFrame(
                 .heightIn(max = (maxHeight - ImportCardLayout.EDGE_DP.dp * 2).coerceAtLeast(0.dp))
                 .focusRequester(card)
                 .focusable()
-                .glassSpring()
+                .glassSpring(role = DesignTokens.GlassMotion.SurfaceRole.DIALOG)
                 .glassSurface()
                 // The card swallows its own taps: a press on the body must not reach the scrim and count
                 // as a click outside the question.

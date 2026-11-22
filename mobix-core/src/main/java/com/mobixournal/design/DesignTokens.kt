@@ -286,50 +286,171 @@ object DesignTokens {
     const val FADE_TRANSITION_MS: Int = 150
 
     /**
-     * The floating glass's **motion** — how a panel arrives and leaves. Plain Kotlin, because both
-     * shells draw the same arrival and the numbers are the app's motion language, not one platform's
+     * The floating glass's **motion** — how a surface arrives and leaves. Plain Kotlin, because both
+     * shells draw the same motion and the numbers are the app's motion language, not one platform's
      * taste (`docs/ui-modernization.md`).
      *
-     * A surface opens from [START_SCALE] to 1 on an under-damped spring while its alpha fades in over
-     * [FADE_IN_MS]; it draws back to the same scale on the slightly stiffer [CLOSE_STIFFNESS] spring
-     * while fading out over [FADE_OUT_MS]. A host that tears its surface down the instant the flag
-     * clears has to hold it for [EXIT_HOLD_MS] instead, or the exit is cut off mid-flight.
+     * Motion is differentiated across three [SurfaceRole]s, all critically or near-critically damped
+     * (no splash overshoot):
+     * - [SurfaceRole.POPOVER]: crisp scale from [START_SCALE] to 1 with a subtle [POPOVER_SLIDE_DP]
+     *   anchor glide and fast [FADE_IN_MS] fade.
+     * - [SurfaceRole.SHEET]: bottom-anchored sheet gliding up by [SHEET_SLIDE_DP] with a near-full
+     *   scale ([SHEET_START_SCALE] to 1).
+     * - [SurfaceRole.DIALOG]: centered modal or settings overlay scaling cleanly from
+     *   [DIALOG_START_SCALE] to 1 in place.
+     *
+     * A host that tears its surface down the instant the flag clears has to hold it for
+     * [EXIT_HOLD_MS] instead, or the exit is cut off mid-flight.
      */
     object GlassMotion {
 
-        /** Where a panel starts (and ends) its arrival: 82 % of its size, around the anchor. */
-        const val START_SCALE: Float = 0.82f
+        /** Role of a floating glass surface, selecting its scale, slide and spring curves. */
+        enum class SurfaceRole { POPOVER, SHEET, DIALOG }
 
-        /**
-         * The arrival spring's damping — under-damped on purpose: ζ ≈ 0.6, so the panel settles into its
-         * size with a bounce you can actually see (~10 % over, then back) instead of stopping dead.
-         */
-        const val OPEN_DAMPING_RATIO: Float = 0.6f
+        /** Motion parameters for a [SurfaceRole]. */
+        data class RoleSpec(
+            val startScale: Float,
+            val slideDp: Float,
+            val openDamping: Float,
+            val openStiffness: Float,
+            val fadeInMs: Int,
+            val closeDamping: Float,
+            val closeStiffness: Float,
+            val fadeOutMs: Int,
+        )
 
-        /** The arrival spring's stiffness — quick enough that the bounce lands inside ~250 ms. */
-        const val OPEN_STIFFNESS: Float = 620f
+        /** Where a popover starts (and ends) its arrival: 94 % of its size, around the anchor. */
+        const val START_SCALE: Float = 0.94f
 
-        /** The arrival's alpha fade, in ms. */
-        const val FADE_IN_MS: Int = 110
+        /** Subtle directional glide (dp) away from the anchor edge for popovers. */
+        const val POPOVER_SLIDE_DP: Float = 6f
 
-        /**
-         * The closing spring's damping — better damped than the arrival's, so the panel leaves without a
-         * visible bounce: a dismissal is something you asked for, not something to watch settle.
-         */
-        const val CLOSE_DAMPING_RATIO: Float = 0.9f
+        /** Popover arrival damping — near-critically damped (ζ = 0.96) for a crisp stop without bounce. */
+        const val OPEN_DAMPING_RATIO: Float = 0.96f
 
-        /** The closing spring's stiffness: the draw-back lands in about 110 ms. */
+        /** Popover arrival spring stiffness. */
+        const val OPEN_STIFFNESS: Float = 800f
+
+        /** Popover arrival alpha fade, in ms. */
+        const val FADE_IN_MS: Int = 90
+
+        /** Popover closing spring damping — critically damped so dismissal never bounces. */
+        const val CLOSE_DAMPING_RATIO: Float = 1.0f
+
+        /** Popover closing spring stiffness. */
         const val CLOSE_STIFFNESS: Float = 1400f
 
-        /** The closing alpha fade, in ms. */
-        const val FADE_OUT_MS: Int = 110
+        /** Popover closing alpha fade, in ms. */
+        const val FADE_OUT_MS: Int = 90
+
+        /** Bottom sheet initial scale (near full width/height so the glide carries the motion). */
+        const val SHEET_START_SCALE: Float = 0.98f
+
+        /** Bottom sheet vertical glide distance, in dp. */
+        const val SHEET_SLIDE_DP: Float = 24f
+
+        /** Bottom sheet arrival spring damping. */
+        const val SHEET_OPEN_DAMPING_RATIO: Float = 0.95f
+
+        /** Bottom sheet arrival spring stiffness. */
+        const val SHEET_OPEN_STIFFNESS: Float = 720f
+
+        /** Bottom sheet arrival alpha fade, in ms. */
+        const val SHEET_FADE_IN_MS: Int = 110
+
+        /** Bottom sheet closing spring damping. */
+        const val SHEET_CLOSE_DAMPING_RATIO: Float = 1.0f
+
+        /** Bottom sheet closing spring stiffness. */
+        const val SHEET_CLOSE_STIFFNESS: Float = 1300f
+
+        /** Bottom sheet closing alpha fade, in ms. */
+        const val SHEET_FADE_OUT_MS: Int = 95
+
+        /** Centered dialog initial scale. */
+        const val DIALOG_START_SCALE: Float = 0.96f
+
+        /** Centered dialog vertical slide distance, in dp (0 = scales in place). */
+        const val DIALOG_SLIDE_DP: Float = 0f
+
+        /** Dialog arrival spring damping. */
+        const val DIALOG_OPEN_DAMPING_RATIO: Float = 0.96f
+
+        /** Dialog arrival spring stiffness. */
+        const val DIALOG_OPEN_STIFFNESS: Float = 800f
+
+        /** Dialog arrival alpha fade, in ms. */
+        const val DIALOG_FADE_IN_MS: Int = 100
+
+        /** Dialog closing spring damping. */
+        const val DIALOG_CLOSE_DAMPING_RATIO: Float = 1.0f
+
+        /** Dialog closing spring stiffness. */
+        const val DIALOG_CLOSE_STIFFNESS: Float = 1400f
+
+        /** Dialog closing alpha fade, in ms. */
+        const val DIALOG_FADE_OUT_MS: Int = 90
 
         /**
-         * How long a host keeps a closing surface composed. Long enough for the fade to land, short
-         * enough that the return reads as a dismissal rather than as a panel taking its time to go: held
-         * for 230 ms it was as long as the arrival, which made closing a menu feel sluggish.
+         * How long a host keeps a closing surface composed. Long enough for every role's fade
+         * to land, short enough that the return reads as a crisp dismissal.
          */
-        const val EXIT_HOLD_MS: Int = 150
+        const val EXIT_HOLD_MS: Int = 130
+
+        private val popoverSpec = RoleSpec(
+            startScale = START_SCALE,
+            slideDp = POPOVER_SLIDE_DP,
+            openDamping = OPEN_DAMPING_RATIO,
+            openStiffness = OPEN_STIFFNESS,
+            fadeInMs = FADE_IN_MS,
+            closeDamping = CLOSE_DAMPING_RATIO,
+            closeStiffness = CLOSE_STIFFNESS,
+            fadeOutMs = FADE_OUT_MS,
+        )
+
+        private val sheetSpec = RoleSpec(
+            startScale = SHEET_START_SCALE,
+            slideDp = SHEET_SLIDE_DP,
+            openDamping = SHEET_OPEN_DAMPING_RATIO,
+            openStiffness = SHEET_OPEN_STIFFNESS,
+            fadeInMs = SHEET_FADE_IN_MS,
+            closeDamping = SHEET_CLOSE_DAMPING_RATIO,
+            closeStiffness = SHEET_CLOSE_STIFFNESS,
+            fadeOutMs = SHEET_FADE_OUT_MS,
+        )
+
+        private val dialogSpec = RoleSpec(
+            startScale = DIALOG_START_SCALE,
+            slideDp = DIALOG_SLIDE_DP,
+            openDamping = DIALOG_OPEN_DAMPING_RATIO,
+            openStiffness = DIALOG_OPEN_STIFFNESS,
+            fadeInMs = DIALOG_FADE_IN_MS,
+            closeDamping = DIALOG_CLOSE_DAMPING_RATIO,
+            closeStiffness = DIALOG_CLOSE_STIFFNESS,
+            fadeOutMs = DIALOG_FADE_OUT_MS,
+        )
+
+        /** Returns the motion spec for [role]. */
+        fun spec(role: SurfaceRole): RoleSpec = when (role) {
+            SurfaceRole.POPOVER -> popoverSpec
+            SurfaceRole.SHEET -> sheetSpec
+            SurfaceRole.DIALOG -> dialogSpec
+        }
+
+        /**
+         * Signed vertical translation factor for [role] given the anchor [pivotFractionY]:
+         * bottom sheets always rise from `+slideDp`, dialogs stay centered (`0`), and popovers
+         * glide slightly down from a top anchor (`-1`) or up from a bottom anchor (`+1`).
+         */
+        fun slideDirectionSign(role: SurfaceRole, pivotFractionY: Float): Float = when (role) {
+            SurfaceRole.SHEET -> 1f
+            SurfaceRole.DIALOG -> 0f
+            SurfaceRole.POPOVER -> when {
+                pivotFractionY < 0.25f -> -1f
+                pivotFractionY > 0.75f -> 1f
+                else -> 0f
+            }
+        }
     }
 
     // --- Palette --------------------------------------------------------------------------------

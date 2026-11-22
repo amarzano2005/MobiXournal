@@ -156,8 +156,9 @@ the strip's pixels, so a readout that stops being drawn fails the build.
 
 Native desktop popup windows appear and disappear immediately at full scale and opacity (`GlassPopupGuardTest`); scaling or fading content inside the window would expose underlying controls. In-shell surfaces may retain their arrival motion. The following shared spring recipe applies to Android and those in-shell surfaces.
 
-Only `DesignTokens.GlassMotion` (stiffness, damping, fade). No bespoke `tween`, no `animateFloatAsState`
-with hand-picked durations, and no animation on a band.
+Only `DesignTokens.GlassMotion` (role-based scale, slide, stiffness, damping, fade across `POPOVER`,
+`SHEET` and `DIALOG`, all critically or near-critically damped with no splash overshoot). No bespoke
+`tween`, no `animateFloatAsState` with hand-picked durations, and no animation on a band.
 
 - **Android and in-shell floating surfaces arrive *and* leave** on that spring — a pop-up, a flyout, a list, a dialog, a
   toast, on both shells. A surface that animates one way only is a defect, not a simplification; the

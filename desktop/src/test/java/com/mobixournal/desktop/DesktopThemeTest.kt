@@ -113,6 +113,7 @@ class DesktopThemeTest {
 
         // The glass' arrival: the same numbers the tablet's panels move by.
         assertEquals(DesignTokens.GlassMotion.START_SCALE, number("startScale").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.POPOVER_SLIDE_DP, number("popoverSlideDp").toFloat(), 1e-4f)
         assertEquals(DesignTokens.GlassMotion.OPEN_DAMPING_RATIO, number("openDamping").toFloat(), 1e-4f)
         assertEquals(DesignTokens.GlassMotion.OPEN_STIFFNESS, number("openStiffness").toFloat(), 1e-4f)
         assertEquals(DesignTokens.GlassMotion.FADE_IN_MS, number("fadeInMs").toInt())
@@ -120,6 +121,22 @@ class DesktopThemeTest {
         assertEquals(DesignTokens.GlassMotion.CLOSE_STIFFNESS, number("closeStiffness").toFloat(), 1e-4f)
         assertEquals(DesignTokens.GlassMotion.FADE_OUT_MS, number("fadeOutMs").toInt())
         assertEquals(DesignTokens.GlassMotion.EXIT_HOLD_MS, number("exitHoldMs").toInt())
+        assertEquals(DesignTokens.GlassMotion.SHEET_START_SCALE, number("sheetStartScale").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.SHEET_SLIDE_DP, number("sheetSlideDp").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.SHEET_OPEN_DAMPING_RATIO, number("sheetOpenDamping").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.SHEET_OPEN_STIFFNESS, number("sheetOpenStiffness").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.SHEET_FADE_IN_MS, number("sheetFadeInMs").toInt())
+        assertEquals(DesignTokens.GlassMotion.SHEET_CLOSE_DAMPING_RATIO, number("sheetCloseDamping").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.SHEET_CLOSE_STIFFNESS, number("sheetCloseStiffness").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.SHEET_FADE_OUT_MS, number("sheetFadeOutMs").toInt())
+        assertEquals(DesignTokens.GlassMotion.DIALOG_START_SCALE, number("dialogStartScale").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.DIALOG_SLIDE_DP, number("dialogSlideDp").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.DIALOG_OPEN_DAMPING_RATIO, number("dialogOpenDamping").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.DIALOG_OPEN_STIFFNESS, number("dialogOpenStiffness").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.DIALOG_FADE_IN_MS, number("dialogFadeInMs").toInt())
+        assertEquals(DesignTokens.GlassMotion.DIALOG_CLOSE_DAMPING_RATIO, number("dialogCloseDamping").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.DIALOG_CLOSE_STIFFNESS, number("dialogCloseStiffness").toFloat(), 1e-4f)
+        assertEquals(DesignTokens.GlassMotion.DIALOG_FADE_OUT_MS, number("dialogFadeOutMs").toInt())
     }
 
     @Test

@@ -63,6 +63,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.format.model.TableAlign
 import com.mobixournal.format.model.TableCell
 import com.mobixournal.format.model.TableElement
@@ -116,6 +117,7 @@ fun TableCellEditorDialog(
                 .liquidGlassSpringAnimation(
                     expanded = !LocalFloatingSurfaceClosing.current,
                     origin = TransformOrigin(0.5f, 0.5f),
+                    role = DesignTokens.GlassMotion.SurfaceRole.DIALOG,
                 ),
         ) {
             Column(

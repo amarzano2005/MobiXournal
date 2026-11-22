@@ -17,6 +17,7 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.ImageComposeScene
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -31,12 +32,13 @@ import org.junit.Test
 /**
  * The glass' **movement**, measured rather than claimed.
  *
- * A panel that merely appears and a panel that grows in from 82 % while its alpha rises look the same in
- * a still frame (the settled one) and differ entirely over the first 300 ms. So this drives the real
+ * A panel that merely appears and a panel that grows in from 94 % while its alpha rises look the same in
+ * a still frame (the settled one) and differ entirely over the first 200 ms. So this drives the real
  * animation through an [ImageComposeScene]'s frame clock — one frame every [FRAME_MS] — and reads the
  * pixels it paints at successive instants: at the start the panel is invisible, near the start it is
- * faint and still inside its 82 % box, and by the documented end it is the glass at full size. The
- * numbers are [DesignTokens.GlassMotion]'s, so a token that moves without the motion moving fails here.
+ * faint and still inside its 94 % box, across the arrival it never overshoots its final bounds, and by
+ * the documented end it is the glass at full size. The numbers are [DesignTokens.GlassMotion]'s, so a
+ * token that moves without the motion moving fails here.
  */
 class GlassMotionTest {
 
@@ -52,14 +54,13 @@ class GlassMotionTest {
         try {
             val centreX = viewportWidth / 2
             val centreY = viewportHeight / 2
-            // Inside the panel's *final* box, well outside its 82 % opening box (which starts 10.8 px in):
+            // Inside the panel's *final* box, well outside its 94 % opening box (which starts 3.6 px in):
             // only a panel that has grown can paint here.
-            val grownY = centreY - panelHeight / 2 + 3
+            val grownY = centreY - panelHeight / 2 + 1
+            val outsideY = centreY - panelHeight / 2 - 2
 
             val opening = frame(scene, 0)
-            val early = advance(scene, to = 40)
-            val settled = advance(scene, to = 700)
-            val later = advance(scene, to = 900)
+            val early = advance(scene, to = 16)
 
             assertEquals(
                 "at t=0 the panel is not yet visible",
@@ -75,24 +76,36 @@ class GlassMotionTest {
             // The flat surface tone: an opaque panel, not the glass over the sheet.
             val settledFill = DesktopTheme.panel.toArgb() and 0xFFFFFF
             assertTrue(
-                "40 ms in, the panel is still fading: centre ${Integer.toHexString(early.getRGB(centreX, centreY))} " +
+                "16 ms in, the panel is still fading: centre ${Integer.toHexString(early.getRGB(centreX, centreY))} " +
                     "must be lighter than the settled ${Integer.toHexString(settledFill)}",
                 luminance(early.getRGB(centreX, centreY)) > luminance(settledFill),
             )
             assertEquals(
-                "and at 40 ms it is still inside its 82 % box, so the far edge is the sheet",
+                "and at 16 ms it is still inside its 94 % box, so the far edge is the sheet",
                 0xFFFFFF,
                 early.getRGB(centreX, grownY) and 0xFFFFFF,
             )
 
+            for (sampleMs in listOf(48L, 80L, 120L, 160L)) {
+                val sample = advance(scene, to = sampleMs)
+                assertEquals(
+                    "no splash overshoot beyond final bounds at $sampleMs ms",
+                    0xFFFFFF,
+                    sample.getRGB(centreX, outsideY) and 0xFFFFFF,
+                )
+            }
+
+            val settled = advance(scene, to = 500)
+            val later = advance(scene, to = 700)
+
             val settledCentre = settled.getRGB(centreX, centreY) and 0xFFFFFF
             assertTrue(
-                "by 700 ms the panel is the glass over the sheet: " +
+                "by 500 ms the panel is the glass over the sheet: " +
                     "${Integer.toHexString(settledCentre)} vs ${Integer.toHexString(settledFill)}",
                 channelDistance(settledCentre, settledFill) <= 2,
             )
             assertTrue(
-                "and it has grown into the box it did not reach at 40 ms: " +
+                "and it has grown into the box it did not reach at 16 ms: " +
                     Integer.toHexString(settled.getRGB(centreX, grownY)),
                 (settled.getRGB(centreX, grownY) and 0xFFFFFF) != 0xFFFFFF,
             )
@@ -100,6 +113,48 @@ class GlassMotionTest {
                 "the arrival is over and stays put",
                 settled.getRGB(centreX, centreY),
                 later.getRGB(centreX, centreY),
+            )
+        } finally {
+            scene.close()
+        }
+    }
+
+    @OptIn(ExperimentalComposeUiApi::class)
+    @Test
+    fun theSheetRoleGlidesUpFromBelow() {
+        val scene = scene {
+            Box(
+                Modifier
+                    .size(panelWidth.dp, panelHeight.dp)
+                    .glassSpring(
+                        origin = TransformOrigin(0.5f, 1f),
+                        role = DesignTokens.GlassMotion.SurfaceRole.SHEET,
+                    )
+                    .glassSurface(),
+            )
+        }
+        try {
+            val centreX = viewportWidth / 2
+            val centreY = viewportHeight / 2
+            val belowFinalBottomY = centreY + panelHeight / 2 + 6
+
+            frame(scene, 0)
+            val early = advance(scene, to = 16)
+            assertTrue(
+                "16 ms in, the bottom sheet starts offset below its final box and glides upward",
+                (early.getRGB(centreX, belowFinalBottomY) and 0xFFFFFF) != 0xFFFFFF,
+            )
+
+            val settled = advance(scene, to = 500)
+            assertEquals(
+                "once settled, nothing remains below the sheet's final box",
+                0xFFFFFF,
+                settled.getRGB(centreX, belowFinalBottomY) and 0xFFFFFF,
+            )
+            val settledFill = DesktopTheme.panel.toArgb() and 0xFFFFFF
+            assertTrue(
+                "and the sheet sits cleanly in its final box",
+                channelDistance(settled.getRGB(centreX, centreY) and 0xFFFFFF, settledFill) <= 2,
             )
         } finally {
             scene.close()

@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
@@ -159,6 +160,7 @@ internal fun ToolbarMenu(
     positionProvider: PopupPositionProvider? = null,
     contentWidthPx: Int? = null,
     fill: Color? = null,
+    motionRole: DesignTokens.GlassMotion.SurfaceRole = DesignTokens.GlassMotion.SurfaceRole.POPOVER,
     /**
      * Drop the panel's 8 dp of vertical air for a menu that is **one row** — the selection's recolour
      * strip, whose row is already a 28 dp swatch with its own margin above and below. Left at the
@@ -178,6 +180,7 @@ internal fun ToolbarMenu(
             placement = positionProvider,
             contentWidthPx = contentWidthPx,
             fill = fill,
+            motionRole = motionRole,
             tight = tight,
             content = content,
         )
@@ -197,10 +200,16 @@ private fun ToolbarMenuWindow(
     placement: PopupPositionProvider? = null,
     contentWidthPx: Int? = null,
     fill: Color? = null,
+    motionRole: DesignTokens.GlassMotion.SurfaceRole = DesignTokens.GlassMotion.SurfaceRole.POPOVER,
     tight: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var transformOrigin by remember { mutableStateOf(TransformOrigin(0f, 0f)) }
+    val resolvedOrigin = if (motionRole == DesignTokens.GlassMotion.SurfaceRole.SHEET) {
+        TransformOrigin(0.5f, 1f)
+    } else {
+        transformOrigin
+    }
     // A menu's own fill unless the caller owns one: a settings list wears the settings panel, because
     // floating glass over a settings card let the row behind it read through the answers.
     val panelFill = fill ?: rememberFloatingSurfaceColor()
@@ -225,7 +234,7 @@ private fun ToolbarMenuWindow(
                 // `background` owns only the panel's children: the glass then arrives opaque and at full
                 // size while the rows inside it move — which is the report "the pop-up has no animation,
                 // the things inside it do". Out here it scales and fades the whole panel.
-                .liquidGlassSpringAnimation(origin = transformOrigin)
+                .liquidGlassSpringAnimation(origin = resolvedOrigin, role = motionRole)
                 .clip(RoundedCornerShape(TOP_BAR_DOCK_CORNER))
                 .background(panelFill)
                 .floatingRim(),

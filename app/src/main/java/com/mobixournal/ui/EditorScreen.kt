@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.format.SaveFormat
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.DrawingSurfaceView
@@ -469,7 +470,10 @@ fun EditorScreen(
                 // The same opening every other surface the chrome puts on screen wears — the spring
                 // scale and fade of `liquidGlassSpringAnimation` — so Settings does not snap in while
                 // every menu and inspector around it springs.
-                modifier = Modifier.liquidGlassSpringAnimation(origin = TransformOrigin(0.5f, 0.5f)),
+                modifier = Modifier.liquidGlassSpringAnimation(
+                    origin = TransformOrigin(0.5f, 0.5f),
+                    role = DesignTokens.GlassMotion.SurfaceRole.DIALOG,
+                ),
             )
         }
 
