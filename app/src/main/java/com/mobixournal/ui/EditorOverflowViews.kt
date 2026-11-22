@@ -22,6 +22,7 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
 import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.Draw
 import androidx.compose.material.icons.outlined.FileDownload
 import androidx.compose.material.icons.outlined.Fullscreen
 import androidx.compose.material.icons.outlined.Search
@@ -494,5 +495,69 @@ private fun FooterPillButton(
         Icon(icon, contentDescription = null, tint = ink.copy(alpha = 0.72f), modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
         Text(text = label, style = MaterialTheme.typography.labelLarge, color = ink)
+    }
+}
+
+@Composable
+internal fun SheetModeSwitcher(
+    activeTab: SheetTab,
+    onSelectTab: (SheetTab) -> Unit,
+) {
+    val ink = rememberChromeInk()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(rememberSheetSurfaceColor())
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        SheetTabPill(
+            label = "Document",
+            icon = ChromeGlyph.PDF.imageVector(),
+            selected = activeTab == SheetTab.DOCUMENT,
+            ink = ink,
+            onClick = { onSelectTab(SheetTab.DOCUMENT) },
+            modifier = Modifier.weight(1f),
+        )
+        SheetTabPill(
+            label = "Pen & View",
+            icon = Icons.Outlined.Draw,
+            selected = activeTab == SheetTab.STUDIO,
+            ink = ink,
+            onClick = { onSelectTab(SheetTab.STUDIO) },
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun SheetTabPill(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    ink: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val pillBg = if (selected) ink.copy(alpha = 0.14f) else Color.Transparent
+    val contentColor = if (selected) ink else ink.copy(alpha = 0.58f)
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(pillBg)
+            .clickable(onClick = onClick)
+            .padding(vertical = 7.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = contentColor,
+        )
     }
 }

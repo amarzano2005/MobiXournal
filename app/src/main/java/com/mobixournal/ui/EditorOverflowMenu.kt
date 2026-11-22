@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Draw
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,9 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntRect
@@ -57,14 +54,13 @@ import com.mobixournal.format.SaveFormat
 import com.mobixournal.ui.theme.LocalChromeLayoutPolicy
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
-import com.mobixournal.ui.theme.liquidGlassContentSize
 import com.mobixournal.ui.theme.liquidGlassFadeTransform
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberPopupPanelColor
 
-private enum class SheetTab { DOCUMENT, STUDIO }
-private enum class SheetView { DOCUMENT, STUDIO, EXPORT, SHARE, SAVE_AS }
+internal enum class SheetTab { DOCUMENT, STUDIO }
+private enum class SheetView { EXPORT, SHARE, SAVE_AS }
 
 /**
  * Anchors the Command Sheet to the bottom-center of the window on compact phone screens so the
@@ -369,11 +365,9 @@ private fun OverflowSheetBody(
     onOpenPenParameters: () -> Unit,
     onSettings: () -> Unit,
 ) {
-    val currentView = subView ?: if (activeTab == SheetTab.STUDIO) SheetView.STUDIO else SheetView.DOCUMENT
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .liquidGlassContentSize()
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -397,11 +391,10 @@ private fun OverflowSheetBody(
             isReadOnly = isReadOnly,
             onShareClick = { onOpenSubView(SheetView.SHARE) },
         )
-        if (subView == null) {
-            SheetModeSwitcher(activeTab = activeTab, onSelectTab = onSelectTab)
-        }
         OverflowSheetContent(
-            currentView = currentView,
+            activeTab = activeTab,
+            subView = subView,
+            onSelectTab = onSelectTab,
             isReadOnly = isReadOnly,
             fullPage = fullPage,
             settings = settings,
@@ -434,7 +427,9 @@ private fun OverflowSheetBody(
 
 @Composable
 private fun OverflowSheetContent(
-    currentView: SheetView,
+    activeTab: SheetTab,
+    subView: SheetView?,
+    onSelectTab: (SheetTab) -> Unit,
     isReadOnly: Boolean,
     fullPage: Boolean,
     settings: AppSettings?,
@@ -458,40 +453,33 @@ private fun OverflowSheetContent(
     onToggleToolbarPosition: () -> Unit,
     onTogglePenDiagnostics: () -> Unit,
 ) {
+    // Keep the mode switcher inside the root branch so entering a drilldown (Share / Save As /
+    // Export) runs a single AnimatedContent transition and SizeTransform without animateContentSize
+    // fighting it or snapping the switcher out on frame zero.
     AnimatedContent(
-        targetState = currentView,
+        targetState = subView,
         transitionSpec = { liquidGlassFadeTransform() },
         label = "OverflowSheetView",
-    ) { view ->
-        when (view) {
-            SheetView.DOCUMENT -> DocumentTabView(
+    ) { targetSubView ->
+        when (targetSubView) {
+            null -> OverflowSheetRootView(
+                activeTab = activeTab,
+                onSelectTab = onSelectTab,
                 isReadOnly = isReadOnly,
-                showSearchAction = LocalChromeLayoutPolicy.current.isCompact,
-                onNewTab = { onDismiss(); onNewTab() },
-                onOpen = { onDismiss(); onOpen() },
-                onSaveAs = { onOpenSubView(SheetView.SAVE_AS) },
-                onImportPdf = { onDismiss(); onImportPdf() },
-                onOpenExport = { onOpenSubView(SheetView.EXPORT) },
-                onOpenSearch = { onDismiss(); onOpenSearch() },
-            )
-            SheetView.STUDIO -> StudioTabView(
-                settings = settings,
                 fullPage = fullPage,
+                settings = settings,
                 penDiagnostics = penDiagnostics,
-                onSelectPenPreset = { preset ->
-                    onSelectPenPreset(preset)
-                    onDismiss()
-                },
+                onOpenSubView = onOpenSubView,
+                onDismiss = onDismiss,
+                onNewTab = onNewTab,
+                onOpen = onOpen,
+                onOpenSearch = onOpenSearch,
+                onImportPdf = onImportPdf,
+                onSelectPenPreset = onSelectPenPreset,
                 onToggleFingerDraws = onToggleFingerDraws,
-                onToggleFullPage = {
-                    onToggleFullPage()
-                    onDismiss()
-                },
+                onToggleFullPage = onToggleFullPage,
                 onToggleToolbarPosition = onToggleToolbarPosition,
-                onTogglePenDiagnostics = {
-                    onTogglePenDiagnostics()
-                    onDismiss()
-                },
+                onTogglePenDiagnostics = onTogglePenDiagnostics,
             )
             SheetView.EXPORT -> ExportDrilldownView(
                 isReadOnly = isReadOnly,
@@ -511,6 +499,68 @@ private fun OverflowSheetContent(
                 onBack = onBackFromSubView,
                 onPickFormat = { format -> onDismiss(); onSaveAsFormat(format) },
             )
+        }
+    }
+}
+
+@Composable
+private fun OverflowSheetRootView(
+    activeTab: SheetTab,
+    onSelectTab: (SheetTab) -> Unit,
+    isReadOnly: Boolean,
+    fullPage: Boolean,
+    settings: AppSettings?,
+    penDiagnostics: Boolean,
+    onOpenSubView: (SheetView) -> Unit,
+    onDismiss: () -> Unit,
+    onNewTab: () -> Unit,
+    onOpen: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onImportPdf: () -> Unit,
+    onSelectPenPreset: (PenPreset) -> Unit,
+    onToggleFingerDraws: () -> Unit,
+    onToggleFullPage: () -> Unit,
+    onToggleToolbarPosition: () -> Unit,
+    onTogglePenDiagnostics: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SheetModeSwitcher(activeTab = activeTab, onSelectTab = onSelectTab)
+        AnimatedContent(
+            targetState = activeTab,
+            transitionSpec = { liquidGlassFadeTransform() },
+            label = "OverflowSheetTab",
+        ) { tab ->
+            when (tab) {
+                SheetTab.DOCUMENT -> DocumentTabView(
+                    isReadOnly = isReadOnly,
+                    showSearchAction = LocalChromeLayoutPolicy.current.isCompact,
+                    onNewTab = { onDismiss(); onNewTab() },
+                    onOpen = { onDismiss(); onOpen() },
+                    onSaveAs = { onOpenSubView(SheetView.SAVE_AS) },
+                    onImportPdf = { onDismiss(); onImportPdf() },
+                    onOpenExport = { onOpenSubView(SheetView.EXPORT) },
+                    onOpenSearch = { onDismiss(); onOpenSearch() },
+                )
+                SheetTab.STUDIO -> StudioTabView(
+                    settings = settings,
+                    fullPage = fullPage,
+                    penDiagnostics = penDiagnostics,
+                    onSelectPenPreset = { preset ->
+                        onSelectPenPreset(preset)
+                        onDismiss()
+                    },
+                    onToggleFingerDraws = onToggleFingerDraws,
+                    onToggleFullPage = {
+                        onToggleFullPage()
+                        onDismiss()
+                    },
+                    onToggleToolbarPosition = onToggleToolbarPosition,
+                    onTogglePenDiagnostics = {
+                        onTogglePenDiagnostics()
+                        onDismiss()
+                    },
+                )
+            }
         }
     }
 }
@@ -629,69 +679,5 @@ private fun MiniPageThumbnail(ink: Color, accent: Color) {
             )
         }
         drawPath(path, strokeColor, style = Stroke(width = 2.4f, cap = StrokeCap.Round))
-    }
-}
-
-@Composable
-private fun SheetModeSwitcher(
-    activeTab: SheetTab,
-    onSelectTab: (SheetTab) -> Unit,
-) {
-    val ink = rememberChromeInk()
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(rememberSheetSurfaceColor())
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        SheetTabPill(
-            label = "Document",
-            icon = ChromeGlyph.PDF.imageVector(),
-            selected = activeTab == SheetTab.DOCUMENT,
-            ink = ink,
-            onClick = { onSelectTab(SheetTab.DOCUMENT) },
-            modifier = Modifier.weight(1f),
-        )
-        SheetTabPill(
-            label = "Pen & View",
-            icon = Icons.Outlined.Draw,
-            selected = activeTab == SheetTab.STUDIO,
-            ink = ink,
-            onClick = { onSelectTab(SheetTab.STUDIO) },
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
-@Composable
-private fun SheetTabPill(
-    label: String,
-    icon: ImageVector,
-    selected: Boolean,
-    ink: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val pillBg = if (selected) ink.copy(alpha = 0.14f) else Color.Transparent
-    val contentColor = if (selected) ink else ink.copy(alpha = 0.58f)
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(9.dp))
-            .background(pillBg)
-            .clickable(onClick = onClick)
-            .padding(vertical = 7.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, contentDescription = null, tint = contentColor, modifier = Modifier.size(15.dp))
-        Spacer(Modifier.width(6.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = contentColor,
-        )
     }
 }
