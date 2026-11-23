@@ -5,8 +5,8 @@ import com.mobixournal.format.mobix.MobixDigests
 import com.mobixournal.format.mobix.MobixEntrySource
 import com.mobixournal.format.mobix.MobixFormat
 import com.mobixournal.format.mobix.MobixPagedReader
-import com.mobixournal.format.mobix.MobixSafetyCaps
 import com.mobixournal.format.mobix.MobixAssetSink
+import com.mobixournal.format.mobix.MobixSafetyCaps
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Page
@@ -14,6 +14,7 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.audioRef
 import java.io.File
+import java.security.MessageDigest
 
 /** How much a finding matters: an [ERROR] is a document that breaks the rule, a [WARNING] is one worth saying. */
 enum class AssetSeverity {
@@ -187,16 +188,39 @@ object MobixAssetValidator {
         val grammar = grammarFinding(name)
         if (grammar != null) return listOf(grammar)
         val claimed = MobixDigests.digestIn(name) ?: return listOf(grammarFinding(name)!!)
-        val bytes = try {
-            caps.read(source, name, caps.maxAssetBytes)
+        try {
+            source.storedSizes(name)?.let { caps.refuseBeyondExpansion(name, it.compressed, it.inflated) }
         } catch (refused: MobixContainer.MalformedMobixException) {
             return listOf(
                 AssetFinding(AssetSeverity.ERROR, AssetRule.CONTAINER_LIMIT, name, detail = refused.message.orEmpty()),
             )
-        } ?: return listOf(
+        }
+        val stream = source.openEntry(name) ?: return listOf(
             AssetFinding(AssetSeverity.ERROR, AssetRule.MISSING_ENTRY, name, detail = "listed in the directory, absent when read"),
         )
-        val actual = MobixAssetSink.sha256(bytes)
+        val digest = MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(64 * 1024)
+        var total = 0L
+        stream.use { input ->
+            while (true) {
+                val n = input.read(buffer)
+                if (n < 0) break
+                if (n == 0) continue
+                total += n
+                if (total > caps.maxAssetBytes) {
+                    return listOf(
+                        AssetFinding(
+                            AssetSeverity.ERROR,
+                            AssetRule.CONTAINER_LIMIT,
+                            name,
+                            detail = "archive entry \"$name\" is larger than ${caps.maxAssetBytes} bytes",
+                        ),
+                    )
+                }
+                digest.update(buffer, 0, n)
+            }
+        }
+        val actual = digest.digest().joinToString("") { "%02x".format(it) }
         if (actual == claimed) return emptyList()
         return listOf(
             AssetFinding(

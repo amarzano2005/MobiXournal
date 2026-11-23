@@ -78,13 +78,9 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     if (!tab.hydrated || tab.opening || tab.isReadOnly) return
     val view = owner.surface?.takeIf { owner.tabs.active?.id == tab.id }
     val snapshot = view?.toDocument() ?: tab.document
-    val document = if (request.format == SaveFormat.MOBIX) {
-        val identified = io.identifyForSave(snapshot, uri)
-        view?.adoptIdentity(identified) ?: identified
-    } else snapshot
-    owner.tabs.updateMatching({ it.id == tab.id }) { it.copy(document = document) }
     val pdf = view?.pdfSourceFile() ?: tab.pdfPath?.let(::File)
     val images = (view?.imageSources() ?: tab.backgrounds?.images ?: tab.images).toMap()
+    val exportAudioFolder = if (request.format != SaveFormat.MOBIX) audioFolder else null
     // The canvas reading the bytes are taken at: `afterSaved` compares it with the canvas it finds, which is
     // how it knows whether a stroke landed after the snapshot.
     val revision = view?.edits ?: -1
@@ -94,19 +90,21 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     // (`SaveActivity`, `docs/data-path.md`).
     SaveActivity.begin()
     inBackground(SAVING_MARKER, {
+        val identified = if (request.format == SaveFormat.MOBIX) io.identifyForSave(snapshot, uri) else snapshot
         // The take being recorded right now is not bundleable — its file is still growing under the
         // content hash the entry would be named by ([AudioSession.bundleableRecording]).
-        val encoded = io.encode(document, pdf, request.format, uri, images, audio::bundleableRecording)
+        val encoded = io.encode(identified, pdf, request.format, uri, images, audio::bundleableRecording)
         // Prove the bytes before a SAF copy can replace the document; a refusal keeps the original.
         if (request.format == SaveFormat.MOBIX) {
             com.mobixournal.format.mobix.MobixPublishValidation.validate(encoded.file, BuildConfig.VERSION_NAME)
         }
         val verified = try { io.stageOut(encoded.file, uri) } finally { encoded.file.delete() }
-        encoded.uncompiled to verified
+        exportAudioFolder?.let { audio.exportSidecars(it, identified) }
+        Triple(identified, encoded.uncompiled, verified)
     }) { result ->
         SaveActivity.end()
-        result.onFailure { toast("Save failed: ${it.message}") }.onSuccess { (uncompiled, verified) ->
-            afterSaved(owner, request, uri, document, revision, audioRevision)
+        result.onFailure { toast("Save failed: ${it.message}") }.onSuccess { (identified, uncompiled, verified) ->
+            afterSaved(owner, request, uri, snapshot, identified, revision, audioRevision)
             if (uncompiled.isNotEmpty()) exportGaps.value = uncompiled
             if (!verified) {
                 toast("The file was written but could not be read back: the save may be incomplete.")
@@ -120,7 +118,8 @@ private fun MainActivity.afterSaved(
     owner: EditorPane,
     request: PendingSave,
     uri: Uri,
-    document: com.mobixournal.format.model.Document,
+    snapshot: com.mobixournal.format.model.Document,
+    identified: com.mobixournal.format.model.Document,
     revision: Int,
     audioRevision: Int,
 ) {
@@ -130,11 +129,15 @@ private fun MainActivity.afterSaved(
     // the snapshot, not the live state. The tab stays unsaved (the strip's dot) and keeps the newer state.
     val showing = owner.surface?.takeIf { owner.tabs.active?.id == request.tabId }
     val newer = (showing != null && showing.edits != revision) || finalizedAudioVersion != audioRevision
+    if (request.format == SaveFormat.MOBIX && identified !== snapshot && showing != null && showing.edits == revision) {
+        showing.adoptIdentity(identified)
+    }
     owner.tabs.updateMatching({ it.id == request.tabId }) {
         it.copy(
             title = title,
             uri = uri.toString(),
             format = request.format,
+            document = if (!newer) identified else it.document,
             unsavedEdits = newer,
             savedAt = if (showing != null && !newer) showing.edits else it.savedAt,
         )
@@ -149,13 +152,10 @@ private fun MainActivity.afterSaved(
     // A plain `.xopp` names its background PDF by path, and the sweep below keeps only what a live tab
     // still refers to: the file this save wrote into the document is pinned first, so closing the tab
     // does not take the background out from under the document on disk.
-    if (request.format == SaveFormat.ORIGINAL) io.retainLinkedPdf(document)
+    if (request.format == SaveFormat.ORIGINAL) io.retainLinkedPdf(identified)
     prunePdfCache()
-    if (request.format != SaveFormat.MOBIX) {
-        audioFolder?.let { audio.exportSidecars(it, document) }
-        if (audioFolder == null && documentAudioFiles(document).isNotEmpty()) {
-            toast("Choose an audio folder so recordings are saved beside this file")
-        }
+    if (request.format != SaveFormat.MOBIX && audioFolder == null && documentAudioFiles(identified).isNotEmpty()) {
+        toast("Choose an audio folder so recordings are saved beside this file")
     }
 }
 

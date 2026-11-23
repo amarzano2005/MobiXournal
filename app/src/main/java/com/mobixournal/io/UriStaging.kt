@@ -54,17 +54,29 @@ class UriStaging(private val resolver: ContentResolver, private val dir: File) {
         }.getOrDefault(false)
     }
 
-    /** Byte-for-byte equality without holding either side in memory. */
+    /** Byte-for-byte equality without holding either side in memory or allocating per chunk. */
     private fun sameBytes(expected: java.io.InputStream, actual: java.io.InputStream): Boolean {
         val left = ByteArray(DEFAULT_BUFFER_SIZE)
         val right = ByteArray(DEFAULT_BUFFER_SIZE)
         while (true) {
-            val read = expected.read(left)
-            val got = actual.read(right)
+            val read = readUpTo(expected, left)
+            val got = readUpTo(actual, right)
             if (read != got) return false
-            if (read <= 0) return true
-            if (!left.copyOf(read).contentEquals(right.copyOf(got))) return false
+            if (read == 0) return true
+            for (i in 0 until read) {
+                if (left[i] != right[i]) return false
+            }
         }
+    }
+
+    private fun readUpTo(stream: java.io.InputStream, buffer: ByteArray): Int {
+        var total = 0
+        while (total < buffer.size) {
+            val n = stream.read(buffer, total, buffer.size - total)
+            if (n < 0) break
+            total += n
+        }
+        return total
     }
 
     /**

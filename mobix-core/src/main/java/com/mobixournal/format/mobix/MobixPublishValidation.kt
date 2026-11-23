@@ -26,33 +26,39 @@ object MobixPublishValidation {
      * file. Nothing is written and the caller keeps ownership of [file].
      */
     fun validate(file: File, appVersion: String) {
-        // The stream is closed as soon as the envelope is read: on Windows an open handle would make the
-        // caller's own rename of the staged file fail, which is the one thing this check must not cause.
-        val container = runCatching {
-            file.inputStream().buffered().use { MobixContainer.open(it) }
+        // Open one ZipFile-backed entry source without loading the whole container into RAM; close before returning
+        // so Windows callers can rename the staged file cleanly.
+        val source = runCatching { MobixEntrySource.fromFile(file) }.getOrElse { failure ->
+            throw Invalid("The written file is not a .mobix archive: ${failure.message}")
         }
-            .getOrElse { failure ->
+        source.use { entries ->
+            val mimetype = runCatching {
+                MobixSafetyCaps.Default.read(
+                    entries,
+                    MobixFormat.MIMETYPE_ENTRY,
+                    MobixSafetyCaps.Default.maxMimetypeBytes,
+                )?.toString(Charsets.UTF_8)?.trim()
+            }.getOrElse { failure ->
                 throw Invalid("The written file is not a .mobix archive: ${failure.message}")
             }
-        if (container.mimetype != MobixFormat.MIMETYPE) {
-            throw Invalid("The written file declares ${container.mimetype}, not ${MobixFormat.MIMETYPE}.")
-        }
-        val document = runCatching {
-            MobixEntrySource.fromFile(file).use { source -> MobixDocument.open(source) }
-        }.getOrElse { failure ->
-            throw Invalid("The written document could not be reopened: ${failure.message}")
-        }
-        val verdict = document.verdict(appVersion)
-        if (!verdict.mayWrite) {
-            throw Invalid("The written document may not be written back: ${verdict.reason}")
-        }
-        val assets = MobixAssetValidator.validate(file)
-        if (!assets.clean) {
-            val first = assets.errors.first()
-            throw Invalid(
-                "The written document failed its asset check (${assets.errors.size} error(s)): " +
-                    "${first.rule} ${first.entry} ${first.detail}".trim(),
-            )
+            if (mimetype != MobixFormat.MIMETYPE) {
+                throw Invalid("The written file declares ${mimetype ?: "nothing"}, not ${MobixFormat.MIMETYPE}.")
+            }
+            val manifest = runCatching { MobixManifest.read(entries) }.getOrElse { failure ->
+                throw Invalid("The written document could not be reopened: ${failure.message}")
+            } ?: throw Invalid("The written document could not be reopened: missing manifest")
+            val verdict = MobixCapabilities.evaluate(manifest, MobixFormat.declaredCapabilities, appVersion)
+            if (!verdict.mayWrite) {
+                throw Invalid("The written document may not be written back: ${verdict.reason}")
+            }
+            val assets = MobixAssetValidator.validate(entries)
+            if (!assets.clean) {
+                val first = assets.errors.first()
+                throw Invalid(
+                    "The written document failed its asset check (${assets.errors.size} error(s)): " +
+                        "${first.rule} ${first.entry} ${first.detail}".trim(),
+                )
+            }
         }
     }
 }

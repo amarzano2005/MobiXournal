@@ -80,6 +80,11 @@ class MobixPayload private constructor(
         if (cached != null) {
             MobixAssetSink.sha256(cached)
         } else {
+            val f = file
+            val key = if (f != null && f.isFile) FileMetaKey(f.absolutePath, f.length(), f.lastModified()) else null
+            if (key != null) {
+                cachedSha256(key)?.let { return@lazy it }
+            }
             val digest = MessageDigest.getInstance("SHA-256")
             val buffer = ByteArray(BUFFER_BYTES)
             open().use { input ->
@@ -89,12 +94,23 @@ class MobixPayload private constructor(
                     if (n > 0) digest.update(buffer, 0, n)
                 }
             }
-            digest.digest().joinToString("") { "%02x".format(it) }
+            val hex = digest.digest().joinToString("") { "%02x".format(it) }
+            if (key != null) storeSha256(key, hex)
+            hex
         }
     }
 
     /** The container the content is in, for an asset's entry name (`png`, `pdf`, `ogg`, `wav`, …). */
-    val suffix: String by lazy { MobixAssetSink.suffixFor(head(SNIFF_BYTES)) }
+    val suffix: String by lazy {
+        val f = file
+        val key = if (f != null && f.isFile) FileMetaKey(f.absolutePath, f.length(), f.lastModified()) else null
+        if (key != null) {
+            cachedSuffix(key)?.let { return@lazy it }
+        }
+        val s = MobixAssetSink.suffixFor(head(SNIFF_BYTES))
+        if (key != null) storeSuffix(key, s)
+        s
+    }
 
     private fun countBytes(): Long {
         var total = 0L
@@ -109,12 +125,41 @@ class MobixPayload private constructor(
         return total
     }
 
+    private data class FileMetaKey(val path: String, val length: Long, val lastModified: Long)
+
+    private data class CachedFileMeta(val sha256: String? = null, val suffix: String? = null)
+
     companion object {
         /** The chunk a hashing/counting pass reads at a time — large enough to be cheap, small enough to be free. */
         private const val BUFFER_BYTES = 64 * 1024
 
         /** How many leading bytes are enough to name a container; `RIFF`/`OggS`/`ftyp` all sit in the first 12. */
         private const val SNIFF_BYTES = 16
+
+        private const val FILE_META_CACHE_MAX = 256
+        private val fileMetaLock = Any()
+        private val fileMetaCache = object : LinkedHashMap<FileMetaKey, CachedFileMeta>(64, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<FileMetaKey, CachedFileMeta>?): Boolean =
+                size > FILE_META_CACHE_MAX
+        }
+
+        private fun cachedSha256(key: FileMetaKey): String? =
+            synchronized(fileMetaLock) { fileMetaCache[key]?.sha256 }
+
+        private fun cachedSuffix(key: FileMetaKey): String? =
+            synchronized(fileMetaLock) { fileMetaCache[key]?.suffix }
+
+        private fun storeSha256(key: FileMetaKey, hex: String) {
+            synchronized(fileMetaLock) {
+                fileMetaCache[key] = (fileMetaCache[key] ?: CachedFileMeta()).copy(sha256 = hex)
+            }
+        }
+
+        private fun storeSuffix(key: FileMetaKey, suffix: String) {
+            synchronized(fileMetaLock) {
+                fileMetaCache[key] = (fileMetaCache[key] ?: CachedFileMeta()).copy(suffix = suffix)
+            }
+        }
 
         /** A payload that is already in memory (a page's JSON, a small picture, a test's fixture). */
         fun of(bytes: ByteArray): MobixPayload =

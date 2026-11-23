@@ -32,6 +32,7 @@ import com.mobixournal.render.PdfOutline
 import com.mobixournal.render.PdfOutlineCache
 import com.mobixournal.render.PdfOutlineExtractor
 import com.mobixournal.render.PdfOutlineSeeding
+import com.mobixournal.render.PdfRepairFiles
 import com.mobixournal.render.PageRangePlan
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.PdfTextExtractor
@@ -91,6 +92,10 @@ internal fun MainActivity.openDocument(uri: Uri) {
             preparePdfImport(pdf.file, ImportPdfMode.REPLACE, uri.toString(), indices = null, base = null,
                 inStore = pdf.generated, title = PdfOutlineSeeding.defaultTitle(sourceName))
         }
+        // Pre-warm PDF font repair check on this background worker so opening the surface on UI never
+        // scans 50-100 MB PDFs synchronously on the main thread.
+        (read as? LoadedFile.Doc)?.pdf?.let(PdfRepairFiles::renderable)
+        plan?.file?.let(PdfRepairFiles::renderable)
         Triple(staged, read, plan)
     }) { result ->
         val focus = activePane.value

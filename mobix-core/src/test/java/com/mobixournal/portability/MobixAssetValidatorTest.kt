@@ -237,4 +237,15 @@ class MobixAssetValidatorTest {
 
         assertTrue("a validator is a reading: the file is byte-identical", before.contentEquals(file.readBytes()))
     }
+
+    @Test
+    fun anOversizedAssetIsRefusedByStreamingValidation() {
+        val file = synthetic("big-asset.mobix", listOf(page(0, elements = listOf(ImageElement(0.0, 0.0, 10.0, 10.0, payload(4096))))))
+        val tight = com.mobixournal.format.mobix.MobixSafetyCaps(maxAssetBytes = 512)
+
+        val validation = MobixAssetValidator.validate(file, tight)
+
+        assertFalse("an asset exceeding maxAssetBytes must fail validation", validation.clean)
+        assertTrue(AssetRule.CONTAINER_LIMIT in rules(validation))
+    }
 }
