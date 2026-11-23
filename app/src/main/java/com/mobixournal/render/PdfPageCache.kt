@@ -60,6 +60,8 @@ class PdfPageCache(
     private val pinnedByPage = HashMap<Int, Set<Key>>()
     private val pinnedKeys = HashSet<Key>()
     private val sizes = HashMap<Int, Pair<Double, Double>>()
+    private val latestPageWidth = HashMap<Int, Int>()
+    private val latestTileGrid = HashMap<Int, TileGrid>()
 
     /** Invoked (on the worker thread) whenever a newly rasterised page enters the cache. */
     @Volatile var onPageReady: (() -> Unit)? = null
@@ -90,10 +92,11 @@ class PdfPageCache(
         val (pw, ph) = pageSizePt(i)
         val key = Key(i, PdfTileGeometry.rasterWidth(pw, ph, budget, targetWidthPx))
         synchronized(lock) {
+            latestPageWidth[i] = key.width
             cache[key]?.let { return it }
-            nearest(i, key.width)?.let { enqueue(key); return it }
+            enqueue(key)
+            return nearest(i, key.width)
         }
-        return produce(key)
     }
 
     /**
@@ -119,6 +122,7 @@ class PdfPageCache(
         val grid = PdfTileGeometry.visibleTileGrid(pw, ph, scale, visLeft, visTop, visRight, visBottom)
             ?: return emptyList()
         synchronized(lock) {
+            latestTileGrid[i] = grid
             pin(i, grid)
             val memo = tileMemo[i]
             if (memo != null && memo.matches(grid.scale, grid.c0, grid.c1, grid.r0, grid.r1, generation)) {
@@ -231,6 +235,20 @@ class PdfPageCache(
         pinnedByPage.clear()
         pinnedKeys.clear()
         sizes.clear()
+        latestPageWidth.clear()
+        latestTileGrid.clear()
+    }
+
+    override fun stale(key: Key): Boolean {
+        if (super.stale(key)) return true
+        if (!key.tiled) {
+            val wanted = latestPageWidth[key.page]
+            return wanted != null && wanted != key.width
+        }
+        val grid = latestTileGrid[key.page] ?: return false
+        return key.width != grid.scale ||
+            key.col !in (grid.c0 - 1)..(grid.c1 + 1) ||
+            key.row !in (grid.r0 - 1)..(grid.r1 + 1)
     }
 
     /** Caller holds [lock]. Any answer memoised from the old contents is now suspect. */

@@ -14,6 +14,8 @@ import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
 import java.util.IdentityHashMap
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * Draws the non-stroke [Element]s — text boxes, images, and LaTeX images — onto the page canvas.
@@ -33,6 +35,7 @@ import java.util.IdentityHashMap
  */
 class ElementRenderer(
     private val budget: BitmapBudget = BitmapBudget.shared,
+    private val onImageReady: (() -> Unit)? = null,
 ) : BitmapBudget.Client, TextWidth {
 
     /** Guards [bitmapCache]: [trim] can arrive from another cache's worker thread. */
@@ -41,6 +44,8 @@ class ElementRenderer(
     private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG)
     /** Access order, so the iterator hands [trim] the least recently drawn image first. */
     private val bitmapCache = LinkedHashMap<IdentityKey, Bitmap?>(16, 0.75f, true)
+    private val pendingImages = HashSet<IdentityKey>()
+    private var imageWorker: ExecutorService? = null
     private val latexRenderer = LatexRenderer()
     private val texCache = IdentityHashMap<Any, LatexNode?>()
 
@@ -61,10 +66,15 @@ class ElementRenderer(
     /** Recycle every decoded bitmap and leave the shared budget. The renderer is unusable after. */
     fun close() {
         var freed = 0L
+        var workerToStop: ExecutorService? = null
         synchronized(lock) {
             for (bmp in bitmapCache.values) bmp?.let { freed += it.byteCount.toLong(); it.recycle() }
             bitmapCache.clear()
+            pendingImages.clear()
+            workerToStop = imageWorker
+            imageWorker = null
         }
+        workerToStop?.shutdownNow()
         texCache.clear()
         budget.unregister(this)
         if (freed > 0) budget.credit(freed)
@@ -160,23 +170,58 @@ class ElementRenderer(
     }
 
     private fun drawImage(canvas: Canvas, img: ImageElement, scale: Float, offsetX: Float, offsetY: Float) {
+        val dst = rect(img.left, img.top, img.right, img.bottom, scale, offsetX, offsetY)
+        val reqW = dst.width().toInt().coerceAtLeast(1)
+        val reqH = dst.height().toInt().coerceAtLeast(1)
         val key = IdentityKey(img)
         val cached = synchronized(lock) { if (bitmapCache.containsKey(key)) bitmapCache[key] else MISS }
-        val bmp = if (cached !== MISS) {
-            cached as Bitmap?
+        val bmp: Bitmap = if (cached !== MISS) {
+            (cached as Bitmap?) ?: return
+        } else if (onImageReady != null) {
+            enqueueImageDecode(key, img, reqW, reqH)
+            return
         } else {
-            val fresh = try {
-                BitmapFactory.decodeByteArray(img.data, 0, img.data.size)
-            } catch (e: OutOfMemoryError) {
-                Log.w(TAG, "out of memory decoding a ${img.data.size}-byte embedded image", e)
-                null
-            }
+            val fresh = decodeSampledBitmap(img.data, reqW, reqH)
             synchronized(lock) { bitmapCache[key] = fresh }
-            // Charged after the insert, so an over-budget total can evict this very entry if it must.
             fresh?.let { budget.charge(this, it.byteCount.toLong()) }
-            fresh
-        } ?: return
-        canvas.drawBitmap(bmp, null, rect(img.left, img.top, img.right, img.bottom, scale, offsetX, offsetY), bitmapPaint)
+            fresh ?: return
+        }
+        canvas.drawBitmap(bmp, null, dst, bitmapPaint)
+    }
+
+    private fun enqueueImageDecode(key: IdentityKey, img: ImageElement, reqW: Int, reqH: Int) {
+        val worker = synchronized(lock) {
+            if (bitmapCache.containsKey(key) || !pendingImages.add(key)) return
+            imageWorker ?: Executors.newSingleThreadExecutor { r ->
+                Thread(r, "image-element-decode").apply { isDaemon = true }
+            }.also { imageWorker = it }
+        }
+        worker.execute {
+            val fresh = decodeSampledBitmap(img.data, reqW, reqH)
+            synchronized(lock) {
+                pendingImages.remove(key)
+                if (!bitmapCache.containsKey(key)) bitmapCache[key] = fresh
+            }
+            fresh?.let { budget.charge(this, it.byteCount.toLong()) }
+            onImageReady?.invoke()
+        }
+    }
+
+    private fun decodeSampledBitmap(data: ByteArray, reqW: Int, reqH: Int): Bitmap? = try {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(data, 0, data.size, bounds)
+        var sample = 1
+        while (bounds.outHeight / (sample * 2) >= reqH &&
+            bounds.outWidth / (sample * 2) >= reqW &&
+            sample < MAX_IMAGE_SAMPLE_SIZE
+        ) {
+            sample *= 2
+        }
+        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+        BitmapFactory.decodeByteArray(data, 0, data.size, opts)
+    } catch (e: OutOfMemoryError) {
+        Log.w(TAG, "out of memory decoding a ${data.size}-byte embedded image", e)
+        null
     }
 
     private fun drawTex(canvas: Canvas, tex: TexImageElement, scale: Float, offsetX: Float, offsetY: Float) {
@@ -240,6 +285,7 @@ class ElementRenderer(
 
     private companion object {
         const val TAG = "ElementRenderer"
+        const val MAX_IMAGE_SAMPLE_SIZE = 16
 
         /** Distinguishes "not cached" from a cached null (an image whose bytes won't decode). */
         val MISS = Any()

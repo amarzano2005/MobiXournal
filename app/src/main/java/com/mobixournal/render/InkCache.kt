@@ -124,18 +124,31 @@ class InkCache(
         scrollX: Float,
         scrollY: Float,
         hidden: Set<Int>,
+        preferStandIn: Boolean = false,
     ): Boolean {
         if (box.widthPx <= 0f || box.heightPx <= 0f) return false
-        val bucketW = bucketWidth(box.widthPx) ?: return false
-        val bucketH = ((box.heightPx / box.widthPx) * bucketW).toInt().coerceAtLeast(1)
-        if (bucketW.toLong() * bucketH > budgetPx) return false
         val page = box.page
+        val bucketW = bucketWidth(box.widthPx)
+        val bucketH = if (bucketW != null) ((box.heightPx / box.widthPx) * bucketW).toInt().coerceAtLeast(1) else 0
+        val overBudget = bucketW == null || bucketW.toLong() * bucketH > budgetPx
+        if (overBudget) {
+            if (!preferStandIn) return false
+            val standIn = synchronized(lock) {
+                entries[box.index]?.takeIf { it.page === page && it.hidden == hidden }
+            } ?: return false
+            val left = box.toViewX(0.0, scrollX)
+            val top = box.toViewY(0.0, scrollY)
+            dst.set(left, top, left + box.widthPx, top + box.heightPx)
+            canvas.drawBitmap(standIn.bitmap, null, dst, blit)
+            return true
+        }
+        val targetW = bucketW!!
         val hit = synchronized(lock) {
             val entry = entries[box.index]
-            entry?.takeIf { it.page === page && it.hidden == hidden && inkStandInUsable(it.widthPx, bucketW) }
+            entry?.takeIf { it.page === page && it.hidden == hidden && inkStandInUsable(it.widthPx, targetW) }
         }
         if (hit == null) {
-            request(box.index, page, hidden, bucketW, bucketH)
+            request(box.index, page, hidden, targetW, bucketH)
             return false
         }
         val left = box.toViewX(0.0, scrollX)
@@ -143,7 +156,7 @@ class InkCache(
         dst.set(left, top, left + box.widthPx, top + box.heightPx)
         canvas.drawBitmap(hit.bitmap, null, dst, blit)
         // A stand-in is a fine frame and a poor page: ask for the bucket the zoom actually wants.
-        if (hit.widthPx != bucketW) request(box.index, page, hidden, bucketW, bucketH)
+        if (hit.widthPx != targetW) request(box.index, page, hidden, targetW, bucketH)
         return true
     }
 

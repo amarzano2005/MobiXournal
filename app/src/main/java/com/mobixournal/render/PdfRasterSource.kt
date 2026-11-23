@@ -52,19 +52,21 @@ internal class PdfRasterSource(
         return size
     }
 
+    /** Timestamp of the last stat check so per-frame paint() avoids redundant filesystem syscalls. */
+    @Volatile
+    private var lastCheckNanos = System.nanoTime()
+
     /**
-     * Re-open the renderer when [source] has been rewritten underneath us. The descriptor opened in
-     * the constructor keeps pointing at the bytes it was opened on, so a document whose background
-     * PDF is replaced (import, page append) would otherwise keep rasterising the *old* file — or,
-     * if it was truncated in place, render white pages with no error at all. Cheap enough to call
-     * on every request: two stat calls, and nothing else happens while the stamp is unchanged.
-     *
-     * Takes no other lock while entering [renderLock], preserving the "never held with cache lock"
-     * rule; callers must clear their cache afterwards, since every bitmap in it came from the old bytes.
+     * Re-open the renderer when [source] has been rewritten underneath us. Throttled to at most once
+     * every 500 ms so per-frame paint() calls do not perform stat syscalls on every vsync.
      */
     fun checkSource(onSourceChanged: () -> Unit) {
         if (closed) return
+        val nowNanos = System.nanoTime()
+        if (nowNanos - lastCheckNanos < SOURCE_CHECK_INTERVAL_NS) return
         synchronized(reopenLock) {
+            if (nowNanos - lastCheckNanos < SOURCE_CHECK_INTERVAL_NS) return
+            lastCheckNanos = nowNanos
             val now = Stamp(source)
             if (now == stamp) return
             try {
@@ -155,5 +157,6 @@ internal class PdfRasterSource(
     private companion object {
         const val MODE = PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY
         const val TILE_PX = 512
+        const val SOURCE_CHECK_INTERVAL_NS = 500_000_000L
     }
 }

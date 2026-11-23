@@ -671,7 +671,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     internal val strokePainter = StrokePainter()
     internal val draftStrokePainter = StrokePainter()
-    internal val elementRenderer = ElementRenderer()
+    internal val elementRenderer = ElementRenderer(onImageReady = { requestRender() })
 
     /** Off-screen ink rasters, so a pan/fling frame blits pages instead of re-submitting strokes. */
     internal val inkCache = InkCache(onReady = { requestRender() })

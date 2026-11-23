@@ -15,11 +15,24 @@ import com.mobixournal.format.model.Page
  * (`carry-the-page-source-into-the-editor`).
  */
 internal fun canvasPageSource(pages: () -> List<Page>): PageSource = object : PageSource {
+    private var cachedList: List<Page>? = null
+    private var cachedSource: PageSource? = null
+
+    private fun currentSource(): PageSource {
+        val list = pages()
+        val existing = cachedSource
+        if (list === cachedList && existing != null) return existing
+        return PageSource.of(list).also {
+            cachedList = list
+            cachedSource = it
+        }
+    }
+
     override val pageCount: Int get() = pages().size
 
-    override fun pageId(index: Int): String? = PageSource.of(pages()).pageId(index)
+    override fun pageId(index: Int): String? = currentSource().pageId(index)
 
-    override fun pageSize(index: Int): PageSize = PageSource.of(pages()).pageSize(index)
+    override fun pageSize(index: Int): PageSize = currentSource().pageSize(index)
 
     override fun page(index: Int): Page {
         val list = pages()

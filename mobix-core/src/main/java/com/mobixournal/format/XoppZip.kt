@@ -1,9 +1,12 @@
 package com.mobixournal.format
 
 import com.mobixournal.format.model.Document
+import java.io.BufferedOutputStream
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
+import java.io.OutputStreamWriter
+import java.util.zip.Deflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -68,10 +71,15 @@ object XoppZip {
         output: OutputStream,
         attachments: Map<String, File> = emptyMap(),
     ) {
-        ZipOutputStream(output).use { zip ->
+        ZipOutputStream(BufferedOutputStream(output, 64 * 1024)).use { zip ->
+            zip.setLevel(Deflater.BEST_SPEED)
             putText(zip, "mimetype", MIMETYPE)
             putText(zip, "META-INF/version", "current=${doc.fileVersion}\nmin=1")
-            putText(zip, "content.xml", Xopp.toXml(doc))
+            zip.putNextEntry(ZipEntry("content.xml"))
+            val writer = OutputStreamWriter(zip, Charsets.UTF_8)
+            XoppWriter(writer).write(doc)
+            writer.flush()
+            zip.closeEntry()
             if (pdf != null) putFile(zip, PDF_ENTRY, pdf)
             attachments.forEach { (name, file) -> if (name != PDF_ENTRY) putFile(zip, name, file) }
         }
