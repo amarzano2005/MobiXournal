@@ -19,6 +19,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.channels.Channel
 
 /**
@@ -289,6 +290,7 @@ internal fun PenPacketPan(
     LaunchedEffect(pan) {
         while (true) {
             pan.awaitPacket()
+            withFrameNanos { }
             pan.flush()
         }
     }

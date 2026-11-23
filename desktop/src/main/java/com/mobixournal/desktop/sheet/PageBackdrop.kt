@@ -5,14 +5,15 @@ import com.mobixournal.desktop.io.PdfPageReferences
 import com.mobixournal.desktop.shell.search.find
 import com.mobixournal.desktop.shell.thumbnail
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.mobixournal.format.model.Background
-import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.io.File
-import javax.imageio.ImageIO
+import java.util.concurrent.Executors
 import org.apache.pdfbox.pdmodel.PDDocument
 import com.mobixournal.desktop.previews.PdfFontRepair
 import com.mobixournal.desktop.previews.PdfRenderGate
@@ -45,7 +46,31 @@ class PageBackdrop(
     private val extracted: (name: String) -> File? = { null },
 ) {
 
-    private val cache = LinkedHashMap<String, ImageBitmap?>()
+    private val cache = LinkedHashMap<String, ImageBitmap?>(32, 0.75f, true)
+    private val pdfDocs = LinkedHashMap<String, CachedPdfDoc>(4, 0.75f, true)
+    private val inFlight = HashSet<String>()
+    private val executor = Executors.newSingleThreadExecutor { task ->
+        Thread(task, "mobix-desktop-backdrop").apply { isDaemon = true }
+    }
+
+    /** Incremented when a background backdrop render completes so interactive sheets re-record cleanly. */
+    var version by mutableIntStateOf(0)
+        private set
+
+    private class CachedPdfDoc(val doc: PDDocument) {
+        val renderLock = Any()
+        val repairedPages = HashSet<Int>()
+        var refs = 0
+        var evicted = false
+
+        fun release() {
+            val shouldClose = synchronized(this) {
+                refs -= 1
+                evicted && refs <= 0
+            }
+            if (shouldClose) runCatching { doc.close() }
+        }
+    }
 
     /**
      * Where a page that names the PDF **only by `pageno`** finds the document's one reference.
@@ -76,14 +101,41 @@ class PageBackdrop(
         val key = keyOf(painted) ?: return null
         synchronized(this) { if (cache.containsKey(key)) return cache[key] }
         val bitmap = runCatching { render(painted) }.getOrNull()
-        synchronized(this) {
-            // The **oldest** entry goes, not the whole map: the page list asks for one thumbnail per page it
-            // shows, and clearing twelve cached sheets every time a thirteenth row appears would send the
-            // canvas back to rasterising the pages it is actually drawing.
-            if (cache.size >= CACHE_MAX && !cache.containsKey(key)) cache.remove(cache.keys.first())
-            cache[key] = bitmap
-        }
+        synchronized(this) { putLru(key, bitmap) }
         return bitmap
+    }
+
+    /**
+     * Non-blocking lookup for interactive canvas drawing: returns a cached [ImageBitmap] immediately
+     * or enqueues background rasterization and increments [version] when ready.
+     */
+    fun imageOrPrefetch(background: Background): ImageBitmap? {
+        val painted = when (background) {
+            is Background.Pdf -> PdfPageReferences.resolve(background, pdfReference()) ?: return null
+            else -> background
+        }
+        val key = keyOf(painted) ?: return null
+        synchronized(this) { if (cache.containsKey(key)) return cache[key] }
+        val enqueue = synchronized(inFlight) { inFlight.add(key) }
+        if (enqueue) {
+            executor.execute {
+                try {
+                    val bitmap = runCatching { render(painted) }.getOrNull()
+                    synchronized(this) { putLru(key, bitmap) }
+                    version += 1
+                } finally {
+                    synchronized(inFlight) { inFlight.remove(key) }
+                }
+            }
+        }
+        return null
+    }
+
+    private fun putLru(key: String, bitmap: ImageBitmap?) {
+        if (cache.size >= CACHE_MAX && !cache.containsKey(key)) {
+            cache.remove(cache.keys.first())
+        }
+        cache[key] = bitmap
     }
 
     /**
@@ -136,16 +188,60 @@ class PageBackdrop(
         is Background.Pixmap -> bytesOf(background.bundledAsset, background.domain, background.filename)
             ?.let(::decode)
 
-        is Background.Pdf -> {
-            val source = bytesOf(background.bundledAsset, background.domain, background.filename)
-            val pdf = when {
-                source != null -> PDDocument.load(ByteArrayInputStream(source))
-                else -> fileOf(background.domain, background.filename)?.let { PDDocument.load(it) }
-            }
-            pdf?.use { renderPdfPage(it, background.pageNo) }
-        }
+        is Background.Pdf -> renderPdf(background)
 
         is Background.Solid -> null
+    }
+
+    private fun renderPdf(background: Background.Pdf): ImageBitmap? {
+        val entry = acquirePdfDoc(background) ?: return null
+        try {
+            return synchronized(entry.renderLock) {
+                renderPdfPage(entry, background.pageNo)
+            }
+        } finally {
+            entry.release()
+        }
+    }
+
+    private fun acquirePdfDoc(source: Background.Pdf): CachedPdfDoc? {
+        val docKey = "pdfdoc|${source.bundledAsset}|${source.domain}|${source.filename}"
+        synchronized(pdfDocs) {
+            pdfDocs[docKey]?.let {
+                it.refs += 1
+                return it
+            }
+        }
+        val raw = bytesOf(source.bundledAsset, source.domain, source.filename)
+        val loaded = when {
+            raw != null -> runCatching { PDDocument.load(ByteArrayInputStream(raw)) }.getOrNull()
+            else -> fileOf(source.domain, source.filename)?.let { runCatching { PDDocument.load(it) }.getOrNull() }
+        } ?: return null
+        var toClose: PDDocument? = null
+        val chosen = synchronized(pdfDocs) {
+            val existing = pdfDocs[docKey]
+            if (existing != null) {
+                existing.refs += 1
+                toClose = loaded
+                existing
+            } else {
+                if (pdfDocs.size >= PDF_DOC_CACHE_MAX) {
+                    val eldest = pdfDocs.remove(pdfDocs.keys.first())
+                    if (eldest != null) {
+                        synchronized(eldest) {
+                            eldest.evicted = true
+                            if (eldest.refs <= 0) toClose = eldest.doc
+                        }
+                    }
+                }
+                CachedPdfDoc(loaded).also {
+                    it.refs = 1
+                    pdfDocs[docKey] = it
+                }
+            }
+        }
+        toClose?.let { runCatching { it.close() } }
+        return chosen
     }
 
     /** The bundle first, then the file the reference names. */
@@ -163,32 +259,30 @@ class PageBackdrop(
         return relative?.takeIf { it.isFile }
     }
 
-    private fun renderPdfPage(pdf: PDDocument, pageNo: Int): ImageBitmap? {
+    private fun renderPdfPage(entry: CachedPdfDoc, pageNo: Int): ImageBitmap? {
+        val pdf = entry.doc
         if (pdf.numberOfPages == 0) return null
         val index = pageNo.coerceIn(0, pdf.numberOfPages - 1)
-        // A file that names a font program and does not carry it draws substituted glyphs at the right
-        // advances — a slide of nonsense over the right layout. The page's fonts are rebuilt from their own
-        // ToUnicode before PDFBox parses them ([PdfFontRepair]).
-        val page = pdf.getPage(index)
-        runCatching { PdfFontRepair.repair(pdf, page) }
-        // PDFBox draws on the JVM's 2D pipeline; the result reaches Skia as PNG because a
-        // BufferedImage's pixels are not a layout Compose can wrap directly. The gate is what keeps this
-        // raster from being interleaved with the import card's previews of the same file ([PdfRenderGate]).
-        return PdfRenderGate.page { decode(PDFRenderer(pdf).renderImage(index, PDF_SCALE).toPng()) }
+        if (entry.repairedPages.add(index)) {
+            val page = pdf.getPage(index)
+            runCatching { PdfFontRepair.repair(pdf, page) }
+        }
+        return PdfRenderGate.page {
+            PDFRenderer(pdf).renderImage(index, PDF_SCALE).toComposeImageBitmap()
+        }
     }
 
     private fun decode(bytes: ByteArray): ImageBitmap? =
         SkiaImage.makeFromEncoded(bytes).toComposeImageBitmap()
 
-    /** The rendered PDF page, or an image's bytes, as PNG for the Skia decoder. */
-    private fun BufferedImage.toPng(): ByteArray =
-        ByteArrayOutputStream().also { ImageIO.write(this, "png", it) }.toByteArray()
-
     private companion object {
         /** 2× the PDF's natural size — about 144 dpi, the Android page cache's trade-off. */
         const val PDF_SCALE = 2f
 
-        /** Page-sized bitmaps: a dozen is already tens of megabytes. */
-        const val CACHE_MAX = 12
+        /** LRU capacity for page-sized backdrop bitmaps across scrolling and thumbnails. */
+        const val CACHE_MAX = 24
+
+        /** Open PDDocument cache so page flips avoid reparsing the entire PDF file. */
+        const val PDF_DOC_CACHE_MAX = 3
     }
 }

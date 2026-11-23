@@ -131,6 +131,7 @@ internal class PagePicture {
         val width: Double,
         val height: Double,
         val background: Background,
+        val backdropVersion: Int = 0,
         /**
          * The element the in-place Text field has taken over, if any.
          *
@@ -168,6 +169,7 @@ internal class PagePicture {
             width = page.width,
             height = page.height,
             background = page.background,
+            backdropVersion = backdrop?.version ?: 0,
             skip = skip,
         )
         val current = shown
@@ -344,6 +346,7 @@ internal class PagePicture {
                 backdrop = wanted.backdrop,
                 hiddenLayers = wanted.hiddenLayers,
                 skip = wanted.skip,
+                asyncBackdrop = true,
             )
         }
         basePage = page

@@ -98,11 +98,12 @@ internal fun DrawScope.drawPageContent(
      * directly, one directive per stroke (`DesktopKaraoke`).
      */
     karaoke: KaraokeStrokeAnimator.State? = null,
+    asyncBackdrop: Boolean = false,
 ) {
     // The sheet is the *page's* box, not the canvas': a zoomed page is drawn inside a clip that is the
     // window, so `size` here would paint the paper across the whole viewport.
     val sheet = Size((page.width * pxPerPt).toFloat(), (page.height * pxPerPt).toFloat())
-    drawSheetUnderlay(page, pxPerPt, sheet, backdrop)
+    drawSheetUnderlay(page, pxPerPt, sheet, backdrop, asyncBackdrop)
     // A hidden layer is skipped like an empty one: the page keeps its elements, the window just does
     // not paint them (the same view state that hides it in the sidebar's list).
     for ((index, layer) in page.layers.withIndex()) {
@@ -124,15 +125,17 @@ internal fun DrawScope.drawSheetUnderlay(
     pxPerPt: Float,
     sheet: Size,
     backdrop: PageBackdrop?,
+    asyncBackdrop: Boolean = false,
 ) {
     // No halo here: the shadow is **screen-space chrome**, drawn by the canvas around the sheet's on-screen
     // rectangle (`drawPageShadow`). Inside this painter it was clipped away by every surface that is exactly
     // the page — the thumbnail raster and both exports — and it is re-recorded with the page and replayed
     // through the viewport's scale, so a zoom scaled the falloff with it.
     drawPaper(page.background, page.width, page.height, pxPerPt, sheet)
-    backdrop?.image(page.background)?.let { picture ->
+    val picture = if (asyncBackdrop) backdrop?.imageOrPrefetch(page.background) else backdrop?.image(page.background)
+    picture?.let {
         drawImage(
-            picture,
+            it,
             dstOffset = IntOffset.Zero,
             dstSize = IntSize(sheet.width.roundToInt(), sheet.height.roundToInt()),
         )

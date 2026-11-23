@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.mobixournal.render.MagneticHighlighter
@@ -135,9 +136,10 @@ internal fun PenPacketStrokes(
                 stroke.finishIfStale(now)
             }
         }
-        // Frames are asked for by packets: applying batches here invalidates at next frame.
+        // Frames are asked for by packets: coalesce packet bursts cleanly onto the next display frame.
         while (true) {
             stroke.awaitPacket()
+            withFrameNanos { }
             stroke.flush()
             stroke.publishHover()
         }
