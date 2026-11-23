@@ -70,6 +70,8 @@ import com.mobixournal.ui.theme.rememberGlassSurfaceColor
  */
 fun DrawingSurfaceView.applyTool(tool: EditorTool) {
     val wasSelecting = selectMode
+    val wasShapeKind = shapeKind
+    val wasPlaceKind = placeKind
     handMode = tool == EditorTool.HAND
     selectMode = tool == EditorTool.SELECT || tool == EditorTool.LASSO_SELECT
     backgroundSelectMode = tool == EditorTool.BG_SELECT
@@ -156,11 +158,9 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         -> this.tool = Tool.PEN
         else -> Unit // Hand / authoring tools keep the last drawing tool for when they're turned off
     }
-    // **Leaving** the select tool drops the selection, and re-applying the same one must not: the pane pushes
-    // the live tool onto its canvas on every touch (`applyLiveStyle`, before that touch reaches the canvas), so a
-    // clear on every write ran between every pair of presses — the press that followed a selection always found
-    // nothing to act on, and a tap on empty paper had no selection to let go of.
-    if (wasSelecting && !selectMode) clearSelection()
+    // **Leaving** the select tool or switching away from a figure/placement tool drops the
+    // selection, whereas re-applying the same tool on every touch (`applyLiveStyle`) preserves it.
+    if (com.mobixournal.render.shouldClearSelectionOnToolChange(wasSelecting, selectMode, wasShapeKind, shapeKind, wasPlaceKind, placeKind)) clearSelection()
 }
 
 /**

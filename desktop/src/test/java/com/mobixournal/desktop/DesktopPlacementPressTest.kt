@@ -326,6 +326,36 @@ class DesktopPlacementPressTest {
         }
     }
 
+    @Test
+    fun `switching away from a figure tool clears its selection`() {
+        val state = state()
+        state.start(initial = null)
+        state.newDocument()
+        val tab = state.tabs.active!!
+        try {
+            state.selectTool(DesktopTool.RECTANGLE)
+            tab.selection = PageSelection(
+                region = rectRegion(100.0, 100.0, 200.0, 180.0),
+                refs = emptySet(),
+            )
+            state.selectTool(DesktopTool.RECTANGLE)
+            assertTrue("re-picking the same figure keeps selection", tab.selection != null)
+
+            state.selectTool(DesktopTool.ELLIPSE)
+            assertEquals("switching to another figure clears selection", null, tab.selection)
+
+            state.selectTool(DesktopTool.RECTANGLE)
+            tab.selection = PageSelection(
+                region = rectRegion(100.0, 100.0, 200.0, 180.0),
+                refs = emptySet(),
+            )
+            state.selectTool(DesktopTool.MARQUEE)
+            assertEquals("switching from a figure to marquee clears selection", null, tab.selection)
+        } finally {
+            tab.document.close()
+        }
+    }
+
     /** One click at ([x], [y]): the press and its lift in the same place, as a hand's click is. */
     private fun clicks(scene: ImageComposeScene, x: Float, y: Float) {
         pointer(scene, PointerEventType.Press, x, y, 1_000L)

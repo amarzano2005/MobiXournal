@@ -27,7 +27,10 @@ import com.mobixournal.render.GuideKind
 internal fun DesktopShellState.selectTool(tool: DesktopTool) {
     // A text box is finished by leaving its tool: the typing is committed, never silently dropped.
     if (tool != DesktopTool.TEXT) textBox.commit(tabs.active, ::edited)
-    if (selectionToolOf(tool) == null) tabs.active?.selection = null
+    val previous = tools.current
+    if (tool != previous && (selectionToolOf(tool) == null || selectionToolOf(previous) == null)) {
+        tabs.active?.selection = null
+    }
     picks.pick(tool)
     openGroup = null
     // Picking an instrument **lays it on the page**: the guide is an input aid, not a tool that inks, so

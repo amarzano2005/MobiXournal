@@ -295,6 +295,50 @@ class PlacementPickTest {
         assertTrue("a stroke is no living object", !LivingEditFamily.CIRCUIT.matches(ink()))
     }
 
+    @Test
+    fun switchingAwayFromAFigureOrPlacementToolClearsSelection() {
+        assertTrue(
+            "switching from rectangle to ellipse clears selection",
+            shouldClearSelectionOnToolChange(
+                wasSelecting = false, nowSelecting = false,
+                wasShapeKind = ShapeKind.RECTANGLE, nowShapeKind = ShapeKind.ELLIPSE,
+                wasPlaceKind = null, nowPlaceKind = null,
+            ),
+        )
+        assertTrue(
+            "switching from rectangle to pen clears selection",
+            shouldClearSelectionOnToolChange(
+                wasSelecting = false, nowSelecting = false,
+                wasShapeKind = ShapeKind.RECTANGLE, nowShapeKind = null,
+                wasPlaceKind = null, nowPlaceKind = null,
+            ),
+        )
+        assertTrue(
+            "switching from rectangle to select tool clears figure selection",
+            shouldClearSelectionOnToolChange(
+                wasSelecting = false, nowSelecting = true,
+                wasShapeKind = ShapeKind.RECTANGLE, nowShapeKind = null,
+                wasPlaceKind = null, nowPlaceKind = null,
+            ),
+        )
+        assertTrue(
+            "switching away from plot placement clears selection",
+            shouldClearSelectionOnToolChange(
+                wasSelecting = false, nowSelecting = false,
+                wasShapeKind = null, nowShapeKind = null,
+                wasPlaceKind = PlaceKind.PLOT, nowPlaceKind = null,
+            ),
+        )
+        assertFalse(
+            "re-applying the same figure tool on touch keeps selection",
+            shouldClearSelectionOnToolChange(
+                wasSelecting = false, nowSelecting = false,
+                wasShapeKind = ShapeKind.RECTANGLE, nowShapeKind = ShapeKind.RECTANGLE,
+                wasPlaceKind = null, nowPlaceKind = null,
+            ),
+        )
+    }
+
     /** A wire from (100, 100) to (200, 100): a figure whose two ends are pins a connector may join. */
     private fun wire(): Stroke = figure(ShapeKind.LINE, 100.0, 100.0, 200.0, 100.0)
 

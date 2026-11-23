@@ -209,3 +209,16 @@ private fun DrawingSurfaceView.matchesFamily(sel: ActiveSelection, family: Livin
     val elements = sel.refs.mapNotNull { page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex) }
     return elements.isNotEmpty() && elements.size == sel.refs.size && elements.all { family.matches(it) }
 }
+
+internal fun shouldClearSelectionOnToolChange(
+    wasSelecting: Boolean,
+    nowSelecting: Boolean,
+    wasShapeKind: ShapeKind?,
+    nowShapeKind: ShapeKind?,
+    wasPlaceKind: PlaceKind?,
+    nowPlaceKind: PlaceKind?,
+): Boolean {
+    if (wasSelecting && !nowSelecting) return true
+    val wasPlacement = wasShapeKind != null || wasPlaceKind != null
+    return wasPlacement && (nowShapeKind != wasShapeKind || nowPlaceKind != wasPlaceKind)
+}
