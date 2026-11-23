@@ -186,11 +186,19 @@ class FocusBarGeometryTest {
         // Touching the bottom docks BOTTOM_EDGE horizontally and settles at containerH - barH - bottomSafe.
         val bottomDocked = nextFocusBarDock(
             FocusBarDock.FREE, centerX = 500f, containerWidth = 1000f,
-            enterEdgePx = 32f, exitEdgePx = 68f,
-            overPushPx = 8f, fingerY = 770f, rawBarBottom = 790f, containerHeight = 800f, bottomSafePx = 14f,
+            enterEdgePx = 14f, exitEdgePx = 18f,
+            overPushPx = 4f, fingerY = 770f, rawBarBottom = 790f, containerHeight = 800f, bottomSafePx = 14f,
         )
         assertEquals(FocusBarDock.BOTTOM_EDGE, bottomDocked)
         val (_, by) = snapFocusBarPosition(FocusBarDock.BOTTOM_EDGE, 400f, 700f, 290f, 52f, 1000f, 800f, 14f, 56f, 14f)
         assertEquals(800f - 52f - 14f, by, 0.01f)
+
+        // Dragging a vertical bar straight down along the left edge morphs to BOTTOM_EDGE as soon as its bottom touches.
+        val vertToBottom = nextFocusBarDock(
+            FocusBarDock.LEFT_EDGE, centerX = 10f, containerWidth = 1000f,
+            enterEdgePx = 14f, exitEdgePx = 18f,
+            overPushPx = 4f, fingerY = 600f, rawBarBottom = 786f, containerHeight = 800f, bottomSafePx = 14f,
+        )
+        assertEquals(FocusBarDock.BOTTOM_EDGE, vertToBottom)
     }
 }

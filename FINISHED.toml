@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "focus-bar-no-magnet-bottom-dock"
+title = "Remove Focus bar side magnet and fix vertical-to-bottom docking"
+description = "Removed sticky side-edge pull hysteresis in FocusFloatingBar.kt, tightened enter/exit thresholds (14dp/18dp), enabled direct vertical-to-bottom transition in nextFocusBarDock regardless of X, and anchored BOTTOM_EDGE Y to containerH - bh - bottomSafePx during morph."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "none: Focus bar drag physics and edge-docking fix using existing Liquid Glass capsule"
+
+[[task]]
 id = "autosave-after-audio-recording-stop"
 title = "Trigger auto-save and dirty state when audio recording stops"
 description = "Added finalizedAudioVersion tracking on Android (MainActivity, MainActivityAudio, MainActivityAutoSave, MainActivitySaves) and pendingAudio + markAudioFinalized + onRecordingFinalized on Desktop (DesktopTabs, DesktopAudioSession, HeaderAudioPill, Header, DesktopShellView) so finalizing a recording after an earlier or in-flight auto-save marks the tab dirty and schedules a follow-up auto-save."

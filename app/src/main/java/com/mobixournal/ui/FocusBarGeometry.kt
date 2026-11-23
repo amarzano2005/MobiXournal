@@ -187,13 +187,13 @@ fun nextFocusBarDock(
     val pushedRight = rawBarRight.isFinite() && rawBarRight >= containerWidth + overPushPx
     return when (current) {
         FocusBarDock.LEFT_EDGE -> when {
-            touchBottom && centerX > enterEdgePx -> FocusBarDock.BOTTOM_EDGE
+            touchBottom -> FocusBarDock.BOTTOM_EDGE
             centerX >= containerWidth - enterEdgePx -> FocusBarDock.RIGHT_EDGE
             centerX >= exitEdgePx -> FocusBarDock.FREE
             else -> FocusBarDock.LEFT_EDGE
         }
         FocusBarDock.RIGHT_EDGE -> when {
-            touchBottom && centerX < containerWidth - enterEdgePx -> FocusBarDock.BOTTOM_EDGE
+            touchBottom -> FocusBarDock.BOTTOM_EDGE
             centerX <= enterEdgePx -> FocusBarDock.LEFT_EDGE
             centerX <= containerWidth - exitEdgePx -> FocusBarDock.FREE
             else -> FocusBarDock.RIGHT_EDGE
