@@ -87,6 +87,8 @@ class AppSettingsBackupTest {
             textImportLimitMb = 10,
             pdfCacheLimitMb = 50,
             hasSeenOnboarding = true,
+            focusBarSlots = listOf("pen", "eraser", "colors", "select"),
+            focusBarAnchor = "LEFT_EDGE:0.0000:0.4500",
         )
 
         val json = AppSettingsBackup.toJson(original)

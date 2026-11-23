@@ -325,6 +325,10 @@ data class AppSettings(
     val threeFingerTapAction: QuickAction = QuickAction.REDO,
     /** Whether the user has seen or dismissed the first-launch onboarding popup. */
     val hasSeenOnboarding: Boolean = false,
+    /** Focus mode floating bar slot IDs ([FocusBarSlotKind.id]); empty means factory defaults. */
+    val focusBarSlots: List<String> = emptyList(),
+    /** Persisted Focus mode floating bar dock and normalized position ([encodeFocusBarAnchor]). */
+    val focusBarAnchor: String = "",
 ) {
     /** [textImportLimitMb] in bytes — what [com.mobixournal.io.DocumentIo] actually enforces. */
     val textImportLimitBytes: Long get() = textImportLimitMb.toLong() * BYTES_PER_MB
@@ -662,15 +666,11 @@ class SettingsStore(context: Context) {
             selectedPenPresetId = prefs.getString(KEY_SELECTED_PEN_PRESET, "default") ?: "default",
             textImportLimitMb = prefs.getInt(KEY_TEXT_IMPORT_LIMIT, d.textImportLimitMb).coerceAtLeast(1),
             pdfCacheLimitMb = prefs.getInt(KEY_PDF_CACHE_LIMIT, d.pdfCacheLimitMb).coerceAtLeast(1),
-            twoFingerTapAction = enumOr(
-                prefs.getString(KEY_TWO_FINGER_TAP, null),
-                if (legacyTaps) d.twoFingerTapAction else QuickAction.NONE,
-            ),
-            threeFingerTapAction = enumOr(
-                prefs.getString(KEY_THREE_FINGER_TAP, null),
-                if (legacyTaps) d.threeFingerTapAction else QuickAction.NONE,
-            ),
+            twoFingerTapAction = enumOr(prefs.getString(KEY_TWO_FINGER_TAP, null), if (legacyTaps) d.twoFingerTapAction else QuickAction.NONE),
+            threeFingerTapAction = enumOr(prefs.getString(KEY_THREE_FINGER_TAP, null), if (legacyTaps) d.threeFingerTapAction else QuickAction.NONE),
             hasSeenOnboarding = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, d.hasSeenOnboarding),
+            focusBarSlots = decodeRailIds(prefs.getString(KEY_FOCUS_BAR_SLOTS, null)),
+            focusBarAnchor = prefs.getString(KEY_FOCUS_BAR_ANCHOR, "") ?: "",
         ).withToggleKeys(prefs).sanitized()
     }
 
@@ -786,24 +786,23 @@ class SettingsStore(context: Context) {
         e.putInt(KEY_PDF_CACHE_LIMIT, s.pdfCacheLimitMb)
         e.putString(KEY_TWO_FINGER_TAP, s.twoFingerTapAction.name)
         e.putString(KEY_THREE_FINGER_TAP, s.threeFingerTapAction.name)
-        // Retired with the per-tap actions: the one switch it carried is now the two actions' own
-        // `NONE`, so a save clears the value an older install still holds.
+        // Retired multi-finger switch, AGSL/motion switches, and badge axis prefs: clear legacy values.
         e.remove(KEY_MULTI_FINGER_SHORTCUTS)
-        // Both retired: the spring animation is the app's own motion language and the AGSL optics are
-        // gone, so a save clears the preferences an older install still carries.
         e.remove(KEY_LIQUID_GLASS_ANIMATIONS)
         e.remove(KEY_LIQUID_GLASS_SHADERS)
-        // The badge now derives its corner from the rail's side, so the two axes it used to be
-        // placed by are retired with their preferences.
         e.remove(KEY_PAGE_COUNTER_V)
         e.remove(KEY_PAGE_COUNTER_H)
         e.putBoolean(KEY_HAS_SEEN_ONBOARDING, s.hasSeenOnboarding)
+        e.putString(KEY_FOCUS_BAR_SLOTS, encodeRailIds(s.focusBarSlots))
+        e.putString(KEY_FOCUS_BAR_ANCHOR, s.focusBarAnchor)
         e.apply()
     }
 
     internal companion object {
 
         const val KEY_HAS_SEEN_ONBOARDING = "has_seen_onboarding"
+        const val KEY_FOCUS_BAR_SLOTS = "focus_bar_slots"
+        const val KEY_FOCUS_BAR_ANCHOR = "focus_bar_anchor"
 
         /** Default A4 width in points. */
         const val DEFAULT_PAGE_WIDTH_PT = 595.276

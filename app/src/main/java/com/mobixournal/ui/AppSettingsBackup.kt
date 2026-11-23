@@ -165,7 +165,11 @@ object AppSettingsBackup {
         b.append("  \"pdfCacheLimitMb\": ").append(settings.pdfCacheLimitMb).append(",\n")
         b.append("  \"twoFingerTapAction\": \"").append(settings.twoFingerTapAction.name).append("\",\n")
         b.append("  \"threeFingerTapAction\": \"").append(settings.threeFingerTapAction.name).append("\",\n")
-        b.append("  \"hasSeenOnboarding\": ").append(settings.hasSeenOnboarding).append("\n")
+        b.append("  \"hasSeenOnboarding\": ").append(settings.hasSeenOnboarding).append(",\n")
+        b.append("  \"focusBarSlots\": [")
+            .append(settings.focusBarSlots.joinToString(", ") { "\"${escape(it)}\"" })
+            .append("],\n")
+        b.append("  \"focusBarAnchor\": \"").append(escape(settings.focusBarAnchor)).append("\"\n")
         b.append("}\n")
         return b.toString()
     }
@@ -370,6 +374,8 @@ object AppSettingsBackup {
                 if (legacyFingerTaps) fallback.threeFingerTapAction else QuickAction.NONE,
             ),
             hasSeenOnboarding = root.getBool("hasSeenOnboarding", fallback.hasSeenOnboarding),
+            focusBarSlots = root.getStrList("focusBarSlots") ?: fallback.focusBarSlots,
+            focusBarAnchor = root.getStr("focusBarAnchor", fallback.focusBarAnchor),
         ).sanitized()
     }
 

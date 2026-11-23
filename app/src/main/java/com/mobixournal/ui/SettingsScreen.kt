@@ -96,7 +96,7 @@ enum class SettingsArea(
         "Toolbar layout, momentum and panning, theme.",
         // Appearance after Navigation: the theme is the last thing looked up on this page, and the
         // two Canvas behaviours read together.
-        listOf(SettingsSection.TOOLBAR, SettingsSection.NAVIGATION, SettingsSection.APPEARANCE),
+        listOf(SettingsSection.TOOLBAR, SettingsSection.NAVIGATION, SettingsSection.FOCUS_MODE, SettingsSection.APPEARANCE),
         SettingsGlyph.APPEARANCE.imageVector(),
     ),
     /** What the app writes and keeps: new-document format, storage limits, settings backup. */
@@ -218,6 +218,13 @@ enum class SettingsSection(
         "momentum scroll scrolling glide inertia pan panning sensitivity speed zoom full page " +
             "scrollbar",
         SettingsGlyph.NAVIGATION.imageVector(),
+    ),
+    /** Focus mode: customizable Liquid Glass floating bar tools and placement. */
+    FOCUS_MODE(
+        "Focus mode",
+        "Customize the Focus mode floating bar and its tools.",
+        "focus mode floating bar full page liquid glass tools dock vertical horizontal",
+        SettingsGlyph.FOCUS_MODE.imageVector(),
     ),
     /** Appearance: which colour scheme the app's chrome is painted with. */
     APPEARANCE(
@@ -524,6 +531,7 @@ private fun DestinationBody(
         SettingsDestination.CANVAS_TOOLS -> CanvasToolsSection(settings, onChange)
         SettingsDestination.PALETTE_RING -> PaletteRingSection(settings, onChange)
         SettingsDestination.WORKSPACE -> WorkspaceSection(settings, onChange)
+        SettingsDestination.FOCUS_MODE -> FocusModeSection(settings, onChange)
         SettingsDestination.SHORTCUTS -> ShortcutsSection(settings, onChange)
         SettingsDestination.FILES_DATA -> FilesDataSection(settings, onChange)
         SettingsDestination.ABOUT -> AboutSection()

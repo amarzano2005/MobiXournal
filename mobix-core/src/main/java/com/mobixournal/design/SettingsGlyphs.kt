@@ -54,6 +54,9 @@ enum class SettingsGlyph {
     /** Moving around a page: zoom, panning, momentum. */
     NAVIGATION,
 
+    /** Focus mode: full-canvas view and its floating bar. */
+    FOCUS_MODE,
+
     /** How the app looks: the theme, the status bar's readouts. */
     APPEARANCE,
 
@@ -85,6 +88,7 @@ object SettingsGlyphCatalogue {
         SettingsGlyph.SHORTCUTS -> keyboard()
         SettingsGlyph.AUDIO -> microphone()
         SettingsGlyph.NAVIGATION -> move()
+        SettingsGlyph.FOCUS_MODE -> focusMode()
         SettingsGlyph.APPEARANCE -> contrast()
         SettingsGlyph.DOCUMENTS -> page()
         SettingsGlyph.STORAGE -> cylinder()
@@ -282,6 +286,15 @@ object SettingsGlyphCatalogue {
         GlyphPart.Circle(12f, 12f, 8.5f),
         GlyphPart.Line(12f, 11f, 12f, 16.5f),
         GlyphPart.Circle(12f, 7.8f, 0.9f),
+    )
+
+    /** Four corners framing a floating bottom capsule: Focus mode. */
+    private fun focusMode(): List<GlyphPart> = listOf(
+        GlyphPart.Polyline(listOf(GlyphPoint(4f, 8.5f), GlyphPoint(4f, 4f), GlyphPoint(8.5f, 4f))),
+        GlyphPart.Polyline(listOf(GlyphPoint(15.5f, 4f), GlyphPoint(20f, 4f), GlyphPoint(20f, 8.5f))),
+        GlyphPart.Polyline(listOf(GlyphPoint(4f, 15.5f), GlyphPoint(4f, 20f), GlyphPoint(8.5f, 20f))),
+        GlyphPart.Polyline(listOf(GlyphPoint(15.5f, 20f), GlyphPoint(20f, 20f), GlyphPoint(20f, 15.5f))),
+        GlyphPart.Line(8f, 16f, 16f, 16f),
     )
 
 }

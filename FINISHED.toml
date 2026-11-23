@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "focus-mode-floating-bar"
+title = "Add Liquid Glass Focus mode floating bar and Settings section"
+description = "Implemented FocusFloatingBar.kt, FocusBarSlots.kt, FocusBarGeometry.kt, FocusBarCustomizeDialog.kt, FocusModeSection.kt, SettingsGlyph.FOCUS_MODE, AppSettings/Backup persistence, EditorScreen/SettingsScreen wiring, FocusBarGeometryTest, and docs/chrome.md + docs/chrome-settings.md + docs/guide-inking-and-gestures.md; verified via FocusBarGeometryTest, SettingsOverviewTest, AppSettingsBackupTest, SettingsDestinationsTest, SettingsGlyphParityTest, SettingsAreaTest, SettingsSearchTest, ColorContractGuardTest, SettingsBackupGuardTest, SettingsCopyParityTest, DocsGuardTest, DesktopSettingsGlyphTest, SettingsGlyphRenderTest, signed release APK, and :desktop:createDistributable."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "material: Floating Surface Liquid Glass via rememberFloatingSurfaceColor() + floatingRim(20.dp) + liquidGlassSpringAnimation; tokens: COMPACT_BUTTON_SIZE_DP, panelCornerRadiusDp, zero raw Color(0x) literals (ColorContractGuardTest passed); glyph: SettingsGlyph.FOCUS_MODE in mobix-core + ToolGlyphCatalogue + ChromeGlyph (SettingsGlyphParityTest & DesktopSettingsGlyphTest passed); states: active accent/container highlight, disabled undo/redo tint, jelly morph feedback, edge glow; copy: English UI copy across FocusBarSlots, FocusModeSection, FocusBarCustomizeDialog; docs: updated docs/chrome.md, docs/chrome-settings.md, docs/guide-inking-and-gestures.md (DocsGuardTest passed); tests: FocusBarGeometryTest, SettingsOverviewTest, AppSettingsBackupTest, DesktopSettingsGlyphTest passed"
+
+[[task]]
 id = "touch-double-tap-all-tools"
 title = "Enable 3-zone touch double-tap for all tools"
 description = "Updated DrawingSurfaceInput.kt (beginHandTap arms on TOOL_TYPE_FINGER for any tool), FingerGesturesSection.kt (removed TOGGLE_FULL_PAGE from 2/3-finger tap pickers and updated Touch double-tap note), EditorOverflowViews.kt, README.md, and docs/guide-inking-and-gestures.md; verified TapClassifierTest, MultiFingerTapDetectorTest, DocsGuardTest, SettingsCopyParityTest, ColorContractGuardTest, ShortcutCatalogTest, release APK, and :desktop:createDistributable."

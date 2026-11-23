@@ -565,6 +565,13 @@ fun EditorScreen(
             onExit = { ui.fullPage = false },
             modifier = Modifier.align(Alignment.TopEnd),
         )
+        FocusModeFloatingBarOverlay(
+            visible = ui.fullPage,
+            ui = ui,
+            pane = pane,
+            settings = settings,
+            onSettingsChange = onSettingsChange,
+        )
     }
 }
 

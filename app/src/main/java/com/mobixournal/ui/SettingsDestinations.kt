@@ -44,6 +44,12 @@ internal enum class SettingsDestination(
         category = SettingsGroupCategory.INTERFACE,
         icon = SettingsGlyph.APPEARANCE.imageVector(),
     ),
+    FOCUS_MODE(
+        title = "Focus mode",
+        subtitle = "Floating bar tools and layout",
+        category = SettingsGroupCategory.INTERFACE,
+        icon = SettingsGlyph.FOCUS_MODE.imageVector(),
+    ),
     SHORTCUTS(
         title = "Shortcuts",
         subtitle = "Hardware keyboard and ExpressKey bindings",
@@ -70,6 +76,7 @@ internal fun SettingsSection.toDestination(): SettingsDestination = when (this) 
     SettingsSection.EDITOR, SettingsSection.FIGURES, SettingsSection.NAVIGATION -> SettingsDestination.CANVAS_TOOLS
     SettingsSection.COLORS, SettingsSection.RING -> SettingsDestination.PALETTE_RING
     SettingsSection.APPEARANCE, SettingsSection.TOOLBAR -> SettingsDestination.WORKSPACE
+    SettingsSection.FOCUS_MODE -> SettingsDestination.FOCUS_MODE
     SettingsSection.SHORTCUTS -> SettingsDestination.SHORTCUTS
     SettingsSection.DOCUMENTS, SettingsSection.STORAGE, SettingsSection.BACKUP -> SettingsDestination.FILES_DATA
     SettingsSection.ABOUT -> SettingsDestination.ABOUT

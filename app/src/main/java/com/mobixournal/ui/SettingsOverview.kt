@@ -40,6 +40,7 @@ internal fun sectionLiveValue(section: SettingsSection, settings: AppSettings): 
         if (count > 0) "$count bound" else "None"
     }
     SettingsSection.NAVIGATION -> if (settings.momentum > 0f) "Smooth" else "Crisp"
+    SettingsSection.FOCUS_MODE -> "${resolveFocusBarSlots(settings.focusBarSlots).size} tools"
     SettingsSection.APPEARANCE -> settings.themeMode.shortLabel()
     SettingsSection.DOCUMENTS ->
         if (settings.newDocumentFormat == NewDocumentFormat.MOBIX) ".mobix" else ".xopp"
@@ -74,6 +75,7 @@ internal fun destinationLiveValue(destination: SettingsDestination, settings: Ap
         pageSizeLabel(settings.defaultPageWidthPt, settings.defaultPageHeightPt, settings.pageSizeUnit)
     SettingsDestination.PALETTE_RING -> "${ringFaces(settings).size} faces"
     SettingsDestination.WORKSPACE -> "${settings.themeMode.shortLabel()} · ${settings.toolbarPosition.label}"
+    SettingsDestination.FOCUS_MODE -> "${resolveFocusBarSlots(settings.focusBarSlots).size} tools"
     SettingsDestination.SHORTCUTS -> {
         val count = totalBoundShortcuts(settings)
         if (count > 0) "$count bound" else "None"
