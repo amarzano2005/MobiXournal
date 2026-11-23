@@ -610,6 +610,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
         onIndexing = { active, progress -> onSearchIndexingChanged?.invoke(active, progress) },
         onRepaint = { render() },
         reveal = { hit -> revealSearchHit(hit) },
+        cacheFile = java.io.File(context.cacheDir, "handwriting_line_cache.bin"),
+        prewarmOnReload = true,
     )
 
     /** True during live continuous transforms/moves where intermediate search rebuilding would thrash. */

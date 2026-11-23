@@ -23,6 +23,7 @@
 package com.mobixournal.render
 
 import com.mobixournal.format.model.Document
+import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 import java.util.concurrent.CancellationException
@@ -46,6 +47,9 @@ internal class CanvasSearch(
     /** Where a finished index lands: the main looper by default, direct in a test. */
     private val main: Executor = mainThreadExecutor(),
     private val queries: Executor = searchQueryExecutor(),
+    private val lineCache: HandwritingLineCache = HandwritingLineCache(),
+    private val cacheFile: File? = null,
+    private val prewarmOnReload: Boolean = false,
 ) {
 
     /** The query in force, as typed. */
@@ -75,6 +79,7 @@ internal class CanvasSearch(
      * the main thread installs it only while that is still the live one.
      */
     @Volatile private var generation = 0
+    @Volatile private var cacheLoaded = false
     private val queryGeneration = AtomicLong()
     private var textIndex = PageTextIndex()
 
@@ -111,8 +116,12 @@ internal class CanvasSearch(
         onIndexing(true, STARTING)
         background.execute {
             try {
+                if (!cacheLoaded && cacheFile != null) {
+                    lineCache.loadFrom(cacheFile)
+                    cacheLoaded = true
+                }
                 val totalPages = target.pages.size
-                val found = HandwritingIndex.build(
+                val found = lineCache.indexDocument(
                     doc = target,
                     onProgress = { page, total ->
                         if (generation == taskGeneration) {
@@ -125,6 +134,7 @@ internal class CanvasSearch(
                     },
                     isCancelled = { generation != taskGeneration },
                 )
+                if (generation == taskGeneration && cacheFile != null) lineCache.saveTo(cacheFile)
                 main.execute {
                     if (generation == taskGeneration) {
                         handwriting = found
@@ -184,23 +194,25 @@ internal class CanvasSearch(
         cancel()
         forget()
         notifyChanged()
-        if (query.isNotEmpty()) startIndexing(document())
+        if (query.isNotEmpty() || prewarmOnReload) startIndexing(document())
     }
 
     /**
      * The recogniser itself changed (its model became available): the index is void although the
-     * document is not, so rebuild it in place when a query is waiting.
+     * document is not, so rebuild it in place when a query or prewarm is active.
      */
     fun invalidate() {
         cancel()
+        lineCache.clear()
         handwriting = null
         indexedDoc = null
-        if (query.isNotEmpty()) startIndexing(document())
+        if (query.isNotEmpty() || prewarmOnReload) startIndexing(document())
     }
 
     /**
      * The document was edited, so the index no longer describes it: void the index and, unless the edit
-     * is still in progress ([midGesture] — a live move rewrites the page every frame), requery.
+     * is still in progress ([midGesture] — a live move rewrites the page every frame), re-index
+     * incrementally (unchanged lines hit [lineCache]) and requery.
      */
     fun edited(midGesture: Boolean) {
         generation++
@@ -208,6 +220,7 @@ internal class CanvasSearch(
         indexing = false
         handwriting = null
         indexedDoc = null
+        if (!midGesture && (query.isNotEmpty() || prewarmOnReload)) startIndexing(document())
         if (query.isNotEmpty() && !midGesture) rebuild()
     }
 
@@ -281,7 +294,12 @@ internal class CanvasSearch(
         val taskGeneration = ++generation
         background.execute {
             try {
-                val found = HandwritingIndex.build(target, isCancelled = { generation != taskGeneration })
+                if (!cacheLoaded && cacheFile != null) {
+                    lineCache.loadFrom(cacheFile)
+                    cacheLoaded = true
+                }
+                val found = lineCache.indexDocument(target, isCancelled = { generation != taskGeneration })
+                if (generation == taskGeneration && cacheFile != null) lineCache.saveTo(cacheFile)
                 main.execute {
                     if (generation == taskGeneration) {
                         handwriting = found

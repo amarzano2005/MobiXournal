@@ -13,7 +13,7 @@ import com.mobixournal.format.model.Stroke
  * Answering null means "no model, or the model read nothing": the shared recogniser then asks
  * [FallbackInkEngine], exactly as it did before the engine became a seam.
  */
-object AndroidInkEngine : InkWordEngine {
+object AndroidInkEngine : InkLineEngine {
 
     override fun recognize(strokes: List<Stroke>, bounds: Bounds): HandwrittenWord? {
         if (!MlKitInkEngine.isAvailable()) return null
@@ -25,5 +25,23 @@ object AndroidInkEngine : InkWordEngine {
             confidence = 1.0,
             candidates = candidates.take(5),
         )
+    }
+
+    override fun recognizeLine(words: List<List<Stroke>>, bounds: List<Bounds>): List<HandwrittenWord?> {
+        if (!MlKitInkEngine.isAvailable() || words.isEmpty()) return List(words.size) { null }
+        val batch = MlKitInkEngine.recognizeLine(words)
+        return words.indices.map { i ->
+            val candidates = batch.getOrNull(i).orEmpty()
+            if (candidates.isEmpty()) {
+                null
+            } else {
+                HandwrittenWord(
+                    text = candidates.first(),
+                    bounds = bounds[i],
+                    confidence = 1.0,
+                    candidates = candidates.take(5),
+                )
+            }
+        }
     }
 }

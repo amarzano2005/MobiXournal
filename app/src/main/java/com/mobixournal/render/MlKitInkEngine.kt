@@ -46,7 +46,7 @@ object MlKitInkEngine {
         } else {
             deviceLocale.language
         }
-        return (listOf("en-US", "it-IT", deviceTag) + MAJOR_LANGUAGE_TAGS).distinct()
+        return (listOf(deviceTag, "en-US", "it-IT") + MAJOR_LANGUAGE_TAGS).distinct()
     }
 
     /**
@@ -190,9 +190,8 @@ object MlKitInkEngine {
     }
 
     /**
-     * Recognizes text from a group of strokes forming a word or phrase across available language models.
-     * Returns candidate interpretations from English and major languages (including Italian),
-     * highest confidence first.
+     * Recognizes text from a group of strokes forming a word or phrase, preferring the active
+     * primary language model and falling back to secondary models only when no candidates match.
      */
     fun recognizeWord(strokes: List<Stroke>): List<String> {
         if (isMainThread()) {
@@ -203,23 +202,55 @@ object MlKitInkEngine {
         if (recognizers.isEmpty()) return emptyList()
         val ink = buildInk(strokes) ?: return emptyList()
 
-        val allCandidates = mutableListOf<String>()
         for (recognizer in recognizers) {
             try {
-                val task = recognizer.recognize(ink)
-                val result = Tasks.await(task, 1500, TimeUnit.MILLISECONDS)
-                for (cand in result.candidates.take(3)) {
-                    val text = cand.text.trim()
-                    if (text.isNotEmpty() && text !in allCandidates) {
-                        allCandidates.add(text)
-                    }
-                }
-                if (allCandidates.size >= 5) break
+                val result = Tasks.await(recognizer.recognize(ink), 1500, TimeUnit.MILLISECONDS)
+                val candidates = result.candidates.take(5).mapNotNull { cand ->
+                    cand.text.trim().takeIf { it.isNotEmpty() }
+                }.distinct()
+                if (candidates.isNotEmpty()) return candidates
             } catch (e: Exception) {
                 Log.w(TAG, "ML Kit recognition error", e)
             }
         }
-        return allCandidates
+        return emptyList()
+    }
+
+    /**
+     * Recognizes all words of a line concurrently on the primary model, only querying secondary
+     * models for words that returned no candidates.
+     */
+    fun recognizeLine(words: List<List<Stroke>>): List<List<String>> {
+        if (words.isEmpty()) return emptyList()
+        if (isMainThread()) {
+            Log.w(TAG, "Cannot call Tasks.await on main thread; using fallback recognizer")
+            return List(words.size) { emptyList() }
+        }
+        val recognizers = getAvailableRecognizers()
+        if (recognizers.isEmpty()) return List(words.size) { emptyList() }
+
+        val inks = words.map { buildInk(it) }
+        val results = MutableList<List<String>>(words.size) { emptyList() }
+        for (recognizer in recognizers) {
+            val pendingIndices = inks.indices.filter { idx -> inks[idx] != null && results[idx].isEmpty() }
+            if (pendingIndices.isEmpty()) break
+            try {
+                val tasks = pendingIndices.map { idx -> recognizer.recognize(inks[idx]!!) }
+                Tasks.await(Tasks.whenAllComplete(tasks), 2500, TimeUnit.MILLISECONDS)
+                for (i in pendingIndices.indices) {
+                    val task = tasks[i]
+                    if (task.isSuccessful) {
+                        val cands = task.result.candidates.take(5).mapNotNull { cand ->
+                            cand.text.trim().takeIf { it.isNotEmpty() }
+                        }.distinct()
+                        if (cands.isNotEmpty()) results[pendingIndices[i]] = cands
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "ML Kit batch recognition error", e)
+            }
+        }
+        return results
     }
 
     private fun getAvailableRecognizers(): List<DigitalInkRecognizer> {
