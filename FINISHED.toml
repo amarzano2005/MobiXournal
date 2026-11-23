@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "perf-bottlenecks-four-block-pass"
+title = "Eliminate top performance bottlenecks across ink/eraser, save I/O, Compose UI, and desktop PDF/Wintab"
+description = "Shipped all 4 performance optimization blocks (commits aca8b16b, 65b52fe3, c6c26411, 00b9de76, cc012b2f), verified targeted :mobix-core:test, :app:testDebugUnitTest, :desktop:test, DocsGuardTest (27/27), SourceStructureTest on all edited files, signed Android release APK MobiXournal-2.4.0.apk, and :desktop:createDistributable."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "none: internal rendering, I/O, recomposition scoping, and Wintab frame pacing optimizations with no visual or component change"
+
+[[task]]
 id = "focus-bar-morph-jump-and-drag-smoothing"
 title = "Eliminate Focus bar morph jumps, side magnet, and drag stutter"
 description = "Added focusBarRenderOffsetPx and FocusBarMotionState with live morphed sizing and dockJumpX/dockJumpY continuity springs, replaced edge-touch side trigger with sideFingerZonePx/sideOverpushPx plus corner blockedSideDock suppression, removed bottom stickiness on drag start, switched pointer mapping to container.localPositionOf, and expanded FocusBarGeometryTest (12/12 passed; DocsGuardTest 27/27 passed; SourceStructureTest passed on edited files with 2 unrelated pre-existing ceilings failing)."
