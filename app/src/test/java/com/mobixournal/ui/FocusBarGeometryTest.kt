@@ -139,53 +139,36 @@ class FocusBarGeometryTest {
     }
 
     @Test
-    fun `effectiveEdgeThresholds caps bands on compact phones and enables finger-driven edge morphing`() {
-        val (phoneEnter, phoneExit) = effectiveEdgeThresholds(360f, 110f, 165f)
-        assertTrue("phone enter < exit", phoneEnter < phoneExit)
-        assertTrue("phone exit leaves free middle", phoneExit < 360f / 2f)
+    fun `effectiveEdgeThresholds keeps wide free zone and allows clean dock and undock`() {
+        val (phoneEnter, phoneExit) = effectiveEdgeThresholds(360f, 56f, 92f)
+        assertEquals(56f, phoneEnter, 0.01f)
+        assertEquals(92f, phoneExit, 0.01f)
+        assertTrue("phone free middle > 240 px", 360f - 2f * phoneEnter > 240f)
 
-        val (tabEnter, tabExit) = effectiveEdgeThresholds(1000f, 110f, 165f)
-        assertEquals(110f, tabEnter, 0.01f)
-        assertEquals(165f, tabExit, 0.01f)
+        val (tabEnter, tabExit) = effectiveEdgeThresholds(1000f, 56f, 92f)
+        assertEquals(56f, tabEnter, 0.01f)
+        assertEquals(92f, tabExit, 0.01f)
 
-        // Finger drags a 290-px wide 6-slot horizontal bar toward left and right edges.
+        // Dragging anywhere in the middle stays FREE.
         var dock = FocusBarDock.FREE
-        dock = nextFocusBarDock(dock, 95f, 1000f, tabEnter, tabExit)
-        assertEquals(FocusBarDock.LEFT_EDGE, dock)
-        // Still inside hysteresis band (95..165) stays vertical.
-        dock = nextFocusBarDock(dock, 145f, 1000f, tabEnter, tabExit)
-        assertEquals(FocusBarDock.LEFT_EDGE, dock)
-        // Pulled past exit threshold returns horizontal.
-        dock = nextFocusBarDock(dock, 190f, 1000f, tabEnter, tabExit)
+        dock = nextFocusBarDock(dock, 200f, 1000f, tabEnter, tabExit)
         assertEquals(FocusBarDock.FREE, dock)
 
-        dock = nextFocusBarDock(dock, 905f, 1000f, tabEnter, tabExit)
+        // Finger entering outer 56-px edge docks LEFT_EDGE; stays latched at 75; exits cleanly at 95.
+        dock = nextFocusBarDock(dock, 45f, 1000f, tabEnter, tabExit)
+        assertEquals(FocusBarDock.LEFT_EDGE, dock)
+        dock = nextFocusBarDock(dock, 75f, 1000f, tabEnter, tabExit)
+        assertEquals(FocusBarDock.LEFT_EDGE, dock)
+        dock = nextFocusBarDock(dock, 95f, 1000f, tabEnter, tabExit)
+        assertEquals(FocusBarDock.FREE, dock)
+        // Staying at 95 stays FREE (never sucked back into LEFT_EDGE).
+        dock = nextFocusBarDock(dock, 95f, 1000f, tabEnter, tabExit)
+        assertEquals(FocusBarDock.FREE, dock)
+
+        // Right edge mirrors left edge cleanly.
+        dock = nextFocusBarDock(dock, 955f, 1000f, tabEnter, tabExit)
         assertEquals(FocusBarDock.RIGHT_EDGE, dock)
-    }
-
-    @Test
-    fun `nextFocusBarDockState morphs on bar edge proximity without oscillating`() {
-        // Grabbing the centre of a 290-px horizontal bar on a 1000-px tablet:
-        // dragging left until barLeftX = 25 <= 14 + 12 immediately docks LEFT_EDGE even though fingerX = 170.
-        var st = FocusBarDockState()
-        st = nextFocusBarDockState(st, fingerX = 170f, barLeftX = 25f, barRightX = 315f, containerWidth = 1000f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
-        assertEquals(FocusBarDock.LEFT_EDGE, st.dock)
-
-        // Holding finger at 170 or pushing further left to 60 stays stably LEFT_EDGE (no ping-pong).
-        st = nextFocusBarDockState(st, fingerX = 170f, barLeftX = 25f, barRightX = 315f, containerWidth = 1000f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
-        assertEquals(FocusBarDock.LEFT_EDGE, st.dock)
-        st = nextFocusBarDockState(st, fingerX = 60f, barLeftX = 0f, barRightX = 290f, containerWidth = 1000f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
-        assertEquals(FocusBarDock.LEFT_EDGE, st.dock)
-
-        // Pulling inward by 56+ px from 60 to 120 undocks cleanly back to FREE.
-        st = nextFocusBarDockState(st, fingerX = 120f, barLeftX = 0f, barRightX = 290f, containerWidth = 1000f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
-        assertEquals(FocusBarDock.FREE, st.dock)
-
-        // Compact phone (360 px): centered 290-px bar (35..325) stays FREE; dragging 10 px left docks LEFT_EDGE.
-        var phone = FocusBarDockState()
-        phone = nextFocusBarDockState(phone, fingerX = 180f, barLeftX = 35f, barRightX = 325f, containerWidth = 360f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
-        assertEquals(FocusBarDock.FREE, phone.dock)
-        phone = nextFocusBarDockState(phone, fingerX = 170f, barLeftX = 25f, barRightX = 315f, containerWidth = 360f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
-        assertEquals(FocusBarDock.LEFT_EDGE, phone.dock)
+        dock = nextFocusBarDock(dock, 900f, 1000f, tabEnter, tabExit)
+        assertEquals(FocusBarDock.FREE, dock)
     }
 }

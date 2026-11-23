@@ -117,56 +117,6 @@ enum class FocusBarDock {
     RIGHT_EDGE,
 }
 
-/** Live dock state carrying the finger anchor where docking engaged, preventing edge oscillation. */
-data class FocusBarDockState(
-    val dock: FocusBarDock = FocusBarDock.FREE,
-    val dockFingerX: Float = Float.NaN,
-)
-
-/**
- * Determine the next [FocusBarDockState] from both the horizontal bar's edges and the finger's X.
- * Enters vertical mode as soon as the horizontal bar approaches either side edge (regardless of
- * where the user grabbed the bar) and requires pulling inward by [exitPullPx] to return horizontal.
- */
-fun nextFocusBarDockState(
-    current: FocusBarDockState,
-    fingerX: Float,
-    barLeftX: Float,
-    barRightX: Float,
-    containerWidth: Float,
-    edgeMarginPx: Float,
-    enterProxPx: Float,
-    exitPullPx: Float,
-): FocusBarDockState {
-    if (containerWidth <= 0f) return FocusBarDockState(FocusBarDock.FREE)
-    return when (current.dock) {
-        FocusBarDock.FREE -> when {
-            barLeftX <= edgeMarginPx + enterProxPx || fingerX <= edgeMarginPx + enterProxPx * 3f ->
-                FocusBarDockState(FocusBarDock.LEFT_EDGE, dockFingerX = fingerX)
-            barRightX >= containerWidth - edgeMarginPx - enterProxPx ||
-                fingerX >= containerWidth - edgeMarginPx - enterProxPx * 3f ->
-                FocusBarDockState(FocusBarDock.RIGHT_EDGE, dockFingerX = fingerX)
-            else -> current
-        }
-        FocusBarDock.LEFT_EDGE -> {
-            val anchor = if (current.dockFingerX.isFinite()) minOf(current.dockFingerX, fingerX) else fingerX
-            if (fingerX >= anchor + exitPullPx && fingerX >= edgeMarginPx + exitPullPx) {
-                FocusBarDockState(FocusBarDock.FREE)
-            } else {
-                FocusBarDockState(FocusBarDock.LEFT_EDGE, dockFingerX = anchor)
-            }
-        }
-        FocusBarDock.RIGHT_EDGE -> {
-            val anchor = if (current.dockFingerX.isFinite()) maxOf(current.dockFingerX, fingerX) else fingerX
-            if (fingerX <= anchor - exitPullPx && fingerX <= containerWidth - edgeMarginPx - exitPullPx) {
-                FocusBarDockState(FocusBarDock.FREE)
-            } else {
-                FocusBarDockState(FocusBarDock.RIGHT_EDGE, dockFingerX = anchor)
-            }
-        }
-    }
-}
-
 /** Persisted normalized placement of the Focus floating bar across orientation/size changes. */
 data class FocusBarAnchor(
     val dock: FocusBarDock = FocusBarDock.FREE,
@@ -189,8 +139,9 @@ fun decodeFocusBarAnchor(raw: String?): FocusBarAnchor {
 }
 
 /**
- * Effective `(enterPx, exitPx)` edge thresholds capped to the viewport width so left and right
- * dock zones never overlap on compact phones while staying generous on tablets.
+ * Effective `(enterPx, exitPx)` edge thresholds for finger-based docking: narrow enough to keep
+ * most of the screen completely free for horizontal placement, with a clean hysteresis band so
+ * leaving a side edge never re-triggers docking.
  */
 fun effectiveEdgeThresholds(
     containerWidth: Float,
@@ -198,14 +149,14 @@ fun effectiveEdgeThresholds(
     baseExitPx: Float,
 ): Pair<Float, Float> {
     if (containerWidth <= 0f) return 0f to 1f
-    val enter = minOf(baseEnterPx, containerWidth * 0.22f).coerceAtLeast(1f)
-    val exit = minOf(baseExitPx, containerWidth * 0.34f).coerceAtLeast(enter + 1f)
+    val enter = minOf(baseEnterPx, containerWidth * 0.16f).coerceAtLeast(1f)
+    val exit = minOf(baseExitPx, containerWidth * 0.28f).coerceAtLeast(enter + 1f)
     return enter to exit
 }
 
 /**
- * Determine the bar's dock state from the finger's horizontal position ([centerX]) with hysteresis
- * so dragging near the threshold never chatters between horizontal and vertical.
+ * Determine the bar's dock state purely from the finger's horizontal position ([centerX]) with
+ * hysteresis (`enterEdgePx < exitEdgePx`).
  */
 fun nextFocusBarDock(
     current: FocusBarDock,
@@ -217,18 +168,18 @@ fun nextFocusBarDock(
     if (containerWidth <= 0f) return FocusBarDock.FREE
     return when (current) {
         FocusBarDock.LEFT_EDGE -> when {
-            centerX > containerWidth - enterEdgePx -> FocusBarDock.RIGHT_EDGE
-            centerX > exitEdgePx -> FocusBarDock.FREE
+            centerX >= containerWidth - enterEdgePx -> FocusBarDock.RIGHT_EDGE
+            centerX >= exitEdgePx -> FocusBarDock.FREE
             else -> FocusBarDock.LEFT_EDGE
         }
         FocusBarDock.RIGHT_EDGE -> when {
-            centerX < enterEdgePx -> FocusBarDock.LEFT_EDGE
-            centerX < containerWidth - exitEdgePx -> FocusBarDock.FREE
+            centerX <= enterEdgePx -> FocusBarDock.LEFT_EDGE
+            centerX <= containerWidth - exitEdgePx -> FocusBarDock.FREE
             else -> FocusBarDock.RIGHT_EDGE
         }
         FocusBarDock.FREE -> when {
-            centerX < enterEdgePx -> FocusBarDock.LEFT_EDGE
-            centerX > containerWidth - enterEdgePx -> FocusBarDock.RIGHT_EDGE
+            centerX <= enterEdgePx -> FocusBarDock.LEFT_EDGE
+            centerX >= containerWidth - enterEdgePx -> FocusBarDock.RIGHT_EDGE
             else -> FocusBarDock.FREE
         }
     }

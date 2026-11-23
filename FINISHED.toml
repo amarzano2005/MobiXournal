@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "fix-focus-bar-free-drag-undock"
+title = "Fix Focus bar free dragging and undocking from side edges"
+description = "Updated FocusBarGeometry.kt (pure finger-zone effectiveEdgeThresholds 56/92 dp and nextFocusBarDock), FocusFloatingBar.kt (synchronous liveDock inside awaitEachGesture, re-centered grab fraction on axis morph), and FocusBarGeometryTest.kt; verified FocusBarGeometryTest, ColorContractGuardTest, DocsGuardTest, signed release APK, and :desktop:createDistributable."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "states: free horizontal dragging across the full middle viewport, clean 56 dp edge dock and 92 dp undock with zero trap; tests: FocusBarGeometryTest covers free middle zone, dock, and undock on both phones and tablets"
+
+[[task]]
 id = "fix-focus-bar-edge-morph-and-pref-v2"
 title = "Fix Focus bar vertical edge morphing and migrate slot pref key"
 description = "Updated FocusBarGeometry.kt (FocusBarDockState, nextFocusBarDockState), FocusFloatingBar.kt (PointerEventType.Move loop and edge-proximity morphing), AppSettings.kt (focus_bar_slots_v2 key migration), and FocusBarGeometryTest.kt; verified FocusBarGeometryTest, AppSettingsBackupTest, ColorContractGuardTest, DocsGuardTest, signed release APK, and :desktop:createDistributable."
