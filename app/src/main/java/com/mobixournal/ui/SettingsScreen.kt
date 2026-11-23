@@ -202,13 +202,13 @@ enum class SettingsSection(
         "Finger gestures",
         "What a still two-finger tap and a still three-finger tap do.",
         "finger gestures touch two finger tap double tap three triple tap undo redo toggle eraser " +
-            "select full page multitouch multi-touch tap",
+            "select full page focus mode hand multitouch multi-touch tap",
         SettingsGlyph.GESTURES.imageVector(),
     ),
     /** Keyboard shortcuts: one key per tool and per pen colour. */
     SHORTCUTS(
         "Shortcuts",
-        "One key each to jump straight to a tool or a pen colour.",            "shortcut key keyboard hardware expresskey tablet remote button detect assignment",
+        "One key each to jump straight to a tool or a pen colour.",            "shortcut key keyboard hardware expresskey tablet remote button detect assignment focus mode",
         SettingsGlyph.SHORTCUTS.imageVector(),
     ),
     /** Navigation: momentum scrolling strength and panning sensitivity. */

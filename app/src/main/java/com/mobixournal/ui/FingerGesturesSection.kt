@@ -13,7 +13,7 @@ fun quickActionLabel(action: QuickAction): String = when (action) {
     QuickAction.REDO -> "Redo"
     QuickAction.TOGGLE_ERASER -> "Toggle eraser"
     QuickAction.TOGGLE_SELECT -> "Toggle select"
-    QuickAction.TOGGLE_FULL_PAGE -> "Toggle full page"
+    QuickAction.TOGGLE_FULL_PAGE -> "Toggle focus mode"
     QuickAction.HUD -> "Ring"
 }
 
@@ -44,6 +44,11 @@ fun FingerGesturesSection(settings: AppSettings, onChange: (AppSettings) -> Unit
             selected = settings.threeFingerTapAction,
             onSelect = { onChange(settings.copy(threeFingerTapAction = it)) },
             hint = "Quick stationary tap with three fingers.",
+        )
+    }
+    SettingsGroup("Hand tool") {
+        SettingsNote(
+            "Double-tap the canvas with the Hand tool: left third for previous page, centre for Focus mode, right third for next page.",
         )
     }
 }

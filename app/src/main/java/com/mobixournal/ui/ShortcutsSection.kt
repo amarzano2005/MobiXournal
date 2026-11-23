@@ -168,7 +168,7 @@ private fun toggleItemsFor(settings: AppSettings): List<ToggleBindingItem> = lis
     ToggleBindingItem("Select", settings.selectToggleKey, EditorTool.SELECT.icon) { s, k ->
         s.copy(selectToggleKey = k)
     },
-    ToggleBindingItem("Full page", settings.fullPageToggleKey, SettingsGlyph.NAVIGATION.imageVector()) { s, k ->
+    ToggleBindingItem("Focus mode", settings.fullPageToggleKey, SettingsGlyph.NAVIGATION.imageVector()) { s, k ->
         s.copy(fullPageToggleKey = k)
     },
     ToggleBindingItem("Ring at the pen", settings.ringShortcutKey, SettingsGlyph.RING.imageVector()) { s, k ->

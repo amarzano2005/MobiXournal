@@ -56,7 +56,7 @@ in the folder you choose, with no account between.
 
 - **Write on the source.** A PDF becomes the page background — the pages you pick by preview — its text stays selectable and copyable.
 - **A highlighter that finds the line.** Drag across PDF text and each line snaps into a constant-width band. Hold a word (double click in the window) and **Copy**, **Highlight** or **Underline** acts on the passage without a tool switch; its two dots adjust it.
-- **Navigate with bookmarks.** Open them directly beside Android's page list or in the Windows sidebar. Filter, fold, add, rename or delete entries, and drag chapters with their subsections into order. New entries appear immediately.
+- **Navigate with bookmarks.** Open them beside Android's page list or in the Windows sidebar to filter, fold, edit, and reorder chapters.
 - **Record while you write.** Tap a stroke to replay its recording; bundled audio and waveforms load in the background.
 - **Search everything at once.** Typed text, PDF text, formula source and your handwriting come back offline on Windows, and on the tablet once the model downloads.
 
@@ -65,6 +65,7 @@ in the folder you choose, with no account between.
 - **The same notebook, two surfaces.** One file and one core: the tablet for a pen in hand, the window for tabs and export; [the limitations page](docs/guide-limitations.md) says where the tools differ.
 - **The window is a workstation.** Tabs that keep their page and zoom, a sidebar of layers, and export to PDF, PNG or SVG.
 - **The tablet is the paper.** Split view, the Ring at the pen, palm rejection, and pages sized for a hand.
+- **Focus mode on the tablet.** Toggle via **☰ → Pen & View**, **`F`**, or double-tapping the centre with the Hand tool ([gestures](docs/guide-inking-and-gestures.md)).
 - **Nothing converts behind your back.** A document keeps its format, offline and accountless.
 - **Arrange it your way.** Drag a swatch or a tool slot by its handle to move it.
 
@@ -119,13 +120,10 @@ Details: [the native format](docs/mobix-format.md), [the `.xopp` contract](docs/
 2. Confirm the SmartScreen prompt; keep or decline the `.mobix`/`.pmobix`/`.xopp` associations and shortcut.
 3. Open a notebook from the header, from Explorer, or by dragging a file onto the window.
 
-A new tab is empty until saved: **Save As** picks the format, the picker the name; **Save** writes;
-**Export PDF** writes all pages, or the ones picked.
-**Export As** writes PNG or SVG pages, or the notebook as a **`.pmobix`** carrying the files it
-only names — an export, not a working file.
-**Save automatically** writes a saved document seconds after you stop, and never picks a name; while it writes,
-**Save** becomes a turning arc.
-Recents show what you opened; **Restore last session** reopens the last one.
+A new tab is empty until saved: **Save As** picks format and name; **Save** writes; **Export PDF** writes all or picked pages.
+**Export As** writes PNG, SVG, or a self-contained **`.pmobix`** export.
+**Save automatically** writes seconds after you stop; while it writes, **Save** becomes a turning arc.
+Recents and **Restore last session** reopen previous work.
 
 ## Where the work stands today
 

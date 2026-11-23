@@ -254,6 +254,7 @@ internal fun StudioTabView(
             SheetSwitchRow(
                 icon = Icons.Outlined.Fullscreen,
                 label = "Focus mode",
+                subtitle = "Hide toolbars, or double-tap centre with Hand",
                 checked = fullPage,
                 ink = ink,
                 accent = accent,
@@ -376,6 +377,7 @@ private fun SheetSwitchRow(
     ink: Color,
     accent: Color,
     onClick: () -> Unit,
+    subtitle: String? = null,
 ) {
     val thumbOffset by animateDpAsState(targetValue = if (checked) 16.dp else 0.dp, label = "SwitchThumb")
     val trackColor = if (checked) accent else ink.copy(alpha = 0.16f)
@@ -388,12 +390,20 @@ private fun SheetSwitchRow(
     ) {
         Icon(icon, contentDescription = null, tint = ink.copy(alpha = 0.72f), modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(10.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = ink,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                color = ink,
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = ink.copy(alpha = 0.62f),
+                )
+            }
+        }
         Box(
             modifier = Modifier
                 .size(width = 36.dp, height = 20.dp)
