@@ -117,6 +117,56 @@ enum class FocusBarDock {
     RIGHT_EDGE,
 }
 
+/** Live dock state carrying the finger anchor where docking engaged, preventing edge oscillation. */
+data class FocusBarDockState(
+    val dock: FocusBarDock = FocusBarDock.FREE,
+    val dockFingerX: Float = Float.NaN,
+)
+
+/**
+ * Determine the next [FocusBarDockState] from both the horizontal bar's edges and the finger's X.
+ * Enters vertical mode as soon as the horizontal bar approaches either side edge (regardless of
+ * where the user grabbed the bar) and requires pulling inward by [exitPullPx] to return horizontal.
+ */
+fun nextFocusBarDockState(
+    current: FocusBarDockState,
+    fingerX: Float,
+    barLeftX: Float,
+    barRightX: Float,
+    containerWidth: Float,
+    edgeMarginPx: Float,
+    enterProxPx: Float,
+    exitPullPx: Float,
+): FocusBarDockState {
+    if (containerWidth <= 0f) return FocusBarDockState(FocusBarDock.FREE)
+    return when (current.dock) {
+        FocusBarDock.FREE -> when {
+            barLeftX <= edgeMarginPx + enterProxPx || fingerX <= edgeMarginPx + enterProxPx * 3f ->
+                FocusBarDockState(FocusBarDock.LEFT_EDGE, dockFingerX = fingerX)
+            barRightX >= containerWidth - edgeMarginPx - enterProxPx ||
+                fingerX >= containerWidth - edgeMarginPx - enterProxPx * 3f ->
+                FocusBarDockState(FocusBarDock.RIGHT_EDGE, dockFingerX = fingerX)
+            else -> current
+        }
+        FocusBarDock.LEFT_EDGE -> {
+            val anchor = if (current.dockFingerX.isFinite()) minOf(current.dockFingerX, fingerX) else fingerX
+            if (fingerX >= anchor + exitPullPx && fingerX >= edgeMarginPx + exitPullPx) {
+                FocusBarDockState(FocusBarDock.FREE)
+            } else {
+                FocusBarDockState(FocusBarDock.LEFT_EDGE, dockFingerX = anchor)
+            }
+        }
+        FocusBarDock.RIGHT_EDGE -> {
+            val anchor = if (current.dockFingerX.isFinite()) maxOf(current.dockFingerX, fingerX) else fingerX
+            if (fingerX <= anchor - exitPullPx && fingerX <= containerWidth - edgeMarginPx - exitPullPx) {
+                FocusBarDockState(FocusBarDock.FREE)
+            } else {
+                FocusBarDockState(FocusBarDock.RIGHT_EDGE, dockFingerX = anchor)
+            }
+        }
+    }
+}
+
 /** Persisted normalized placement of the Focus floating bar across orientation/size changes. */
 data class FocusBarAnchor(
     val dock: FocusBarDock = FocusBarDock.FREE,

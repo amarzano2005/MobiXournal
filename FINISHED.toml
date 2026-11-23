@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "fix-focus-bar-edge-morph-and-pref-v2"
+title = "Fix Focus bar vertical edge morphing and migrate slot pref key"
+description = "Updated FocusBarGeometry.kt (FocusBarDockState, nextFocusBarDockState), FocusFloatingBar.kt (PointerEventType.Move loop and edge-proximity morphing), AppSettings.kt (focus_bar_slots_v2 key migration), and FocusBarGeometryTest.kt; verified FocusBarGeometryTest, AppSettingsBackupTest, ColorContractGuardTest, DocsGuardTest, signed release APK, and :desktop:createDistributable."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "states: edge-proximity horizontal-to-vertical morphing with inward-pull undock hysteresis and zero oscillation; tests: FocusBarGeometryTest covers tablet and compact phone edge-proximity morphing"
+
+[[task]]
 id = "fix-focus-bar-drag-and-slots"
 title = "Fix Focus bar drag oscillation and slot persistence codec"
 description = "Updated FocusFloatingBar.kt (synchronous drag state, onPlaced LayoutCoordinates, long-press-only handle, Box slot wrapper), FocusBarGeometry.kt (encodeFocusBarSlotIds, decodeFocusBarSlotIds, 0.22/0.34 edge caps), AppSettings.kt (uses Focus bar slot codec), and FocusBarGeometryTest.kt; verified FocusBarGeometryTest, AppSettingsBackupTest, ColorContractGuardTest, DocsGuardTest, signed release APK, and :desktop:createDistributable."

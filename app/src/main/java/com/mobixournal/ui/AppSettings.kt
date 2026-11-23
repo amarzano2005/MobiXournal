@@ -801,7 +801,7 @@ class SettingsStore(context: Context) {
     internal companion object {
 
         const val KEY_HAS_SEEN_ONBOARDING = "has_seen_onboarding"
-        const val KEY_FOCUS_BAR_SLOTS = "focus_bar_slots"
+        const val KEY_FOCUS_BAR_SLOTS = "focus_bar_slots_v2"
         const val KEY_FOCUS_BAR_ANCHOR = "focus_bar_anchor"
 
         /** Default A4 width in points. */

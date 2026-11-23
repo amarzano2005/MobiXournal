@@ -162,4 +162,30 @@ class FocusBarGeometryTest {
         dock = nextFocusBarDock(dock, 905f, 1000f, tabEnter, tabExit)
         assertEquals(FocusBarDock.RIGHT_EDGE, dock)
     }
+
+    @Test
+    fun `nextFocusBarDockState morphs on bar edge proximity without oscillating`() {
+        // Grabbing the centre of a 290-px horizontal bar on a 1000-px tablet:
+        // dragging left until barLeftX = 25 <= 14 + 12 immediately docks LEFT_EDGE even though fingerX = 170.
+        var st = FocusBarDockState()
+        st = nextFocusBarDockState(st, fingerX = 170f, barLeftX = 25f, barRightX = 315f, containerWidth = 1000f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
+        assertEquals(FocusBarDock.LEFT_EDGE, st.dock)
+
+        // Holding finger at 170 or pushing further left to 60 stays stably LEFT_EDGE (no ping-pong).
+        st = nextFocusBarDockState(st, fingerX = 170f, barLeftX = 25f, barRightX = 315f, containerWidth = 1000f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
+        assertEquals(FocusBarDock.LEFT_EDGE, st.dock)
+        st = nextFocusBarDockState(st, fingerX = 60f, barLeftX = 0f, barRightX = 290f, containerWidth = 1000f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
+        assertEquals(FocusBarDock.LEFT_EDGE, st.dock)
+
+        // Pulling inward by 56+ px from 60 to 120 undocks cleanly back to FREE.
+        st = nextFocusBarDockState(st, fingerX = 120f, barLeftX = 0f, barRightX = 290f, containerWidth = 1000f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
+        assertEquals(FocusBarDock.FREE, st.dock)
+
+        // Compact phone (360 px): centered 290-px bar (35..325) stays FREE; dragging 10 px left docks LEFT_EDGE.
+        var phone = FocusBarDockState()
+        phone = nextFocusBarDockState(phone, fingerX = 180f, barLeftX = 35f, barRightX = 325f, containerWidth = 360f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
+        assertEquals(FocusBarDock.FREE, phone.dock)
+        phone = nextFocusBarDockState(phone, fingerX = 170f, barLeftX = 25f, barRightX = 315f, containerWidth = 360f, edgeMarginPx = 14f, enterProxPx = 12f, exitPullPx = 56f)
+        assertEquals(FocusBarDock.LEFT_EDGE, phone.dock)
+    }
 }
