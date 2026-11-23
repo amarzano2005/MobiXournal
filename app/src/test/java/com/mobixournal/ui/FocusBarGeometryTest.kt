@@ -131,27 +131,35 @@ class FocusBarGeometryTest {
     }
 
     @Test
+    fun `encodeFocusBarSlotIds and decodeFocusBarSlotIds preserve all six defaults and extra slots`() {
+        val all = FocusBarSlotKind.entries.map { it.id }
+        val encoded = encodeFocusBarSlotIds(all + listOf("unknown", "pen"))
+        assertEquals(all, decodeFocusBarSlotIds(encoded))
+        assertEquals(emptyList<String>(), decodeFocusBarSlotIds(null))
+    }
+
+    @Test
     fun `effectiveEdgeThresholds caps bands on compact phones and enables finger-driven edge morphing`() {
-        val (phoneEnter, phoneExit) = effectiveEdgeThresholds(360f, 128f, 178f)
+        val (phoneEnter, phoneExit) = effectiveEdgeThresholds(360f, 110f, 165f)
         assertTrue("phone enter < exit", phoneEnter < phoneExit)
         assertTrue("phone exit leaves free middle", phoneExit < 360f / 2f)
 
-        val (tabEnter, tabExit) = effectiveEdgeThresholds(1000f, 128f, 178f)
-        assertEquals(128f, tabEnter, 0.01f)
-        assertEquals(178f, tabExit, 0.01f)
+        val (tabEnter, tabExit) = effectiveEdgeThresholds(1000f, 110f, 165f)
+        assertEquals(110f, tabEnter, 0.01f)
+        assertEquals(165f, tabExit, 0.01f)
 
         // Finger drags a 290-px wide 6-slot horizontal bar toward left and right edges.
         var dock = FocusBarDock.FREE
-        dock = nextFocusBarDock(dock, 110f, 1000f, tabEnter, tabExit)
+        dock = nextFocusBarDock(dock, 95f, 1000f, tabEnter, tabExit)
         assertEquals(FocusBarDock.LEFT_EDGE, dock)
-        // Still inside hysteresis band (110..178) stays vertical.
-        dock = nextFocusBarDock(dock, 160f, 1000f, tabEnter, tabExit)
+        // Still inside hysteresis band (95..165) stays vertical.
+        dock = nextFocusBarDock(dock, 145f, 1000f, tabEnter, tabExit)
         assertEquals(FocusBarDock.LEFT_EDGE, dock)
         // Pulled past exit threshold returns horizontal.
-        dock = nextFocusBarDock(dock, 210f, 1000f, tabEnter, tabExit)
+        dock = nextFocusBarDock(dock, 190f, 1000f, tabEnter, tabExit)
         assertEquals(FocusBarDock.FREE, dock)
 
-        dock = nextFocusBarDock(dock, 890f, 1000f, tabEnter, tabExit)
+        dock = nextFocusBarDock(dock, 905f, 1000f, tabEnter, tabExit)
         assertEquals(FocusBarDock.RIGHT_EDGE, dock)
     }
 }

@@ -58,6 +58,16 @@ fun resolveFocusBarSlots(stored: List<String>): List<FocusBarSlotKind> {
     return if (resolved.isEmpty()) FOCUS_BAR_DEFAULT_SLOTS else resolved
 }
 
+/** Encode Focus bar slot IDs for SharedPreferences, preserving every [FocusBarSlotKind]. */
+fun encodeFocusBarSlotIds(ids: List<String>): String =
+    ids.map { it.trim() }.filter { FocusBarSlotKind.fromId(it) != null }.distinct().joinToString(",")
+
+/** Decode Focus bar slot IDs from SharedPreferences without dropping non-rail entries like `colors` or `hand`. */
+fun decodeFocusBarSlotIds(raw: String?): List<String> {
+    if (raw.isNullOrBlank()) return emptyList()
+    return raw.split(',').map { it.trim() }.filter { FocusBarSlotKind.fromId(it) != null }.distinct()
+}
+
 /** Replace or remove the slot at [index]; returns [slots] unchanged if removal violates [FOCUS_BAR_MIN_SLOTS]. */
 fun updateFocusBarSlotList(
     slots: List<FocusBarSlotKind>,
@@ -138,8 +148,8 @@ fun effectiveEdgeThresholds(
     baseExitPx: Float,
 ): Pair<Float, Float> {
     if (containerWidth <= 0f) return 0f to 1f
-    val enter = minOf(baseEnterPx, containerWidth * 0.28f).coerceAtLeast(1f)
-    val exit = minOf(baseExitPx, containerWidth * 0.42f).coerceAtLeast(enter + 1f)
+    val enter = minOf(baseEnterPx, containerWidth * 0.22f).coerceAtLeast(1f)
+    val exit = minOf(baseExitPx, containerWidth * 0.34f).coerceAtLeast(enter + 1f)
     return enter to exit
 }
 

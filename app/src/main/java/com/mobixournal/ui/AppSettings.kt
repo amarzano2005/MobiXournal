@@ -669,7 +669,7 @@ class SettingsStore(context: Context) {
             twoFingerTapAction = enumOr(prefs.getString(KEY_TWO_FINGER_TAP, null), if (legacyTaps) d.twoFingerTapAction else QuickAction.NONE),
             threeFingerTapAction = enumOr(prefs.getString(KEY_THREE_FINGER_TAP, null), if (legacyTaps) d.threeFingerTapAction else QuickAction.NONE),
             hasSeenOnboarding = prefs.getBoolean(KEY_HAS_SEEN_ONBOARDING, d.hasSeenOnboarding),
-            focusBarSlots = decodeRailIds(prefs.getString(KEY_FOCUS_BAR_SLOTS, null)),
+            focusBarSlots = decodeFocusBarSlotIds(prefs.getString(KEY_FOCUS_BAR_SLOTS, null)),
             focusBarAnchor = prefs.getString(KEY_FOCUS_BAR_ANCHOR, "") ?: "",
         ).withToggleKeys(prefs).sanitized()
     }
@@ -793,7 +793,7 @@ class SettingsStore(context: Context) {
         e.remove(KEY_PAGE_COUNTER_V)
         e.remove(KEY_PAGE_COUNTER_H)
         e.putBoolean(KEY_HAS_SEEN_ONBOARDING, s.hasSeenOnboarding)
-        e.putString(KEY_FOCUS_BAR_SLOTS, encodeRailIds(s.focusBarSlots))
+        e.putString(KEY_FOCUS_BAR_SLOTS, encodeFocusBarSlotIds(s.focusBarSlots))
         e.putString(KEY_FOCUS_BAR_ANCHOR, s.focusBarAnchor)
         e.apply()
     }

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "fix-focus-bar-drag-and-slots"
+title = "Fix Focus bar drag oscillation and slot persistence codec"
+description = "Updated FocusFloatingBar.kt (synchronous drag state, onPlaced LayoutCoordinates, long-press-only handle, Box slot wrapper), FocusBarGeometry.kt (encodeFocusBarSlotIds, decodeFocusBarSlotIds, 0.22/0.34 edge caps), AppSettings.kt (uses Focus bar slot codec), and FocusBarGeometryTest.kt; verified FocusBarGeometryTest, AppSettingsBackupTest, ColorContractGuardTest, DocsGuardTest, signed release APK, and :desktop:createDistributable."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "states: zero-lag synchronous drag tracking without offset ping-pong; tests: FocusBarGeometryTest verifies all 11 FocusBarSlotKind IDs survive encode/decode and phone/tablet edge thresholds"
+
+[[task]]
 id = "fix-focus-bar-vertical-morph"
 title = "Fix Focus floating bar drag-to-edge vertical morphing"
 description = "Updated FocusBarGeometry.kt (effectiveEdgeThresholds), FocusFloatingBar.kt (finger-coordinate drag tracking via onGloballyPositioned, raised 128/178 dp thresholds, preserved release spring), and FocusBarGeometryTest.kt; verified FocusBarGeometryTest, ColorContractGuardTest, DocsGuardTest, signed release APK, and :desktop:createDistributable."
