@@ -77,27 +77,62 @@ class FocusBarGeometryTest {
         assertEquals(FocusBarDock.FREE, decodeFocusBarAnchor("BOGUS:0.5:0.5").dock)
     }
 
-    @Test
-    fun `stepFocusBarDrag keeps FREE without side magnet inside margins`() {
-        val state = FocusBarDragState(FocusBarDock.FREE, grabFracX = 0.5f, grabFracY = 0.5f)
-        // Finger near the left side (but bar still inside [14, 1000 - 290 - 14]) stays FREE with zero pull.
-        val leftNear = stepFocusBarDrag(
-            state = state, fingerX = 165f, fingerY = 400f,
-            horizW = 290f, horizH = 52f, currentMorph = 0f,
-            containerW = 1000f, containerH = 800f,
-            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
-        )
-        assertEquals(FocusBarDock.FREE, leftNear.state.dock)
-        assertEquals(20f, leftNear.x, 0.01f)
+    private fun runStep(
+        state: FocusBarDragState,
+        fingerX: Float,
+        fingerY: Float,
+        currentMorph: Float,
+    ): FocusBarDragStep = stepFocusBarDrag(
+        state = state,
+        fingerX = fingerX,
+        fingerY = fingerY,
+        horizW = 290f,
+        horizH = 52f,
+        currentMorph = currentMorph,
+        containerW = 1000f,
+        containerH = 800f,
+        marginPx = 14f,
+        topSafePx = 56f,
+        bottomSafePx = 14f,
+        undockPullPx = 28f,
+        sideFingerZonePx = 22f,
+        sideOverpushPx = 36f,
+    )
 
-        val rightNear = stepFocusBarDrag(
-            state = leftNear.state, fingerX = 835f, fingerY = 400f,
-            horizW = 290f, horizH = 52f, currentMorph = 0f,
-            containerW = 1000f, containerH = 800f,
-            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
-        )
+    @Test
+    fun `stepFocusBarDrag keeps FREE without side magnet even on slight overpush`() {
+        val state = FocusBarDragState(FocusBarDock.FREE, grabFracX = 0.5f, grabFracY = 0.5f)
+        // Finger inside safe zone and slight bar overpush (rawLeft = 115 - 145 = -30 > -36) stays FREE.
+        val leftNear = runStep(state, fingerX = 115f, fingerY = 400f, currentMorph = 0f)
+        assertEquals(FocusBarDock.FREE, leftNear.state.dock)
+        assertEquals(14f, leftNear.x, 0.01f)
+
+        val rightNear = runStep(leftNear.state, fingerX = 885f, fingerY = 400f, currentMorph = 0f)
         assertEquals(FocusBarDock.FREE, rightNear.state.dock)
-        assertEquals(690f, rightNear.x, 0.01f)
+        assertEquals(1000f - 290f - 14f, rightNear.x, 0.01f)
+
+        // Pushing past -sideOverpushPx (rawLeft = 100 - 145 = -45 <= -36) or finger into side zone docks.
+        val dockedLeft = runStep(rightNear.state, fingerX = 100f, fingerY = 400f, currentMorph = 0f)
+        assertEquals(FocusBarDock.LEFT_EDGE, dockedLeft.state.dock)
+
+        val fingerRightEdge = runStep(state, fingerX = 980f, fingerY = 400f, currentMorph = 0f)
+        assertEquals(FocusBarDock.RIGHT_EDGE, fingerRightEdge.state.dock)
+    }
+
+    @Test
+    fun `stepFocusBarDrag keeps FREE without bottom stickiness so lifting moves 1 to 1`() {
+        val state = FocusBarDragState(FocusBarDock.FREE, grabFracX = 0.5f, grabFracY = 0.5f)
+        val atBottom = runStep(state, fingerX = 500f, fingerY = 780f, currentMorph = 0f)
+        assertEquals(FocusBarDock.FREE, atBottom.state.dock)
+        assertEquals(800f - 52f - 14f, atBottom.y, 0.01f)
+
+        val liftedSlightly = runStep(atBottom.state, fingerX = 500f, fingerY = 755f, currentMorph = 0f)
+        assertEquals(FocusBarDock.FREE, liftedSlightly.state.dock)
+        assertEquals(755f - 26f, liftedSlightly.y, 0.01f)
+
+        // Sliding sideways along the bottom from FREE can dock cleanly to the side edge.
+        val slidRight = runStep(atBottom.state, fingerX = 982f, fingerY = 760f, currentMorph = 0f)
+        assertEquals(FocusBarDock.RIGHT_EDGE, slidRight.state.dock)
     }
 
     @Test
@@ -144,87 +179,77 @@ class FocusBarGeometryTest {
     }
 
     @Test
-    fun `stepFocusBarDrag docks and undocks sides without handle-push oscillation`() {
-        // Grabbing near the left handle (grabFracX = 0.05) and pushing the bar past the right edge.
-        val initial = FocusBarDragState(FocusBarDock.FREE, grabFracX = 0.05f, grabFracY = 0.5f)
-        val docked = stepFocusBarDrag(
-            state = initial, fingerX = 735f, fingerY = 400f,
-            horizW = 290f, horizH = 52f, currentMorph = 0f,
-            containerW = 1000f, containerH = 800f,
-            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
-        )
+    fun `stepFocusBarDrag docks and undocks sides cleanly and preserves grabFracY`() {
+        // Grabbing near the left handle (grabFracX = 0.05) and pushing the bar past right overpush.
+        val initial = FocusBarDragState(FocusBarDock.FREE, grabFracX = 0.05f, grabFracY = 0.25f)
+        // rawRight = 765 + 290 * 0.95 = 1040.5 >= 1000 + 36
+        val docked = runStep(initial, fingerX = 765f, fingerY = 400f, currentMorph = 0f)
         assertEquals(FocusBarDock.RIGHT_EDGE, docked.state.dock)
         assertEquals(1000f - 52f - 14f, docked.x, 0.01f)
+        assertEquals(0.25f, docked.state.grabFracY, 0.001f)
 
-        // Holding steady at the same fingerX (735f) stays RIGHT_EDGE (no oscillation).
-        val held = stepFocusBarDrag(
-            state = docked.state, fingerX = 735f, fingerY = 410f,
-            horizW = 290f, horizH = 52f, currentMorph = 1f,
-            containerW = 1000f, containerH = 800f,
-            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
-        )
+        // Holding steady at the same fingerX (765f) stays RIGHT_EDGE (no oscillation).
+        val held = runStep(docked.state, fingerX = 765f, fingerY = 410f, currentMorph = 1f)
         assertEquals(FocusBarDock.RIGHT_EDGE, held.state.dock)
 
-        // Pulling inward by >= undockPullPx (24f) cleanly undocks and stays FREE on subsequent frames.
-        val undocked = stepFocusBarDrag(
-            state = held.state, fingerX = 705f, fingerY = 410f,
-            horizW = 290f, horizH = 52f, currentMorph = 1f,
-            containerW = 1000f, containerH = 800f,
-            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
-        )
+        // Pulling inward by >= undockPullPx (28f) cleanly undocks and stays FREE on subsequent frames.
+        val undocked = runStep(held.state, fingerX = 735f, fingerY = 410f, currentMorph = 1f)
         assertEquals(FocusBarDock.FREE, undocked.state.dock)
-        val stillFree = stepFocusBarDrag(
-            state = undocked.state, fingerX = 705f, fingerY = 410f,
-            horizW = 290f, horizH = 52f, currentMorph = 0f,
-            containerW = 1000f, containerH = 800f,
-            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
-        )
+        assertEquals(0.25f, undocked.state.grabFracY, 0.001f)
+        val stillFree = runStep(undocked.state, fingerX = 735f, fingerY = 410f, currentMorph = 0f)
         assertEquals(FocusBarDock.FREE, stillFree.state.dock)
     }
 
     @Test
-    fun `stepFocusBarDrag unfolds vertical side dock cleanly along bottom edge and resists corner ping-pong`() {
+    fun `stepFocusBarDrag unfolds vertical side dock to bottom, suppresses corner ping-pong, and docks opposite side`() {
         // Vertical bar on LEFT_EDGE grabbed near the top (grabFracY = 0.1f) dragged straight down.
         val leftVert = FocusBarDragState(FocusBarDock.LEFT_EDGE, grabFracX = 0.5f, grabFracY = 0.1f, dockReferencePx = 20f)
         // rawBarBottom = 530 + 0.9 * 290 = 791 >= 800 - 14 (786)
-        val landedBottom = stepFocusBarDrag(
-            state = leftVert, fingerX = 20f, fingerY = 530f,
-            horizW = 290f, horizH = 52f, currentMorph = 1f,
-            containerW = 1000f, containerH = 800f,
-            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
-        )
+        val landedBottom = runStep(leftVert, fingerX = 20f, fingerY = 530f, currentMorph = 1f)
         assertEquals(FocusBarDock.BOTTOM_EDGE, landedBottom.state.dock)
+        assertEquals(FocusBarDock.LEFT_EDGE, landedBottom.state.blockedSideDock)
         assertEquals("unfolds horizontally aligned to left margin", 14f, landedBottom.x, 0.01f)
         assertEquals("unfolds flush along the bottom edge, never higher up", 800f - 52f - 14f, landedBottom.y, 0.01f)
 
-        // Next frame at same finger position stays BOTTOM_EDGE (no corner ping-pong and no premature exit).
-        val heldBottom = stepFocusBarDrag(
-            state = landedBottom.state, fingerX = 20f, fingerY = 530f,
-            horizW = 290f, horizH = 52f, currentMorph = 0f,
-            containerW = 1000f, containerH = 800f,
-            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
-        )
+        // Next frame at same corner finger position stays BOTTOM_EDGE (no corner ping-pong).
+        val heldBottom = runStep(landedBottom.state, fingerX = 20f, fingerY = 530f, currentMorph = 0f)
         assertEquals(FocusBarDock.BOTTOM_EDGE, heldBottom.state.dock)
 
-        // Pulling upward by >= undockPullPx (24f) detaches cleanly to FREE.
-        val lifted = stepFocusBarDrag(
-            state = heldBottom.state, fingerX = 20f, fingerY = 500f,
-            horizW = 290f, horizH = 52f, currentMorph = 0f,
-            containerW = 1000f, containerH = 800f,
-            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
-        )
-        assertEquals(FocusBarDock.FREE, lifted.state.dock)
+        // Sliding horizontally along BOTTOM_EDGE to the right edge transitions directly to RIGHT_EDGE.
+        val crossedRight = runStep(heldBottom.state, fingerX = 985f, fingerY = 530f, currentMorph = 0f)
+        assertEquals(FocusBarDock.RIGHT_EDGE, crossedRight.state.dock)
+
+        // Pulling straight upward by >= undockPullPx from bottom-left corner detaches to FREE and stays FREE.
+        val liftedInCorner = runStep(heldBottom.state, fingerX = 20f, fingerY = 495f, currentMorph = 0f)
+        assertEquals(FocusBarDock.FREE, liftedInCorner.state.dock)
+        val stillFreeInCorner = runStep(liftedInCorner.state, fingerX = 20f, fingerY = 490f, currentMorph = 0f)
+        assertEquals(FocusBarDock.FREE, stillFreeInCorner.state.dock)
 
         // Mirror check on RIGHT_EDGE vertical-to-bottom.
         val rightVert = FocusBarDragState(FocusBarDock.RIGHT_EDGE, grabFracX = 0.5f, grabFracY = 0.1f, dockReferencePx = 980f)
-        val rightBottom = stepFocusBarDrag(
-            state = rightVert, fingerX = 980f, fingerY = 530f,
-            horizW = 290f, horizH = 52f, currentMorph = 1f,
-            containerW = 1000f, containerH = 800f,
-            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
-        )
+        val rightBottom = runStep(rightVert, fingerX = 980f, fingerY = 530f, currentMorph = 1f)
         assertEquals(FocusBarDock.BOTTOM_EDGE, rightBottom.state.dock)
+        assertEquals(FocusBarDock.RIGHT_EDGE, rightBottom.state.blockedSideDock)
         assertEquals("unfolds flush to right margin", 1000f - 290f - 14f, rightBottom.x, 0.01f)
         assertEquals("unfolds flush along the bottom edge", 800f - 52f - 14f, rightBottom.y, 0.01f)
+    }
+
+    @Test
+    fun `focusBarRenderOffsetPx pins edges flush at intermediate and settled morph sizes`() {
+        for (morph in listOf(0f, 0.5f, 1f)) {
+            val (bw, bh) = focusBarSizePx(6, 40f, 4f, 14f, 6f, morph)
+            val (lx, _) = focusBarRenderOffsetPx(
+                FocusBarDock.LEFT_EDGE, 80f, 400f, 0.5f, 0.5f, bw, bh, 1000f, 800f, 14f, 56f, 14f,
+            )
+            val (rx, _) = focusBarRenderOffsetPx(
+                FocusBarDock.RIGHT_EDGE, 920f, 400f, 0.5f, 0.5f, bw, bh, 1000f, 800f, 14f, 56f, 14f,
+            )
+            val (_, by) = focusBarRenderOffsetPx(
+                FocusBarDock.BOTTOM_EDGE, 500f, 700f, 0.5f, 0.5f, bw, bh, 1000f, 800f, 14f, 56f, 14f,
+            )
+            assertEquals("left pinned at morph=$morph", 14f, lx, 0.01f)
+            assertEquals("right pinned at morph=$morph", 1000f - bw - 14f, rx, 0.01f)
+            assertEquals("bottom pinned at morph=$morph", 800f - bh - 14f, by, 0.01f)
+        }
     }
 }
