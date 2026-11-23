@@ -46,9 +46,9 @@ fun FingerGesturesSection(settings: AppSettings, onChange: (AppSettings) -> Unit
             hint = "Quick stationary tap with three fingers.",
         )
     }
-    SettingsGroup("Hand tool") {
+    SettingsGroup("Touch double-tap") {
         SettingsNote(
-            "Double-tap the canvas with the Hand tool: left third for previous page, centre for Focus mode, right third for next page.",
+            "Double-tap the canvas with a finger (any tool): left third for previous page, centre for Focus mode, right third for next page.",
         )
     }
 }
@@ -59,9 +59,11 @@ private fun TapActionPicker(selected: QuickAction, onSelect: (QuickAction) -> Un
     OptionGroup(
         title = "Action",
         subtitle = "$hint Panning or pinching will not trigger this action.",
-        // The ring is anchored at the nib and closed by the button's release; a tap has neither, so
-        // `HUD` is the barrel double-click's alone and is kept out of this list.
-        options = QuickAction.values().filter { it != QuickAction.HUD },
+        // `HUD` is the barrel double-click's alone; `TOGGLE_FULL_PAGE` is handled by single-finger
+        // centre double-tap across all tools, so both are kept out of multi-finger tap pickers.
+        options = QuickAction.values().filter {
+            it != QuickAction.HUD && it != QuickAction.TOGGLE_FULL_PAGE
+        },
         selected = selected,
         label = { quickActionLabel(it) },
         onSelect = onSelect,

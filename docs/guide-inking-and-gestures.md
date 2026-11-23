@@ -41,13 +41,13 @@ the pen takes over and abandons it. The rule is about who wins a gesture, not ab
 The Ring is a menu that opens where the pen is, so a mode change does not cost a trip to the toolbar. It
 opens from the barrel button when that is what you set the button to, or from its own shortcut key.
 
-## Hand tool and Focus mode
+## Touch double-tap and Focus mode
 
-On Android, a single-finger double-tap with the **Hand** tool acts by horizontal zone: the left third
-turns to the previous page, the right third turns to the next page, and the centre toggles **Focus mode**
-(hiding the toolbars and system bars). You can also toggle Focus mode from **☰ → Pen & View**, with the
-**`F`** key, or by binding **Toggle focus mode** to a two- or three-finger tap or the pen's barrel button
-in Settings.
+On Android, a single-finger touch double-tap works with any active tool and acts by horizontal zone:
+the left third turns to the previous page, the right third turns to the next page, and the centre
+toggles **Focus mode** (hiding the toolbars and system bars). Stylus taps never trigger this gesture.
+You can also toggle Focus mode from **☰ → Pen & View**, with the **`F`** key, or via the pen's barrel
+button in Settings.
 
 ## Why your circle snapped
 

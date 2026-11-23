@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "touch-double-tap-all-tools"
+title = "Enable 3-zone touch double-tap for all tools"
+description = "Updated DrawingSurfaceInput.kt (beginHandTap arms on TOOL_TYPE_FINGER for any tool), FingerGesturesSection.kt (removed TOGGLE_FULL_PAGE from 2/3-finger tap pickers and updated Touch double-tap note), EditorOverflowViews.kt, README.md, and docs/guide-inking-and-gestures.md; verified TapClassifierTest, MultiFingerTapDetectorTest, DocsGuardTest, SettingsCopyParityTest, ColorContractGuardTest, ShortcutCatalogTest, release APK, and :desktop:createDistributable."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "copy: updated Touch double-tap note, Focus mode subtitle, and filtered FingerGesturesSection options; docs: updated README.md and docs/guide-inking-and-gestures.md (DocsGuardTest passed); tests: TapClassifierTest and MultiFingerTapDetectorTest passed"
+
+[[task]]
 id = "focus-mode-discoverability"
 title = "Make Focus mode and Hand double-tap discoverable"
 description = "Updated EditorOverflowViews.kt (subtitle on Focus mode switch), FingerGesturesSection.kt (Hand tool double-tap note and Toggle focus mode label), ShortcutsSection.kt (Focus mode label), SettingsScreen.kt (search keywords), README.md, and docs/guide-inking-and-gestures.md; verified DocsGuardTest, SettingsCopyParityTest, ShortcutCatalogTest, ColorContractGuardTest, signed release APK, and :desktop:createDistributable."

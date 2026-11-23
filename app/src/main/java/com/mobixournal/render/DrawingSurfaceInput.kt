@@ -513,9 +513,10 @@ internal fun DrawingSurfaceView.spanOf(event: MotionEvent): Float {
     return sum / event.pointerCount
 }
 
-/** Arm double-tap tracking for a fresh single-finger touch, but only while the Hand tool is active. */
+/** Arm double-tap tracking for a fresh single-finger touch (any tool), never for stylus/pen. */
 internal fun DrawingSurfaceView.beginHandTap(event: MotionEvent) {
-    taps.beginHand(armed = handMode, timeMs = event.eventTime, x = event.x, y = event.y)
+    val isTouch = event.getToolType(0) == MotionEvent.TOOL_TYPE_FINGER
+    taps.beginHand(armed = isTouch, timeMs = event.eventTime, x = event.x, y = event.y)
 }
 
 /** On lift, confirm a tap and — if it pairs with the previous one in time and place — fire the double-tap. */

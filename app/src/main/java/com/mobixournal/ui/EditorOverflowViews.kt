@@ -254,7 +254,7 @@ internal fun StudioTabView(
             SheetSwitchRow(
                 icon = Icons.Outlined.Fullscreen,
                 label = "Focus mode",
-                subtitle = "Hide toolbars, or double-tap centre with Hand",
+                subtitle = "Hide toolbars, or double-tap centre with a finger",
                 checked = fullPage,
                 ink = ink,
                 accent = accent,

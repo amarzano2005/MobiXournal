@@ -65,7 +65,7 @@ in the folder you choose, with no account between.
 - **The same notebook, two surfaces.** One file and one core: the tablet for a pen in hand, the window for tabs and export; [the limitations page](docs/guide-limitations.md) says where the tools differ.
 - **The window is a workstation.** Tabs that keep their page and zoom, a sidebar of layers, and export to PDF, PNG or SVG.
 - **The tablet is the paper.** Split view, the Ring at the pen, palm rejection, and pages sized for a hand.
-- **Focus mode on the tablet.** Toggle via **☰ → Pen & View**, **`F`**, or double-tapping the centre with the Hand tool ([gestures](docs/guide-inking-and-gestures.md)).
+- **Focus mode on the tablet.** Toggle via **☰ → Pen & View**, **`F`**, or double-tapping the centre with a finger ([gestures](docs/guide-inking-and-gestures.md)).
 - **Nothing converts behind your back.** A document keeps its format, offline and accountless.
 - **Arrange it your way.** Drag a swatch or a tool slot by its handle to move it.
 
