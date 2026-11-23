@@ -96,6 +96,15 @@ class DesktopSaveWorkerTest {
             assertNull("and it wrote the file", state.failure)
             assertFalse("so the tab is clean", tab.isDirty)
             assertFalse("and the job stops asking", state.autoSaveWanted())
+
+            // Stopping a recording after auto-save finished must dirty the tab and re-arm auto-save.
+            tab.markAudioFinalized()
+            assertTrue("finalizing audio marks the tab dirty", tab.isDirty)
+            assertTrue("Save is enabled", tab.canSave)
+            assertTrue("auto-save wants to write again", state.autoSaveWanted())
+            state.autoSaveNow()
+            assertNull("and the follow-up auto-save succeeds", state.failure)
+            assertFalse("so the tab is clean again", tab.isDirty)
         } finally { state.tabs.closeAll() }
     }
 

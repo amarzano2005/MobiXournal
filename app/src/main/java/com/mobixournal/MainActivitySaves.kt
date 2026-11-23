@@ -88,6 +88,7 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     // The canvas reading the bytes are taken at: `afterSaved` compares it with the canvas it finds, which is
     // how it knows whether a stroke landed after the snapshot.
     val revision = view?.edits ?: -1
+    val audioRevision = finalizedAudioVersion
     // The top bar's Save control turns while this runs, whether or not it was asked for: the arc is the
     // only thing a save draws, and [busy] carries a marker for the guards rather than text for the page
     // (`SaveActivity`, `docs/data-path.md`).
@@ -105,7 +106,7 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     }) { result ->
         SaveActivity.end()
         result.onFailure { toast("Save failed: ${it.message}") }.onSuccess { (uncompiled, verified) ->
-            afterSaved(owner, request, uri, document, revision)
+            afterSaved(owner, request, uri, document, revision, audioRevision)
             if (uncompiled.isNotEmpty()) exportGaps.value = uncompiled
             if (!verified) {
                 toast("The file was written but could not be read back: the save may be incomplete.")
@@ -121,14 +122,14 @@ private fun MainActivity.afterSaved(
     uri: Uri,
     document: com.mobixournal.format.model.Document,
     revision: Int,
+    audioRevision: Int,
 ) {
     io.persist(uri)
     val title = displayName(uri)
-    // A stroke can land while the bytes are being written: the file then holds the snapshot, not the page.
-    // The tab says so exactly as the window does — it stays unsaved (the strip's dot) and the session keeps
-    // the newer document, because `snapshotActiveTab` below writes the live canvas back into the record.
+    // A stroke or finalized audio take can land while the bytes are being written: the file then holds
+    // the snapshot, not the live state. The tab stays unsaved (the strip's dot) and keeps the newer state.
     val showing = owner.surface?.takeIf { owner.tabs.active?.id == request.tabId }
-    val newer = showing != null && showing.edits != revision
+    val newer = (showing != null && showing.edits != revision) || finalizedAudioVersion != audioRevision
     owner.tabs.updateMatching({ it.id == request.tabId }) {
         it.copy(
             title = title,

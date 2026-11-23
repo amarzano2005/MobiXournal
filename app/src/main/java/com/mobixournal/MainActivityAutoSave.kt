@@ -48,22 +48,25 @@ internal object AutoSaveWatch {
 internal fun MainActivity.startAutoSaveLoop() {
     lifecycleScope.launch {
         var lastEdits = -1
+        var lastAudioVersion = -1
         var quietMs = 0L
         // The reading this watch last wrote: a save still encoding must not be asked for again by the next tick.
         var writtenEdits = -1
+        var writtenAudioVersion = -1
         while (isActive) {
             delay(TICK_MS)
             val surface = pane.surface ?: continue
-            // The canvas's own count: an edit — a stroke, an erase, an undo, a page command — changes it, and
-            // the count not changing is what "quiet" means here.
+            // The canvas's own count plus finalized audio takes: either changing restarts the quiet timer.
             val edits = surface.edits
-            if (edits == lastEdits) {
+            val audioVersion = finalizedAudioVersion
+            if (edits == lastEdits && audioVersion == lastAudioVersion) {
                 quietMs += TICK_MS
             } else {
                 lastEdits = edits
+                lastAudioVersion = audioVersion
                 quietMs = 0
             }
-            if (quietMs < AutoSavePolicy.QUIET_MS || edits == writtenEdits) continue
+            if (quietMs < AutoSavePolicy.QUIET_MS || (edits == writtenEdits && audioVersion == writtenAudioVersion)) continue
             val tab = pane.tabs.active ?: continue
             val target = tab.uri?.let(Uri::parse)?.takeIf { io.isWritable(it) }
             if (target == null) continue
@@ -77,6 +80,7 @@ internal fun MainActivity.startAutoSaveLoop() {
             if (!due) continue
             quietMs = 0
             writtenEdits = edits
+            writtenAudioVersion = audioVersion
             // The same path plain Save takes with a file already chosen — never the picker: the app may not
             // name a notebook — and **quiet**, so a refusal is not toasted for a write nobody asked for.
             saveDocument(target, quiet = true)

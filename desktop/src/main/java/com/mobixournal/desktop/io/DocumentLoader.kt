@@ -140,6 +140,10 @@ class DesktopDocument(
     var edits: Int by mutableStateOf(0)
         private set
 
+    internal fun markAudioFinalized() {
+        edits++
+    }
+
     init {
         // A pdf page names the document's one PDF on the page that carries the reference and nowhere else
         // (`docs/pdf.md`), so the backdrop is told how to read those pages — once, here, rather than by

@@ -202,6 +202,9 @@ class DesktopTab(
      */
     private var savePoint: Long = history.stateId
 
+    /** True when a finalized audio take has not yet been written to the document's file. */
+    private var pendingAudio: Boolean by mutableStateOf(false)
+
     /**
      * True when the document holds edits the file does not — what the strip's dot shows and what makes
      * closing the tab (or the window) ask first. Snapshot state, because both of those read it.
@@ -351,7 +354,14 @@ class DesktopTab(
     private fun syncHistory() {
         canUndo = history.canUndo
         canRedo = history.canRedo
-        isDirty = history.stateId != savePoint
+        isDirty = pendingAudio || history.stateId != savePoint
+    }
+
+    /** Mark this tab dirty after an audio recording is finalized so Save / auto-save embeds it. */
+    internal fun markAudioFinalized() {
+        pendingAudio = true
+        document.markAudioFinalized()
+        syncHistory()
     }
 
     /**
@@ -362,6 +372,7 @@ class DesktopTab(
      */
     private fun forgetHistory(dirty: Boolean = false) {
         history.clear()
+        if (!dirty) pendingAudio = false
         savePoint = if (dirty) NO_SAVE_POINT else history.stateId
         syncHistory()
     }
@@ -460,6 +471,7 @@ class DesktopTab(
             return
         }
         unsaved = false
+        pendingAudio = false
         // **The steps stay.** A save over the tab's own file does not close the document the history's
         // snapshots describe, so there is nothing to forget: the file now holds the state the history is at,
         // and moving the *save point* there is exactly what makes the tab clean while `Ctrl+Z` keeps working.

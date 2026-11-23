@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "autosave-after-audio-recording-stop"
+title = "Trigger auto-save and dirty state when audio recording stops"
+description = "Added finalizedAudioVersion tracking on Android (MainActivity, MainActivityAudio, MainActivityAutoSave, MainActivitySaves) and pendingAudio + markAudioFinalized + onRecordingFinalized on Desktop (DesktopTabs, DesktopAudioSession, HeaderAudioPill, Header, DesktopShellView) so finalizing a recording after an earlier or in-flight auto-save marks the tab dirty and schedules a follow-up auto-save."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "none: dirty-state and auto-save trigger when audio recording finishes with no new chrome surface"
+
+[[task]]
 id = "clear-figure-selection-on-tool-change"
 title = "Clear figure selection when switching tools or figures"
 description = "Updated Android applyTool (shouldClearSelectionOnToolChange) and Desktop selectTool so switching away from a figure or placement tool clears the active selection, while re-applying the same tool preserves it. Added unit tests in PlacementPickTest and DesktopPlacementPressTest."

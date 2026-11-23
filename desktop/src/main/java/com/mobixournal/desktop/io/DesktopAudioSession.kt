@@ -205,29 +205,32 @@ internal object DesktopAudioSession {
      * A take belongs to the tab that started it, so a click in another tab while one runs reports that in
      * one sentence instead of opening a second microphone (there is one) or stopping somebody else's take.
      */
-    fun toggleRecord(tab: DesktopTab?) {
+    fun toggleRecord(tab: DesktopTab?): Boolean {
         if (recording) {
             if (tab != null && takeOwner == tab.key) {
-                finishRecording(tab.document)
+                if (finishRecording(tab.document)) {
+                    tab.markAudioFinalized()
+                    return true
+                }
             } else {
                 message = "A recording is running in another tab. Switch back to it to stop it."
             }
-            return
+            return false
         }
         if (tab == null) {
             message = "Open a document first: a recording is a stroke's, and there is no page to draw on."
-            return
+            return false
         }
         if (takeOwner != null && takeOwner != tab.key) {
             message = "A recording is running in another tab. Switch back to it to stop it."
-            return
+            return false
         }
         val name = recorder.start(storeOverride = tab.document.audioStore)
         val failure = recorder.message
         if (name == null) {
             message = failure ?: "The microphone could not be started."
             refresh()
-            return
+            return false
         }
         message = null
         recording = true
@@ -235,6 +238,7 @@ internal object DesktopAudioSession {
         takeOwner = tab.key
         heard[tab.key] = true
         refresh()
+        return false
     }
 
     /** Mute or unmute [tab]'s take; nothing is closed, so the same file keeps growing. */
@@ -252,7 +256,7 @@ internal object DesktopAudioSession {
      * hold the notebook's audio, and a second take must not be the only file in it. A copy that cannot be
      * written is reported in words rather than swallowed.
      */
-    private fun finishRecording(document: DesktopDocument?) {
+    private fun finishRecording(document: DesktopDocument?): Boolean {
         val name = recorder.stop()
         recording = false
         recordingPaused = false
@@ -262,6 +266,7 @@ internal object DesktopAudioSession {
         takeOwner?.let { heard[it] = heard[it] == true || name != null }
         takeOwner = null
         if (name != null) exportStandalone(document)
+        return name != null
     }
 
     /** The tablet's *Save separate audio*: put the document's recordings in [exportFolder]. */
@@ -432,7 +437,9 @@ internal object DesktopAudioSession {
      */
     fun forget(tab: DesktopTab?) {
         val key = tab?.key ?: return
-        if (recording && takeOwner == key) finishRecording(tab.document)
+        if (recording && takeOwner == key) {
+            if (finishRecording(tab.document)) tab.markAudioFinalized()
+        }
         if (clipOwner == key) stopPlayback()
         heard.remove(key)
     }

@@ -104,6 +104,7 @@ internal fun Header(
     audio: DesktopAudioSession? = null,
     /** The pill's Play also arms the tablet's **Play object**, which the tool strip has no slot for. */
     onAudioTap: () -> Unit = {},
+    onRecordingFinalized: () -> Unit = {},
     /** The search field's text, its two steps and its dismissal — the field stands on the band, always. */
     onSearch: (String) -> Unit = {},
     onSearchNext: () -> Unit = {},
@@ -160,7 +161,12 @@ internal fun Header(
         HeaderHistory(tab, onUndo, onRedo)
         if (audio != null) {
             HeaderDivider()
-            HeaderAudioPill(audio = audio, tab = { tabs.active }, onAudioTap = onAudioTap)
+            HeaderAudioPill(
+                audio = audio,
+                tab = { tabs.active },
+                onAudioTap = onAudioTap,
+                onRecordingFinalized = onRecordingFinalized,
+            )
         }
         HeaderDivider()
         HeaderFileCommands(tab, saving, onSave, onExportPdf)

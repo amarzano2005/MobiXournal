@@ -84,6 +84,7 @@ internal fun HeaderAudioPill(
     tab: () -> DesktopTab?,
     /** Pick the tablet's Play-object tool, so a tap on the page replays from the point touched. */
     onAudioTap: () -> Unit,
+    onRecordingFinalized: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // The engines' own clocks are not Compose state: one poll per tick is cheaper than a state write per
@@ -109,7 +110,7 @@ internal fun HeaderAudioPill(
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TransportButtons(audio, tab, sound, onAudioTap)
+        TransportButtons(audio, tab, sound, onAudioTap, onRecordingFinalized)
         TransportReadout(audio, tab, sound)
     }
 }
@@ -129,6 +130,7 @@ private fun TransportButtons(
     tab: () -> DesktopTab?,
     sound: DesktopTabAudio,
     onAudioTap: () -> Unit,
+    onRecordingFinalized: () -> Unit,
 ) {
     val recording = sound.recording
     val paused = sound.recordingPaused
@@ -144,7 +146,7 @@ private fun TransportButtons(
             enabled = !sound.takeElsewhere,
             fill = if (recording) DesktopTheme.danger else Color.Transparent,
             tint = if (recording) Color.White else DesktopTheme.chromeInk,
-            onClick = { audio.toggleRecord(tab()) },
+            onClick = { if (audio.toggleRecord(tab())) onRecordingFinalized() },
         ) { colour, size ->
             if (recording) {
                 drawRecordStop(colour, size)

@@ -124,6 +124,7 @@ internal fun DesktopShell(
             // the door to the audio tap, now that the tool strip has no slot for it.
             audio = DesktopAudioSession,
             onAudioTap = { state.selectTool(DesktopTool.AUDIO) },
+            onRecordingFinalized = { state.noteEdit() },
             // The search field: the shell keeps the text and the answer on the tab, so the band, the
             // results list and the page highlight cannot disagree.
             onSearch = { query -> state.setSearchQuery(query) },

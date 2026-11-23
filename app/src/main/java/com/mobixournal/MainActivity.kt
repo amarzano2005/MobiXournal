@@ -184,6 +184,7 @@ class MainActivity : ComponentActivity() {
 
     /** Bumped whenever recording/playback state changes, so the Compose chrome re-reads it. */
     internal var audioTick = mutableStateOf(0)
+    internal var finalizedAudioVersion: Int = 0
     internal val audioWork = com.mobixournal.audio.AudioWorkState()
 
     /** Whether the floating frosted-glass audio mini player is visible. */

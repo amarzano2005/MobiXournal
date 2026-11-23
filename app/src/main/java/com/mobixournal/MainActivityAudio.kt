@@ -284,7 +284,20 @@ internal fun MainActivity.stopRecordingTake() {
     if (file != null) {
         val ref = AudioRef(file.name, 0)
         lastAudioRef = ref
-        if (owner != null) tabAudioRefs[owner] = ref
+        finalizedAudioVersion++
+        if (owner != null) {
+            tabAudioRefs[owner] = ref
+            // Finalising a recording produces a bundleable audio asset that an earlier auto-save
+            // could not include while the take was still open: mark the owning tab dirty and
+            // ensure AutoSaveWatch is active so the next quiet save embeds it.
+            for (p in panes) {
+                if (p.tabs.tabs.any { it.id == owner }) {
+                    p.tabs.updateMatching({ it.id == owner }) { it.copy(unsavedEdits = true) }
+                }
+            }
+            AutoSaveWatch.start(this)
+            tabsTick.value++
+        }
     }
     recordingTabId = null
     // The parallel encoder is unhooked before anything else can feed it, whether or not a
