@@ -11,6 +11,10 @@
 [![Android and desktop CI](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml/badge.svg)](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml)
 [![Licence: GPL-2.0-or-later](https://img.shields.io/badge/Licence-GPL--2.0--or--later-blue.svg)](LICENSE)
 
+[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png"
+     alt="Get it on Obtainium"
+     height="80">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/amarzano2005/MobiXournal)
+
 [**Install on Android**](docs/guide-install-android.md) · [**Install on Windows 11**](docs/guide-install-windows.md) · [**User guide**](docs/guide-index.md) · [**Releases**](https://github.com/amarzano2005/MobiXournal/releases)
 
 <img src="docs/assets/preview.jpg" alt="The MobiXournal editor on an Android tablet: a notebook open on ruled paper, handwriting in ink, and the floating tool strips over the page" width="880" />
