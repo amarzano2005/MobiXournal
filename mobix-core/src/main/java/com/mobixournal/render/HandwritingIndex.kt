@@ -13,6 +13,9 @@ import com.mobixournal.format.model.Document
  */
 class HandwritingIndex(private val pages: List<List<HandwrittenWord>>) : SearchableHandwriting {
 
+    /** Number of indexed pages held in this index. */
+    val pageCount: Int get() = pages.size
+
     /** Returns recognized handwritten words on the given 0-based page index. */
     override fun words(page: Int): List<HandwrittenWord> = pages.getOrElse(page) { emptyList() }
 

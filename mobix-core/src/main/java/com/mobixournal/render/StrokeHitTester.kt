@@ -21,14 +21,8 @@ object StrokeHitTester {
      * @param by Segment endpoint B Y coordinate.
      * @return Minimum distance from point to segment.
      */
-    fun pointSegmentDistance(px: Double, py: Double, ax: Double, ay: Double, bx: Double, by: Double): Double {
-        val dx = bx - ax
-        val dy = by - ay
-        val lenSq = dx * dx + dy * dy
-        if (lenSq == 0.0) return dist(px, py, ax, ay) // degenerate segment: a point
-        val t = (((px - ax) * dx + (py - ay) * dy) / lenSq).coerceIn(0.0, 1.0)
-        return dist(px, py, ax + t * dx, ay + t * dy)
-    }
+    fun pointSegmentDistance(px: Double, py: Double, ax: Double, ay: Double, bx: Double, by: Double): Double =
+        sqrt(pointSegmentDistanceSq(px, py, ax, ay, bx, by))
 
     /**
      * True if an eraser disc of [radius] centred at ([px], [py]) touches [stroke].
@@ -41,19 +35,35 @@ object StrokeHitTester {
     fun hits(stroke: Stroke, px: Double, py: Double, radius: Double): Boolean {
         val pts = stroke.points
         if (pts.isEmpty()) return false
-        if (pts.size == 1) return dist(px, py, pts[0].x, pts[0].y) <= radius + pts[0].width / 2.0
+        if (pts.size == 1) {
+            val reach = radius + pts[0].width / 2.0
+            return distSq(px, py, pts[0].x, pts[0].y) <= reach * reach
+        }
         for (i in 1 until pts.size) {
             val a = pts[i - 1]
             val b = pts[i]
             val reach = radius + maxOf(a.width, b.width) / 2.0
-            if (pointSegmentDistance(px, py, a.x, a.y, b.x, b.y) <= reach) return true
+            if (px < minOf(a.x, b.x) - reach || px > maxOf(a.x, b.x) + reach ||
+                py < minOf(a.y, b.y) - reach || py > maxOf(a.y, b.y) + reach) {
+                continue
+            }
+            if (pointSegmentDistanceSq(px, py, a.x, a.y, b.x, b.y) <= reach * reach) return true
         }
         return false
     }
 
-    private fun dist(x1: Double, y1: Double, x2: Double, y2: Double): Double {
+    private fun pointSegmentDistanceSq(px: Double, py: Double, ax: Double, ay: Double, bx: Double, by: Double): Double {
+        val dx = bx - ax
+        val dy = by - ay
+        val lenSq = dx * dx + dy * dy
+        if (lenSq == 0.0) return distSq(px, py, ax, ay)
+        val t = (((px - ax) * dx + (py - ay) * dy) / lenSq).coerceIn(0.0, 1.0)
+        return distSq(px, py, ax + t * dx, ay + t * dy)
+    }
+
+    private fun distSq(x1: Double, y1: Double, x2: Double, y2: Double): Double {
         val dx = x1 - x2
         val dy = y1 - y2
-        return sqrt(dx * dx + dy * dy)
+        return dx * dx + dy * dy
     }
 }

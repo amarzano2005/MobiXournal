@@ -54,6 +54,20 @@ object DocumentSearch {
     /** How many strokes [doc] holds — walked through its page surface, a page at a time. */
     fun totalStrokeCount(doc: Document): Int = totalStrokeCount(PageSource.of(doc.pages))
 
+    /** Fast short-circuit check whether [doc] contains at least one [Stroke]. */
+    fun hasAnyStroke(doc: Document): Boolean = hasAnyStroke(PageSource.of(doc.pages))
+
+    /** Fast short-circuit check whether [source] contains at least one [Stroke]. */
+    fun hasAnyStroke(source: PageSource): Boolean {
+        for (pageIndex in 0 until source.pageCount) {
+            val page = source.page(pageIndex)
+            for (layer in page.layers) {
+                if (layer.elements.any { it is Stroke }) return true
+            }
+        }
+        return false
+    }
+
     /** How many strokes a document behind [source] holds, counting one page at a time. */
     fun totalStrokeCount(source: PageSource): Int {
         var total = 0

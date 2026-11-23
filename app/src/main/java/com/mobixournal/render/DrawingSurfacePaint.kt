@@ -365,7 +365,7 @@ internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
     val box = gestureBox() ?: return
     ink.currentStrokes?.let { multi ->
         for (pts in multi) {
-            strokePainter.draw(
+            draftStrokePainter.draw(
                 canvas, pts, tool, strokeColor(), box.scale, box.leftPx - scrollX, box.topPx - scrollY,
                 currentLineStyle,
             )
@@ -386,7 +386,7 @@ internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
         )
         if (bands.isNotEmpty()) {
             for (band in bands) {
-                strokePainter.draw(
+                draftStrokePainter.draw(
                     canvas, band.points, Tool.HIGHLIGHTER, band.color, box.scale,
                     box.leftPx - scrollX, box.topPx - scrollY, currentLineStyle,
                 )
@@ -394,7 +394,7 @@ internal fun DrawingSurfaceView.drawCurrent(canvas: Canvas) {
             return
         }
     }
-    strokePainter.draw(
+    draftStrokePainter.draw(
         canvas, pts, tool, strokeColor(), box.scale, box.leftPx - scrollX, box.topPx - scrollY,
         currentLineStyle, appendOnly = preview == null,
     )

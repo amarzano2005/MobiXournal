@@ -80,6 +80,8 @@ internal class CanvasSearch(
      */
     @Volatile private var generation = 0
     @Volatile private var cacheLoaded = false
+    @Volatile private var lastIndexedDoc: Document? = null
+    @Volatile private var lastCompletedIndex: HandwritingIndex? = null
     private val queryGeneration = AtomicLong()
     private var textIndex = PageTextIndex()
 
@@ -92,7 +94,7 @@ internal class CanvasSearch(
     }
 
     /** True when a query can be answered without waiting for the recogniser. */
-    fun isReady(): Boolean = handwriting != null || DocumentSearch.totalStrokeCount(document()) == 0
+    fun isReady(): Boolean = handwriting != null || !DocumentSearch.hasAnyStroke(document())
 
     /** The current count and position, as the top bar shows it. */
     fun status(): SearchStatus =
@@ -104,7 +106,7 @@ internal class CanvasSearch(
      */
     fun ensureIndex(onComplete: (() -> Unit)? = null) {
         val target = document()
-        if (handwriting != null || DocumentSearch.totalStrokeCount(target) == 0) {
+        if (handwriting != null || !DocumentSearch.hasAnyStroke(target)) {
             if (handwriting == null) handwriting = HandwritingIndex(emptyList())
             onIndexing(false, null)
             onComplete?.invoke()
@@ -113,6 +115,8 @@ internal class CanvasSearch(
         indexedDoc = target
         indexing = true
         val taskGeneration = ++generation
+        val prevDoc = lastIndexedDoc
+        val prevIndex = lastCompletedIndex
         onIndexing(true, STARTING)
         background.execute {
             try {
@@ -133,11 +137,17 @@ internal class CanvasSearch(
                         }
                     },
                     isCancelled = { generation != taskGeneration },
+                    previousDoc = prevDoc,
+                    previousIndex = prevIndex,
                 )
-                if (generation == taskGeneration && cacheFile != null) lineCache.saveTo(cacheFile)
+                if (generation == taskGeneration && cacheFile != null && lineCache.isDirty) {
+                    lineCache.saveTo(cacheFile)
+                }
                 main.execute {
                     if (generation == taskGeneration) {
                         handwriting = found
+                        lastIndexedDoc = target
+                        lastCompletedIndex = found
                         indexing = false
                         onIndexing(false, null)
                         if (query.isNotEmpty()) {
@@ -281,6 +291,8 @@ internal class CanvasSearch(
         current = -1
         handwriting = null
         indexedDoc = null
+        lastIndexedDoc = null
+        lastCompletedIndex = null
     }
 
     /**
@@ -292,17 +304,28 @@ internal class CanvasSearch(
         indexedDoc = target
         indexing = true
         val taskGeneration = ++generation
+        val prevDoc = lastIndexedDoc
+        val prevIndex = lastCompletedIndex
         background.execute {
             try {
                 if (!cacheLoaded && cacheFile != null) {
                     lineCache.loadFrom(cacheFile)
                     cacheLoaded = true
                 }
-                val found = lineCache.indexDocument(target, isCancelled = { generation != taskGeneration })
-                if (generation == taskGeneration && cacheFile != null) lineCache.saveTo(cacheFile)
+                val found = lineCache.indexDocument(
+                    doc = target,
+                    isCancelled = { generation != taskGeneration },
+                    previousDoc = prevDoc,
+                    previousIndex = prevIndex,
+                )
+                if (generation == taskGeneration && cacheFile != null && lineCache.isDirty) {
+                    lineCache.saveTo(cacheFile)
+                }
                 main.execute {
                     if (generation == taskGeneration) {
                         handwriting = found
+                        lastIndexedDoc = target
+                        lastCompletedIndex = found
                         indexing = false
                         if (query.isNotEmpty()) {
                             rebuild()

@@ -466,10 +466,13 @@ internal fun DrawingSurfaceView.endGesture(upX: Float = placeDownX, upY: Float =
     }
     // Committing the session closes it too (owner and router flag cleared), so nothing of this
     // gesture reaches the next one.
-    finishGesture()
+    val committed = finishGesture()
     // The router holds no contact of it either.
     ink.pointerRouter.reset()
     if (wasScrolling) scroll.glide()
+    if (committed && (wasErasing || wasMoving || wasTransforming || wasVspacing)) {
+        search.edited(midGesture = false)
+    }
     if (search.query.isNotEmpty() && (wasMoving || wasTransforming || wasVspacing)) {
         rebuildSearch()
         render()
@@ -478,13 +481,13 @@ internal fun DrawingSurfaceView.endGesture(upX: Float = placeDownX, upY: Float =
 
 /**
  * End the gesture's transaction: one undo step if it actually changed the document, nothing if it did
- * not — and closed either way ([GestureSession.commit]).
+ * not — and closed either way ([GestureSession.commit]). Returns true if an undoable change landed.
  */
-internal fun DrawingSurfaceView.finishGesture() {
-    session.commit(doc)?.let { start ->
-        history.record(start)
-        notifyHistory()
-    }
+internal fun DrawingSurfaceView.finishGesture(): Boolean {
+    val start = session.commit(doc) ?: return false
+    history.record(start)
+    notifyHistory()
+    return true
 }
 
 /** Mean Y of all pointers except [skip] (an index being lifted), in view px. */

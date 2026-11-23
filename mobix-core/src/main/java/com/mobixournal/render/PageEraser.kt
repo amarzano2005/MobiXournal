@@ -73,32 +73,45 @@ object PageEraser {
         radius: Double,
         mode: EraserMode,
     ): Layer? {
-        var touched = false
-        val rebuilt = ArrayList<Element>(layer.elements.size)
-        for (el in layer.elements) {
+        val elements = layer.elements
+        var rebuilt: ArrayList<Element>? = null
+        fun ensureRebuilt(idx: Int): ArrayList<Element> =
+            rebuilt ?: ArrayList<Element>(elements.size).apply {
+                for (i in 0 until idx) add(elements[i])
+                rebuilt = this
+            }
+
+        for (idx in elements.indices) {
+            val el = elements[idx]
             if (el.isLivingEntity) {
                 if (hitsLiving(el, px, py, radius)) {
-                    touched = true
+                    ensureRebuilt(idx)
                 } else {
-                    rebuilt += el
+                    rebuilt?.add(el)
                 }
                 continue
             }
-            if (el !is Stroke) { rebuilt += el; continue }
+            if (el !is Stroke) { rebuilt?.add(el); continue }
             when (mode) {
                 EraserMode.WHOLE_STROKE ->
-                    if (StrokeHitTester.hits(el, px, py, radius)) touched = true else rebuilt += el
+                    if (StrokeHitTester.hits(el, px, py, radius)) ensureRebuilt(idx) else rebuilt?.add(el)
                 EraserMode.STANDARD -> {
                     val pieces = StrokeEraser.erase(el, px, py, radius)
-                    if (pieces == null) rebuilt += el else { touched = true; rebuilt += pieces }
+                    if (pieces == null) rebuilt?.add(el) else ensureRebuilt(idx).addAll(pieces)
                 }
             }
         }
-        return if (touched) Layer(rebuilt, layer.name) else null
+        return rebuilt?.let { Layer(it, layer.name) }
     }
 
     /** True if an eraser disc of [radius] centered at ([px], [py]) touches any drawn part of [element]. */
     private fun hitsLiving(element: Element, px: Double, py: Double, radius: Double): Boolean {
+        val outer = ElementBounds.of(element)
+        val pad = radius + 8.0
+        if (px < outer.left - pad || px > outer.right + pad ||
+            py < outer.top - pad || py > outer.bottom + pad) {
+            return false
+        }
         val ink = LivingInk.of(element)
         val radiusSq = radius * radius
         for (el in ink.elements) {

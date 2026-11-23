@@ -614,9 +614,9 @@ class DrawingSurfaceView @JvmOverloads constructor(
         prewarmOnReload = true,
     )
 
-    /** True during live continuous transforms/moves where intermediate search rebuilding would thrash. */
+    /** True during live continuous transforms/erasing where intermediate search rebuilding would thrash. */
     internal val isLiveGestureActive: Boolean
-        get() = gestures.moving || gestures.resizing || gestures.rotating || vspace.active
+        get() = gestures.transforming || erasing || vspace.active
 
     // Live vertical-space drag: the grabbed page, the grab line (page pt) and its view-px Y for the
     // guide overlay. Like a selection move, each frame recomputes from the gesture-start snapshot.
@@ -670,6 +670,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     private var pendingGuide: GuideKind? = null
 
     internal val strokePainter = StrokePainter()
+    internal val draftStrokePainter = StrokePainter()
     internal val elementRenderer = ElementRenderer()
 
     /** Off-screen ink rasters, so a pan/fling frame blits pages instead of re-submitting strokes. */

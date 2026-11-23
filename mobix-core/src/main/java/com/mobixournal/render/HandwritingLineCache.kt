@@ -23,6 +23,10 @@ class HandwritingLineCache(private val maxEntries: Int = 2048) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, List<HandwrittenWord>>?): Boolean =
             size > maxEntries
     }
+    @Volatile private var dirty = false
+
+    /** True when new in-memory entries were added since the last disk load or save. */
+    val isDirty: Boolean get() = dirty
 
     /** Number of cached lines currently held in memory. */
     val size: Int
@@ -30,25 +34,38 @@ class HandwritingLineCache(private val maxEntries: Int = 2048) {
 
     /** Clears all cached line readings. */
     fun clear() {
-        synchronized(lock) { entries.clear() }
+        synchronized(lock) {
+            entries.clear()
+            dirty = false
+        }
     }
 
     /**
      * Indexes all pages in [doc], reusing cached line readings where the line's strokes are
-     * unchanged and only invoking [engine] on uncached lines.
+     * unchanged and only invoking [engine] on uncached lines. When [previousDoc] and [previousIndex]
+     * are supplied, pages whose instance identity is unchanged are carried forward in O(1).
      */
     fun indexDocument(
         doc: Document,
         onProgress: ((Int, Int) -> Unit)? = null,
         isCancelled: () -> Boolean = { false },
         engine: InkWordEngine = InkEngines.platform,
+        previousDoc: Document? = null,
+        previousIndex: HandwritingIndex? = null,
     ): HandwritingIndex {
         val total = doc.pages.size
         val pages = ArrayList<List<HandwrittenWord>>(total)
+        val canReusePages = previousDoc != null && previousIndex != null &&
+            previousDoc.pages.size == total && previousIndex.pageCount == total
         for (pageIndex in 0 until total) {
             if (isCancelled()) return HandwritingIndex(emptyList())
             onProgress?.invoke(pageIndex + 1, total)
-            pages.add(recognizePageCached(doc.pages[pageIndex], isCancelled, engine))
+            val page = doc.pages[pageIndex]
+            if (canReusePages && page === previousDoc!!.pages[pageIndex]) {
+                pages.add(previousIndex!!.words(pageIndex))
+            } else {
+                pages.add(recognizePageCached(page, isCancelled, engine))
+            }
         }
         return HandwritingIndex(pages)
     }
@@ -71,7 +88,10 @@ class HandwritingLineCache(private val maxEntries: Int = 2048) {
             } else {
                 val recognized = HandwritingRecognizer.recognize(line, engine, isCancelled)
                 if (!isCancelled()) {
-                    synchronized(lock) { entries[key] = recognized }
+                    synchronized(lock) {
+                        entries[key] = recognized
+                        dirty = true
+                    }
                     out.addAll(recognized)
                 }
             }
@@ -81,12 +101,13 @@ class HandwritingLineCache(private val maxEntries: Int = 2048) {
 
     /** Persists the current cache entries to [file] in a compact binary format. */
     fun saveTo(file: File) {
+        if (!dirty && file.isFile) return
         val snapshot: List<Pair<Long, List<HandwrittenWord>>> = synchronized(lock) {
             entries.entries.map { it.key to it.value }
         }
         runCatching {
             file.parentFile?.mkdirs()
-            val tmp = File(file.parentFile, "${file.name}.tmp")
+            val tmp = File(file.parentFile, "${file.name}.${Thread.currentThread().id}.tmp")
             DataOutputStream(BufferedOutputStream(tmp.outputStream())).use { out ->
                 out.writeInt(MAGIC)
                 out.writeInt(FORMAT_VERSION)
@@ -110,6 +131,7 @@ class HandwritingLineCache(private val maxEntries: Int = 2048) {
                 tmp.copyTo(file, overwrite = true)
                 tmp.delete()
             }
+            dirty = false
         }
     }
 

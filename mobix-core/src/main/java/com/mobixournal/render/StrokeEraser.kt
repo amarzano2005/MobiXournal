@@ -33,40 +33,58 @@ object StrokeEraser {
             return if (dist(cx, cy, p.x, p.y) <= radius + p.width / 2.0) emptyList() else null
         }
 
-        val pieces = mutableListOf<Stroke>()
-        var run = mutableListOf<StrokePoint>()
-        var touched = false
+        var pieces: MutableList<Stroke>? = null
+        var run: MutableList<StrokePoint>? = null
         fun flush() {
-            if (run.size >= 2) pieces += stroke.copy(points = run)
-            run = mutableListOf()
+            val currentRun = run ?: return
+            if (currentRun.size >= 2) pieces!!.add(stroke.copy(points = currentRun))
+            run = ArrayList()
         }
 
         for (i in 0 until pts.size - 1) {
             val a = pts[i]
             val b = pts[i + 1]
             val reach = radius + maxOf(a.width, b.width) / 2.0
-            val iv = discInterval(a, b, cx, cy, reach)
+            val outsideAabb = cx < minOf(a.x, b.x) - reach || cx > maxOf(a.x, b.x) + reach ||
+                cy < minOf(a.y, b.y) - reach || cy > maxOf(a.y, b.y) + reach
+            val iv = if (outsideAabb) null else discInterval(a, b, cx, cy, reach)
             if (iv == null) {
-                if (run.isEmpty()) run += a
-                run += b
+                val activeRun = run
+                if (activeRun != null) {
+                    if (activeRun.isEmpty()) activeRun += a
+                    activeRun += b
+                }
                 continue
             }
-            touched = true
             val (t0, t1) = iv
-            if (t0 > 0.0) {
-                if (run.isEmpty()) run += a
-                run += lerp(a, b, t0)
-            } else if (run.isNotEmpty()) {
-                run.removeAt(run.size - 1) // `a` itself is inside the disc
+            if (pieces == null) {
+                pieces = ArrayList(2)
+                val initialRun = ArrayList<StrokePoint>(pts.size)
+                if (t0 > 0.0) {
+                    for (k in 0..i) initialRun.add(pts[k])
+                    initialRun.add(lerp(a, b, t0))
+                } else {
+                    for (k in 0 until i) initialRun.add(pts[k])
+                }
+                run = initialRun
+            } else {
+                val activeRun = run!!
+                if (t0 > 0.0) {
+                    if (activeRun.isEmpty()) activeRun += a
+                    activeRun += lerp(a, b, t0)
+                } else if (activeRun.isNotEmpty()) {
+                    activeRun.removeAt(activeRun.size - 1) // `a` itself is inside the disc
+                }
             }
             flush()
             if (t1 < 1.0) {
-                run += lerp(a, b, t1)
-                run += b
+                val activeRun = run!!
+                activeRun += lerp(a, b, t1)
+                activeRun += b
             }
         }
         flush()
-        return if (touched) pieces else null
+        return pieces
     }
 
     /**
