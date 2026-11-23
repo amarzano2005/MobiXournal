@@ -129,8 +129,23 @@ fun decodeFocusBarAnchor(raw: String?): FocusBarAnchor {
 }
 
 /**
- * Determine the bar's dock state from its horizontal centre with hysteresis so dragging near the
- * threshold never chatters between horizontal and vertical.
+ * Effective `(enterPx, exitPx)` edge thresholds capped to the viewport width so left and right
+ * dock zones never overlap on compact phones while staying generous on tablets.
+ */
+fun effectiveEdgeThresholds(
+    containerWidth: Float,
+    baseEnterPx: Float,
+    baseExitPx: Float,
+): Pair<Float, Float> {
+    if (containerWidth <= 0f) return 0f to 1f
+    val enter = minOf(baseEnterPx, containerWidth * 0.28f).coerceAtLeast(1f)
+    val exit = minOf(baseExitPx, containerWidth * 0.42f).coerceAtLeast(enter + 1f)
+    return enter to exit
+}
+
+/**
+ * Determine the bar's dock state from the finger's horizontal position ([centerX]) with hysteresis
+ * so dragging near the threshold never chatters between horizontal and vertical.
  */
 fun nextFocusBarDock(
     current: FocusBarDock,

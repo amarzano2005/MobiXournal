@@ -129,4 +129,29 @@ class FocusBarGeometryTest {
         assertEquals(1200f - 52f - 14f, rx, 0.01f)
         assertEquals(800f - 290f - 16f, ry, 0.01f)
     }
+
+    @Test
+    fun `effectiveEdgeThresholds caps bands on compact phones and enables finger-driven edge morphing`() {
+        val (phoneEnter, phoneExit) = effectiveEdgeThresholds(360f, 128f, 178f)
+        assertTrue("phone enter < exit", phoneEnter < phoneExit)
+        assertTrue("phone exit leaves free middle", phoneExit < 360f / 2f)
+
+        val (tabEnter, tabExit) = effectiveEdgeThresholds(1000f, 128f, 178f)
+        assertEquals(128f, tabEnter, 0.01f)
+        assertEquals(178f, tabExit, 0.01f)
+
+        // Finger drags a 290-px wide 6-slot horizontal bar toward left and right edges.
+        var dock = FocusBarDock.FREE
+        dock = nextFocusBarDock(dock, 110f, 1000f, tabEnter, tabExit)
+        assertEquals(FocusBarDock.LEFT_EDGE, dock)
+        // Still inside hysteresis band (110..178) stays vertical.
+        dock = nextFocusBarDock(dock, 160f, 1000f, tabEnter, tabExit)
+        assertEquals(FocusBarDock.LEFT_EDGE, dock)
+        // Pulled past exit threshold returns horizontal.
+        dock = nextFocusBarDock(dock, 210f, 1000f, tabEnter, tabExit)
+        assertEquals(FocusBarDock.FREE, dock)
+
+        dock = nextFocusBarDock(dock, 890f, 1000f, tabEnter, tabExit)
+        assertEquals(FocusBarDock.RIGHT_EDGE, dock)
+    }
 }
