@@ -170,5 +170,17 @@ class FocusBarGeometryTest {
         assertEquals(FocusBarDock.RIGHT_EDGE, dock)
         dock = nextFocusBarDock(dock, 900f, 1000f, tabEnter, tabExit)
         assertEquals(FocusBarDock.FREE, dock)
+
+        // Grabbing the left handle (grabFracX = 0.04) and pushing the horizontal 290-px bar past the right edge
+        // triggers RIGHT_EDGE even while fingerX is still ~730 px, and undocking computes a trap-free grabFracX.
+        val rightDocked = nextFocusBarDock(
+            FocusBarDock.FREE, centerX = 735f, containerWidth = 1000f,
+            enterEdgePx = tabEnter, exitEdgePx = tabExit,
+            rawBarLeft = 723f, rawBarRight = 1013f, overPushPx = 10f,
+        )
+        assertEquals(FocusBarDock.RIGHT_EDGE, rightDocked)
+        val undockFrac = undockGrabFractionX(FocusBarDock.RIGHT_EDGE, fingerX = 900f, horizBarW = 290f, containerWidth = 1000f, edgeMarginPx = 14f)
+        val unfurledRight = 900f + (1f - undockFrac) * 290f
+        assertEquals(1000f - 14f, unfurledRight, 0.5f)
     }
 }

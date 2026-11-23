@@ -155,8 +155,9 @@ fun effectiveEdgeThresholds(
 }
 
 /**
- * Determine the bar's dock state purely from the finger's horizontal position ([centerX]) with
- * hysteresis (`enterEdgePx < exitEdgePx`).
+ * Determine the bar's dock state from the finger's horizontal position ([centerX]) and optional
+ * horizontal over-push ([rawBarLeft], [rawBarRight]) past the screen edges, so dragging from the
+ * left handle to the right edge morphs just as effortlessly as dragging to the left edge.
  */
 fun nextFocusBarDock(
     current: FocusBarDock,
@@ -164,6 +165,9 @@ fun nextFocusBarDock(
     containerWidth: Float,
     enterEdgePx: Float,
     exitEdgePx: Float,
+    rawBarLeft: Float = Float.NaN,
+    rawBarRight: Float = Float.NaN,
+    overPushPx: Float = 0f,
 ): FocusBarDock {
     if (containerWidth <= 0f) return FocusBarDock.FREE
     return when (current) {
@@ -177,11 +181,34 @@ fun nextFocusBarDock(
             centerX <= containerWidth - exitEdgePx -> FocusBarDock.FREE
             else -> FocusBarDock.RIGHT_EDGE
         }
-        FocusBarDock.FREE -> when {
-            centerX <= enterEdgePx -> FocusBarDock.LEFT_EDGE
-            centerX >= containerWidth - enterEdgePx -> FocusBarDock.RIGHT_EDGE
-            else -> FocusBarDock.FREE
+        FocusBarDock.FREE -> {
+            val pushedLeft = rawBarLeft.isFinite() && rawBarLeft <= -overPushPx
+            val pushedRight = rawBarRight.isFinite() && rawBarRight >= containerWidth + overPushPx
+            when {
+                centerX <= enterEdgePx || pushedLeft -> FocusBarDock.LEFT_EDGE
+                centerX >= containerWidth - enterEdgePx || pushedRight -> FocusBarDock.RIGHT_EDGE
+                else -> FocusBarDock.FREE
+            }
         }
+    }
+}
+
+/**
+ * Compute the grab fraction `[0.05f, 0.95f]` when undocking from [fromDock] back to horizontal so
+ * the unfurled horizontal bar starts cleanly inside [edgeMarginPx] without jumping or re-docking.
+ */
+fun undockGrabFractionX(
+    fromDock: FocusBarDock,
+    fingerX: Float,
+    horizBarW: Float,
+    containerWidth: Float,
+    edgeMarginPx: Float,
+): Float {
+    val w = horizBarW.coerceAtLeast(1f)
+    return when (fromDock) {
+        FocusBarDock.LEFT_EDGE -> ((fingerX - edgeMarginPx) / w).coerceIn(0.05f, 0.95f)
+        FocusBarDock.RIGHT_EDGE -> (1f - (containerWidth - edgeMarginPx - fingerX) / w).coerceIn(0.05f, 0.95f)
+        FocusBarDock.FREE -> 0.5f
     }
 }
 

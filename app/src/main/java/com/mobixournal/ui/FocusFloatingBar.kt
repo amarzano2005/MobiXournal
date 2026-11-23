@@ -75,6 +75,7 @@ private val FOCUS_PAD_DP = 6.dp
 private val FOCUS_EDGE_MARGIN_DP = 14.dp
 private val FOCUS_ENTER_EDGE_DP = 56.dp
 private val FOCUS_EXIT_EDGE_DP = 92.dp
+private val FOCUS_OVER_PUSH_DP = 10.dp
 
 private class BarCoordsRef {
     var coords: LayoutCoordinates? = null
@@ -200,9 +201,6 @@ private fun FocusModeFloatingBarCanvas(
             }
         }
 
-        EdgeDockGlow(visible = dragging && dock == FocusBarDock.LEFT_EDGE, alignment = Alignment.CenterStart, left = true)
-        EdgeDockGlow(visible = dragging && dock == FocusBarDock.RIGHT_EDGE, alignment = Alignment.CenterEnd, left = false)
-
         val dragModifier = focusBarDragModifier(
             slots = slots, containerW = containerW, containerH = containerH, m = m, dock = dock,
             barCoords = barCoords, morphProgress = morphProgress,
@@ -273,6 +271,8 @@ private fun focusBarDragModifier(
             var grabFracX = (down.position.x / curW.coerceAtLeast(1f)).coerceIn(0f, 1f)
             var grabFracY = (down.position.y / curH.coerceAtLeast(1f)).coerceIn(0f, 1f)
             var liveDock = currentDock
+            var rightExitX = containerW - effectiveEdgeThresholds(containerW, m.enterPx, m.exitPx).second
+            var leftExitX = effectiveEdgeThresholds(containerW, m.enterPx, m.exitPx).second
 
             fun applyChange(change: PointerInputChange) {
                 change.consume()
@@ -281,12 +281,26 @@ private fun focusBarDragModifier(
                 val origin = if (coords != null && coords.isAttached) coords.positionInParent() else Offset(fallbackX, fallbackY)
                 val finger = origin + change.position
                 val (enterPx, exitPx) = effectiveEdgeThresholds(containerW, m.enterPx, m.exitPx)
+                val pullPx = exitPx - enterPx
                 val prevDock = liveDock
-                val nextDock = nextFocusBarDock(prevDock, finger.x, containerW, enterPx, exitPx)
+                val (horizW, _) = focusBarSizePx(slots.size, m.slotPx, m.gapPx, m.handlePx, m.padPx, 0f)
+                val rawBarLeft = finger.x - horizW * grabFracX
+                val rawBarRight = rawBarLeft + horizW
+                val overPushPx = m.marginPx * (FOCUS_OVER_PUSH_DP.value / FOCUS_EDGE_MARGIN_DP.value)
+                if (prevDock == FocusBarDock.LEFT_EDGE) leftExitX = maxOf(exitPx, minOf(leftExitX, finger.x + pullPx))
+                if (prevDock == FocusBarDock.RIGHT_EDGE) rightExitX = minOf(containerW - exitPx, maxOf(rightExitX, finger.x - pullPx))
+                val activeExitPx = when (prevDock) {
+                    FocusBarDock.LEFT_EDGE -> leftExitX
+                    FocusBarDock.RIGHT_EDGE -> containerW - rightExitX
+                    FocusBarDock.FREE -> exitPx
+                }
+                val nextDock = nextFocusBarDock(prevDock, finger.x, containerW, enterPx, activeExitPx, rawBarLeft, rawBarRight, overPushPx)
                 liveDock = nextDock
                 val axisChanged = (prevDock != FocusBarDock.FREE) != (nextDock != FocusBarDock.FREE)
                 if (axisChanged) {
-                    grabFracX = 0.5f
+                    if (nextDock == FocusBarDock.LEFT_EDGE) leftExitX = maxOf(exitPx, finger.x + pullPx)
+                    if (nextDock == FocusBarDock.RIGHT_EDGE) rightExitX = minOf(containerW - exitPx, finger.x - pullPx)
+                    grabFracX = if (nextDock == FocusBarDock.FREE) undockGrabFractionX(prevDock, finger.x, horizW, containerW, m.marginPx) else 0.5f
                     grabFracY = 0.5f
                 }
                 val (barW, barH) = focusBarSizePx(slots.size, m.slotPx, m.gapPx, m.handlePx, m.padPx, currentMorph)
@@ -452,40 +466,6 @@ private fun FocusBarDragHandle(
                 .size(width = w, height = h)
                 .clip(CircleShape)
                 .background(ink.copy(alpha = 0.34f)),
-        )
-    }
-}
-
-@Composable
-private fun androidx.compose.foundation.layout.BoxScope.EdgeDockGlow(
-    visible: Boolean,
-    alignment: Alignment,
-    left: Boolean,
-) {
-    val accent = MaterialTheme.colorScheme.primary
-    AnimatedVisibility(
-        visible = visible,
-        enter = fadeIn(),
-        exit = fadeOut(),
-        modifier = Modifier.align(alignment),
-    ) {
-        Box(
-            modifier = Modifier
-                .padding(vertical = 48.dp, horizontal = 8.dp)
-                .width(58.dp)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(ModernTheme.panelCornerRadiusDp))
-                .background(
-                    Brush.horizontalGradient(
-                        colors = if (left) listOf(accent.copy(alpha = 0.22f), Color.Transparent)
-                        else listOf(Color.Transparent, accent.copy(alpha = 0.22f)),
-                    ),
-                )
-                .border(
-                    width = 1.dp,
-                    color = accent.copy(alpha = 0.42f),
-                    shape = RoundedCornerShape(ModernTheme.panelCornerRadiusDp),
-                ),
         )
     }
 }

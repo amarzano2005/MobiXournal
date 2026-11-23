@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "fix-focus-bar-right-edge-and-glow"
+title = "Remove blue edge glow and fix right-edge vertical morphing"
+description = "Removed EdgeDockGlow from FocusFloatingBar.kt, added over-push right/left edge morphing with dynamic per-edge exit hysteresis and undockGrabFractionX in FocusBarGeometry.kt and FocusFloatingBar.kt, and updated FocusBarGeometryTest.kt; verified FocusBarGeometryTest, ColorContractGuardTest, DocsGuardTest, signed release APK, and :desktop:createDistributable."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "material: removed blue EdgeDockGlow overlay so only the Liquid Glass capsule sits over the page; states: symmetric left/right edge morphing and trap-free undocking; tests: FocusBarGeometryTest covers left-handle push to right edge and undock grab fraction"
+
+[[task]]
 id = "fix-focus-bar-free-drag-undock"
 title = "Fix Focus bar free dragging and undocking from side edges"
 description = "Updated FocusBarGeometry.kt (pure finger-zone effectiveEdgeThresholds 56/92 dp and nextFocusBarDock), FocusFloatingBar.kt (synchronous liveDock inside awaitEachGesture, re-centered grab fraction on axis morph), and FocusBarGeometryTest.kt; verified FocusBarGeometryTest, ColorContractGuardTest, DocsGuardTest, signed release APK, and :desktop:createDistributable."
