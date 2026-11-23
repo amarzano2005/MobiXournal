@@ -182,5 +182,15 @@ class FocusBarGeometryTest {
         val undockFrac = undockGrabFractionX(FocusBarDock.RIGHT_EDGE, fingerX = 900f, horizBarW = 290f, containerWidth = 1000f, edgeMarginPx = 14f)
         val unfurledRight = 900f + (1f - undockFrac) * 290f
         assertEquals(1000f - 14f, unfurledRight, 0.5f)
+
+        // Touching the bottom docks BOTTOM_EDGE horizontally and settles at containerH - barH - bottomSafe.
+        val bottomDocked = nextFocusBarDock(
+            FocusBarDock.FREE, centerX = 500f, containerWidth = 1000f,
+            enterEdgePx = 32f, exitEdgePx = 68f,
+            overPushPx = 8f, fingerY = 770f, rawBarBottom = 790f, containerHeight = 800f, bottomSafePx = 14f,
+        )
+        assertEquals(FocusBarDock.BOTTOM_EDGE, bottomDocked)
+        val (_, by) = snapFocusBarPosition(FocusBarDock.BOTTOM_EDGE, 400f, 700f, 290f, 52f, 1000f, 800f, 14f, 56f, 14f)
+        assertEquals(800f - 52f - 14f, by, 0.01f)
     }
 }

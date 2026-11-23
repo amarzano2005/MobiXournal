@@ -115,6 +115,10 @@ enum class FocusBarDock {
     FREE,
     LEFT_EDGE,
     RIGHT_EDGE,
+    BOTTOM_EDGE,
+    ;
+
+    val isVertical: Boolean get() = this == LEFT_EDGE || this == RIGHT_EDGE
 }
 
 /** Persisted normalized placement of the Focus floating bar across orientation/size changes. */
@@ -168,27 +172,43 @@ fun nextFocusBarDock(
     rawBarLeft: Float = Float.NaN,
     rawBarRight: Float = Float.NaN,
     overPushPx: Float = 0f,
+    fingerY: Float = Float.NaN,
+    rawBarBottom: Float = Float.NaN,
+    containerHeight: Float = 0f,
+    bottomSafePx: Float = 0f,
 ): FocusBarDock {
     if (containerWidth <= 0f) return FocusBarDock.FREE
+    val touchBottom = containerHeight > 0f && (
+        (rawBarBottom.isFinite() && rawBarBottom >= containerHeight - bottomSafePx - overPushPx) ||
+            (fingerY.isFinite() && fingerY >= containerHeight - bottomSafePx - enterEdgePx)
+        )
+    val leftBottom = containerHeight > 0f && fingerY.isFinite() && fingerY <= containerHeight - bottomSafePx - exitEdgePx
+    val pushedLeft = rawBarLeft.isFinite() && rawBarLeft <= -overPushPx
+    val pushedRight = rawBarRight.isFinite() && rawBarRight >= containerWidth + overPushPx
     return when (current) {
         FocusBarDock.LEFT_EDGE -> when {
+            touchBottom && centerX > enterEdgePx -> FocusBarDock.BOTTOM_EDGE
             centerX >= containerWidth - enterEdgePx -> FocusBarDock.RIGHT_EDGE
             centerX >= exitEdgePx -> FocusBarDock.FREE
             else -> FocusBarDock.LEFT_EDGE
         }
         FocusBarDock.RIGHT_EDGE -> when {
+            touchBottom && centerX < containerWidth - enterEdgePx -> FocusBarDock.BOTTOM_EDGE
             centerX <= enterEdgePx -> FocusBarDock.LEFT_EDGE
             centerX <= containerWidth - exitEdgePx -> FocusBarDock.FREE
             else -> FocusBarDock.RIGHT_EDGE
         }
-        FocusBarDock.FREE -> {
-            val pushedLeft = rawBarLeft.isFinite() && rawBarLeft <= -overPushPx
-            val pushedRight = rawBarRight.isFinite() && rawBarRight >= containerWidth + overPushPx
-            when {
-                centerX <= enterEdgePx || pushedLeft -> FocusBarDock.LEFT_EDGE
-                centerX >= containerWidth - enterEdgePx || pushedRight -> FocusBarDock.RIGHT_EDGE
-                else -> FocusBarDock.FREE
-            }
+        FocusBarDock.BOTTOM_EDGE -> when {
+            centerX <= enterEdgePx || pushedLeft -> FocusBarDock.LEFT_EDGE
+            centerX >= containerWidth - enterEdgePx || pushedRight -> FocusBarDock.RIGHT_EDGE
+            leftBottom -> FocusBarDock.FREE
+            else -> FocusBarDock.BOTTOM_EDGE
+        }
+        FocusBarDock.FREE -> when {
+            centerX <= enterEdgePx || pushedLeft -> FocusBarDock.LEFT_EDGE
+            centerX >= containerWidth - enterEdgePx || pushedRight -> FocusBarDock.RIGHT_EDGE
+            touchBottom -> FocusBarDock.BOTTOM_EDGE
+            else -> FocusBarDock.FREE
         }
     }
 }
@@ -208,7 +228,7 @@ fun undockGrabFractionX(
     return when (fromDock) {
         FocusBarDock.LEFT_EDGE -> ((fingerX - edgeMarginPx) / w).coerceIn(0.05f, 0.95f)
         FocusBarDock.RIGHT_EDGE -> (1f - (containerWidth - edgeMarginPx - fingerX) / w).coerceIn(0.05f, 0.95f)
-        FocusBarDock.FREE -> 0.5f
+        FocusBarDock.FREE, FocusBarDock.BOTTOM_EDGE -> 0.5f
     }
 }
 
@@ -291,11 +311,15 @@ fun snapFocusBarPosition(
     val targetX = when (dock) {
         FocusBarDock.LEFT_EDGE -> edgeMarginPx
         FocusBarDock.RIGHT_EDGE -> containerW - barW - edgeMarginPx
-        FocusBarDock.FREE -> x
+        FocusBarDock.FREE, FocusBarDock.BOTTOM_EDGE -> x
+    }
+    val targetY = when (dock) {
+        FocusBarDock.BOTTOM_EDGE -> containerH - barH - bottomSafePx
+        else -> y
     }
     return clampFocusBarPosition(
         x = targetX,
-        y = y,
+        y = targetY,
         barW = barW,
         barH = barH,
         containerW = containerW,
@@ -372,6 +396,7 @@ fun popoverSideFor(
 ): FocusPopoverSide = when (dock) {
     FocusBarDock.LEFT_EDGE -> FocusPopoverSide.RIGHT
     FocusBarDock.RIGHT_EDGE -> FocusPopoverSide.LEFT
+    FocusBarDock.BOTTOM_EDGE -> FocusPopoverSide.ABOVE
     FocusBarDock.FREE -> if (barCenterY < containerH * 0.35f) FocusPopoverSide.BELOW else FocusPopoverSide.ABOVE
 }
 
