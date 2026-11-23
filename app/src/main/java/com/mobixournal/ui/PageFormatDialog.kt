@@ -292,40 +292,11 @@ internal fun PaperSection(
                 )
             }
         }
-        Row(
+        PaperUnitSelector(
+            paper = paper,
+            onUnit = onUnit,
             modifier = Modifier.align(Alignment.CenterVertically),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(
-                "Units",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            for (u in PageSizeUnit.entries) {
-                val selected = u == paper.unit
-                Surface(
-                    onClick = {
-                        if (u != paper.unit) {
-                            paper.unit = u
-                            paper.resync()
-                            onUnit?.invoke(u)
-                        }
-                    },
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceContainerHigh,
-                    border = if (selected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)) else null,
-                ) {
-                    Text(
-                        text = u.label,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                    )
-                }
-            }
-        }
+        )
     }
     Row(
         modifier = if (fillWidth) Modifier.fillMaxWidth() else Modifier,
@@ -369,6 +340,48 @@ internal fun PaperSection(
             },
             modifier = fieldModifier,
         )
+    }
+}
+
+@Composable
+private fun PaperUnitSelector(
+    paper: PaperState,
+    onUnit: ((PageSizeUnit) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(
+            "Units",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        for (u in PageSizeUnit.entries) {
+            val selected = u == paper.unit
+            Surface(
+                onClick = {
+                    if (u != paper.unit) {
+                        paper.unit = u
+                        paper.resync()
+                        onUnit?.invoke(u)
+                    }
+                },
+                shape = RoundedCornerShape(8.dp),
+                color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = if (selected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)) else null,
+            ) {
+                Text(
+                    text = u.label,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
+        }
     }
 }
 

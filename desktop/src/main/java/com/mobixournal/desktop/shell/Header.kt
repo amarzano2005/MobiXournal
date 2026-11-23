@@ -126,51 +126,62 @@ internal fun Header(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HeaderMenu(
-            sidebarVisible = sidebarVisible,
-            canSave = tab?.canSave == true,
-            canExport = tab != null,
-            onNew = onNew,
-            onOpen = onOpen,
-            onSave = onSave,
-            onSaveAs = onSaveAs,
-            onPortableCopy = onPortableCopy,
-            onExportAs = onExportAs,
-            onExportPdf = onExportPdf,
-            onExportSvg = onExportSvg,
-            onExportPng = onExportPng,
-            onImportPdf = onImportPdf,
+            sidebarVisible = sidebarVisible, canSave = tab?.canSave == true, canExport = tab != null,
+            onNew = onNew, onOpen = onOpen, onSave = onSave, onSaveAs = onSaveAs,
+            onPortableCopy = onPortableCopy, onExportAs = onExportAs, onExportPdf = onExportPdf,
+            onExportSvg = onExportSvg, onExportPng = onExportPng, onImportPdf = onImportPdf,
             onToggleSidebar = onToggleSidebar, onSettings = onSettings,
             onPenParameters = onPenParameters, penPolicy = penPolicy,
         )
         HeaderDivider()
-        TabStrip(
-            tabs = tabs,
-            onActivate = onActivate,
-            onClose = onClose,
-            onMove = onMove,
-            onNew = onNew,
-            modifier = Modifier.weight(1f),
+        TabStrip(tabs = tabs, onActivate = onActivate, onClose = onClose, onMove = onMove, onNew = onNew, modifier = Modifier.weight(1f))
+        HeaderTrailingControls(
+            tab = tab, tabs = tabs, saving = saving, audio = audio, pages = pages, layers = layers,
+            onSave = onSave, onExportPdf = onExportPdf, onUndo = onUndo, onRedo = onRedo,
+            onAudioTap = onAudioTap, onRecordingFinalized = onRecordingFinalized,
+            onSearch = onSearch, onSearchNext = onSearchNext, onSearchPrevious = onSearchPrevious, onSearchClose = onSearchClose,
         )
-        if (tab != null) {
-            HeaderDivider()
-            HeaderDocumentDoors(pages, layers)
-            HeaderDivider()
-            HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
-        }
-        HeaderDivider()
-        HeaderHistory(tab, onUndo, onRedo)
-        if (audio != null) {
-            HeaderDivider()
-            HeaderAudioPill(
-                audio = audio,
-                tab = { tabs.active },
-                onAudioTap = onAudioTap,
-                onRecordingFinalized = onRecordingFinalized,
-            )
-        }
-        HeaderDivider()
-        HeaderFileCommands(tab, saving, onSave, onExportPdf)
     }
+}
+
+@Composable
+private fun HeaderTrailingControls(
+    tab: DesktopTab?,
+    tabs: DesktopTabs,
+    saving: Boolean,
+    audio: DesktopAudioSession?,
+    pages: PageMenuActions,
+    layers: LayerMenuActions,
+    onSave: () -> Unit,
+    onExportPdf: () -> Unit,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    onAudioTap: () -> Unit,
+    onRecordingFinalized: () -> Unit,
+    onSearch: (String) -> Unit,
+    onSearchNext: () -> Unit,
+    onSearchPrevious: () -> Unit,
+    onSearchClose: () -> Unit,
+) {
+    if (tab != null) {
+        HeaderDivider()
+        HeaderDocumentDoors(pages, layers)
+        HeaderDivider()
+        HeaderSearchField(tab, onSearch, onSearchNext, onSearchPrevious, onSearchClose)
+    }
+    HeaderDivider()
+    HeaderHistory(tab, onUndo, onRedo)
+    if (audio != null) {
+        HeaderDivider()
+        HeaderAudioPill(
+            audio = audio,
+            tab = { tabs.active },
+            onAudioTap = onAudioTap,
+            onRecordingFinalized = onRecordingFinalized,
+        )
+    }
+    HeaderDivider()
+    HeaderFileCommands(tab, saving, onSave, onExportPdf)
 }
 
 /**

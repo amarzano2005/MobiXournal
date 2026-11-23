@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "source-structure-paper-and-header-split"
+title = "Extract helpers from PaperSection and Header to satisfy SourceStructureTest"
+description = "Extracted PaperUnitSelector in PageFormatDialog.kt and HeaderTrailingControls in Header.kt; verified DocsGuardTest (27/27) and SourceStructureTest (5/5) passing with zero failures, refreshed :desktop:createDistributable, and built signed release APK MobiXournal-2.4.0.apk."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "none: pure composable helper extraction with zero visual or behavioral change"
+
+[[task]]
 id = "perf-bottlenecks-four-block-pass"
 title = "Eliminate top performance bottlenecks across ink/eraser, save I/O, Compose UI, and desktop PDF/Wintab"
 description = "Shipped all 4 performance optimization blocks (commits aca8b16b, 65b52fe3, c6c26411, 00b9de76, cc012b2f), verified targeted :mobix-core:test, :app:testDebugUnitTest, :desktop:test, DocsGuardTest (27/27), SourceStructureTest on all edited files, signed Android release APK MobiXournal-2.4.0.apk, and :desktop:createDistributable."
