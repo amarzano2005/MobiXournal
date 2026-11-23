@@ -73,9 +73,7 @@ private val FOCUS_GAP_DP = 4.dp
 private val FOCUS_HANDLE_DP = 14.dp
 private val FOCUS_PAD_DP = 6.dp
 private val FOCUS_EDGE_MARGIN_DP = 14.dp
-private val FOCUS_ENTER_EDGE_DP = 14.dp
-private val FOCUS_EXIT_EDGE_DP = 18.dp
-private val FOCUS_OVER_PUSH_DP = 4.dp
+private val FOCUS_UNDOCK_PULL_DP = 24.dp
 
 private class BarCoordsRef {
     var coords: LayoutCoordinates? = null
@@ -123,8 +121,7 @@ private data class FocusBarMetrics(
     val handlePx: Float,
     val padPx: Float,
     val marginPx: Float,
-    val enterPx: Float,
-    val exitPx: Float,
+    val undockPullPx: Float,
     val topSafePx: Float,
     val bottomSafePx: Float,
 )
@@ -140,8 +137,7 @@ private fun rememberFocusBarMetrics(): FocusBarMetrics {
                 handlePx = FOCUS_HANDLE_DP.toPx(),
                 padPx = FOCUS_PAD_DP.toPx(),
                 marginPx = FOCUS_EDGE_MARGIN_DP.toPx(),
-                enterPx = FOCUS_ENTER_EDGE_DP.toPx(),
-                exitPx = FOCUS_EXIT_EDGE_DP.toPx(),
+                undockPullPx = FOCUS_UNDOCK_PULL_DP.toPx(),
                 topSafePx = FOCUS_TOP_SAFE_DP.toPx(),
                 bottomSafePx = FOCUS_BOTTOM_SAFE_DP.toPx(),
             )
@@ -167,7 +163,7 @@ private fun FocusModeFloatingBarCanvas(
     var lastLayoutKey by remember { mutableStateOf<Triple<Float, Float, Int>?>(null) }
     val morphProgress by animateFloatAsState(
         targetValue = if (dock.isVertical) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.72f, stiffness = 300f),
+        animationSpec = spring(dampingRatio = 0.90f, stiffness = 420f),
         label = "FocusBarMorph",
     )
     val jelly = remember { Animatable(1f) }
@@ -212,7 +208,7 @@ private fun FocusModeFloatingBarCanvas(
                 if (dockChanged) {
                     dock = nextDock
                     haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    if (axisChanged) scope.launch { jelly.snapTo(0.91f); jelly.animateTo(1f, spring(dampingRatio = 0.56f, stiffness = 420f)) }
+                    if (axisChanged) scope.launch { jelly.snapTo(0.95f); jelly.animateTo(1f, spring(dampingRatio = 0.88f, stiffness = 420f)) }
                 }
             },
             onDragFinish = { _, sx, sy, anchor ->
@@ -234,15 +230,19 @@ private fun FocusModeFloatingBarCanvas(
             modifier = Modifier
                 .offset {
                     val (bw, bh) = focusBarSizePx(slots.size, m.slotPx, m.gapPx, m.handlePx, m.padPx, morphProgress)
-                    val targetY = if (dragging && dock == FocusBarDock.BOTTOM_EDGE) {
-                        containerH - bh - m.bottomSafePx
-                    } else if (dragging) {
-                        dragOffsetY
-                    } else {
-                        offsetY.value
+                    val targetX = when {
+                        dragging && dock == FocusBarDock.LEFT_EDGE -> m.marginPx
+                        dragging && dock == FocusBarDock.RIGHT_EDGE -> containerW - bw - m.marginPx
+                        dragging -> dragOffsetX
+                        else -> offsetX.value
+                    }
+                    val targetY = when {
+                        dragging && dock == FocusBarDock.BOTTOM_EDGE -> containerH - bh - m.bottomSafePx
+                        dragging -> dragOffsetY
+                        else -> offsetY.value
                     }
                     val (cx, cy) = clampFocusBarPosition(
-                        if (dragging) dragOffsetX else offsetX.value, targetY,
+                        targetX, targetY,
                         bw, bh, containerW, containerH, m.marginPx, m.topSafePx, m.bottomSafePx,
                     )
                     IntOffset(cx.roundToIntPx(), cy.roundToIntPx())
@@ -275,9 +275,26 @@ private fun focusBarDragModifier(
             val sloppy = awaitTouchSlopOrCancellation(down.id) { change, _ -> change.consume() }
                 ?: return@awaitEachGesture
             val (curW, curH) = focusBarSizePx(slots.size, m.slotPx, m.gapPx, m.handlePx, m.padPx, currentMorph)
-            var grabFracX = (down.position.x / curW.coerceAtLeast(1f)).coerceIn(0f, 1f)
-            var grabFracY = (down.position.y / curH.coerceAtLeast(1f)).coerceIn(0f, 1f)
-            var liveDock = currentDock
+            val grabFracX = (down.position.x / curW.coerceAtLeast(1f)).coerceIn(0f, 1f)
+            val grabFracY = (down.position.y / curH.coerceAtLeast(1f)).coerceIn(0f, 1f)
+            val startCoords = barCoords.coords
+            val (startFallbackX, startFallbackY) = currentReadOffset()
+            val startOrigin = if (startCoords != null && startCoords.isAttached) {
+                startCoords.positionInParent()
+            } else {
+                Offset(startFallbackX, startFallbackY)
+            }
+            val startFinger = startOrigin + down.position
+            var dragState = FocusBarDragState(
+                dock = currentDock,
+                grabFracX = grabFracX,
+                grabFracY = grabFracY,
+                dockReferencePx = when (currentDock) {
+                    FocusBarDock.LEFT_EDGE, FocusBarDock.RIGHT_EDGE -> startFinger.x
+                    FocusBarDock.BOTTOM_EDGE -> startFinger.y
+                    FocusBarDock.FREE -> Float.NaN
+                },
+            )
 
             fun applyChange(change: PointerInputChange) {
                 change.consume()
@@ -285,34 +302,23 @@ private fun focusBarDragModifier(
                 val (fallbackX, fallbackY) = currentReadOffset()
                 val origin = if (coords != null && coords.isAttached) coords.positionInParent() else Offset(fallbackX, fallbackY)
                 val finger = origin + change.position
-                val (enterPx, exitPx) = effectiveEdgeThresholds(containerW, m.enterPx, m.exitPx)
-                val prevDock = liveDock
                 val (horizW, horizH) = focusBarSizePx(slots.size, m.slotPx, m.gapPx, m.handlePx, m.padPx, 0f)
-                val (_, activeH) = focusBarSizePx(slots.size, m.slotPx, m.gapPx, m.handlePx, m.padPx, currentMorph)
-                val rawBarLeft = finger.x - horizW * grabFracX
-                val rawBarRight = rawBarLeft + horizW
-                val rawBarBottom = finger.y + (1f - grabFracY) * activeH
-                val overPushPx = m.marginPx * (FOCUS_OVER_PUSH_DP.value / FOCUS_EDGE_MARGIN_DP.value)
-                val nextDock = nextFocusBarDock(
-                    prevDock, finger.x, containerW, enterPx, exitPx, rawBarLeft, rawBarRight, overPushPx,
-                    finger.y, rawBarBottom, containerH, m.bottomSafePx,
+                val step = stepFocusBarDrag(
+                    state = dragState,
+                    fingerX = finger.x,
+                    fingerY = finger.y,
+                    horizW = horizW,
+                    horizH = horizH,
+                    currentMorph = currentMorph,
+                    containerW = containerW,
+                    containerH = containerH,
+                    marginPx = m.marginPx,
+                    topSafePx = m.topSafePx,
+                    bottomSafePx = m.bottomSafePx,
+                    undockPullPx = m.undockPullPx,
                 )
-                liveDock = nextDock
-                val axisChanged = prevDock.isVertical != nextDock.isVertical
-                if (axisChanged) {
-                    grabFracX = if (!nextDock.isVertical) undockGrabFractionX(prevDock, finger.x, horizW, containerW, m.marginPx) else 0.5f
-                    grabFracY = 0.5f
-                }
-                val (barW, barH) = focusBarSizePx(
-                    slots.size, m.slotPx, m.gapPx, m.handlePx, m.padPx,
-                    if (nextDock == FocusBarDock.BOTTOM_EDGE) 0f else currentMorph,
-                )
-                val rawY = if (nextDock == FocusBarDock.BOTTOM_EDGE) containerH - barH - m.bottomSafePx else finger.y - barH * grabFracY
-                val (cx, cy) = clampFocusBarPosition(
-                    finger.x - barW * grabFracX, rawY,
-                    barW, barH, containerW, containerH, m.marginPx, m.topSafePx, m.bottomSafePx,
-                )
-                onDragStep(cx, cy, nextDock, nextDock != prevDock, axisChanged)
+                dragState = step.state
+                onDragStep(step.x, step.y, step.state.dock, step.dockChanged, step.axisChanged)
             }
 
             try {
@@ -324,16 +330,17 @@ private fun focusBarDragModifier(
                     if (event.type == PointerEventType.Move) applyChange(change)
                 }
             } finally {
-                val finalMorph = if (liveDock.isVertical) 1f else 0f
+                val finalDock = dragState.dock
+                val finalMorph = if (finalDock.isVertical) 1f else 0f
                 val (bw, bh) = focusBarSizePx(slots.size, m.slotPx, m.gapPx, m.handlePx, m.padPx, finalMorph)
                 val (curX, curY) = currentReadOffset()
                 val (sx, sy) = snapFocusBarPosition(
-                    liveDock, curX, curY, bw, bh, containerW, containerH, m.marginPx, m.topSafePx, m.bottomSafePx,
+                    finalDock, curX, curY, bw, bh, containerW, containerH, m.marginPx, m.topSafePx, m.bottomSafePx,
                 )
                 val anchor = focusBarAnchorFromPixels(
-                    liveDock, sx, sy, bw, bh, containerW, containerH, m.marginPx, m.topSafePx, m.bottomSafePx,
+                    finalDock, sx, sy, bw, bh, containerW, containerH, m.marginPx, m.topSafePx, m.bottomSafePx,
                 )
-                onDragFinish(liveDock, sx, sy, anchor)
+                onDragFinish(finalDock, sx, sy, anchor)
             }
         }
     }

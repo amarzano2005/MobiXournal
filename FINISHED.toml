@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "focus-bar-oscillation-free-docking"
+title = "Rewrite Focus bar drag state machine to eliminate magnet and edge oscillation"
+description = "Replaced nextFocusBarDock and effectiveEdgeThresholds with stepFocusBarDrag (FocusBarDragState / FocusBarDragStep) in FocusBarGeometry.kt and wired it in FocusFloatingBar.kt with crisp morph springs and bottom/side edge pinning during morph."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-23
+completed = 2026-11-23
+tags = []
+design = "none: Focus bar gesture state machine fix using existing Liquid Glass capsule"
+
+[[task]]
 id = "instant-handwriting-search-cache"
 title = "Pre-index and cache handwriting search with batch ML Kit recognition"
 description = "Implemented HandwritingLineCache with binary disk persistence and deterministic 64-bit line keys, batch concurrent InkLineEngine recognition in MlKitInkEngine/AndroidInkEngine with primary-locale priority, and background pre-indexing + incremental line caching in CanvasSearch and DrawingSurfaceView."

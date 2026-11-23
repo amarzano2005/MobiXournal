@@ -142,74 +142,155 @@ fun decodeFocusBarAnchor(raw: String?): FocusBarAnchor {
     return FocusBarAnchor(dock, xf, yf)
 }
 
-/**
- * Effective `(enterPx, exitPx)` edge thresholds for finger-based docking: narrow enough to keep
- * most of the screen completely free for horizontal placement, with a clean hysteresis band so
- * leaving a side edge never re-triggers docking.
- */
-fun effectiveEdgeThresholds(
-    containerWidth: Float,
-    baseEnterPx: Float,
-    baseExitPx: Float,
-): Pair<Float, Float> {
-    if (containerWidth <= 0f) return 0f to 1f
-    val enter = minOf(baseEnterPx, containerWidth * 0.16f).coerceAtLeast(1f)
-    val exit = minOf(baseExitPx, containerWidth * 0.28f).coerceAtLeast(enter + 1f)
-    return enter to exit
-}
+/** Per-gesture drag tracking state kept across pointer move events. */
+data class FocusBarDragState(
+    val dock: FocusBarDock,
+    val grabFracX: Float,
+    val grabFracY: Float,
+    /** Extreme finger coordinate reached while docked (min X for LEFT, max X for RIGHT, max Y for BOTTOM). */
+    val dockReferencePx: Float = Float.NaN,
+)
+
+/** Result of one drag step: updated gesture state plus clamped target top-left `(x, y)` and transition flags. */
+data class FocusBarDragStep(
+    val state: FocusBarDragState,
+    val x: Float,
+    val y: Float,
+    val dockChanged: Boolean,
+    val axisChanged: Boolean,
+)
 
 /**
- * Determine the bar's dock state from the finger's horizontal position ([centerX]) and optional
- * horizontal over-push ([rawBarLeft], [rawBarRight]) past the screen edges, so dragging from the
- * left handle to the right edge morphs just as effortlessly as dragging to the left edge.
+ * Pure, oscillation-free drag state machine for the Focus floating bar:
+ * - No side-edge magnet: [FocusBarDock.FREE] follows the finger 1:1 until the bar actually pushes
+ *   past the outer margin or the finger touches it.
+ * - No handle-push or corner oscillation: leaving a docked edge requires pulling inward/upward by
+ *   [undockPullPx] from the extreme finger coordinate reached while docked, and touching the bottom
+ *   from a vertical side edge unfolds directly into [FocusBarDock.BOTTOM_EDGE].
  */
-fun nextFocusBarDock(
-    current: FocusBarDock,
-    centerX: Float,
-    containerWidth: Float,
-    enterEdgePx: Float,
-    exitEdgePx: Float,
-    rawBarLeft: Float = Float.NaN,
-    rawBarRight: Float = Float.NaN,
-    overPushPx: Float = 0f,
-    fingerY: Float = Float.NaN,
-    rawBarBottom: Float = Float.NaN,
-    containerHeight: Float = 0f,
-    bottomSafePx: Float = 0f,
-): FocusBarDock {
-    if (containerWidth <= 0f) return FocusBarDock.FREE
-    val touchBottom = containerHeight > 0f && (
-        (rawBarBottom.isFinite() && rawBarBottom >= containerHeight - bottomSafePx - overPushPx) ||
-            (fingerY.isFinite() && fingerY >= containerHeight - bottomSafePx - enterEdgePx)
-        )
-    val leftBottom = containerHeight > 0f && fingerY.isFinite() && fingerY <= containerHeight - bottomSafePx - exitEdgePx
-    val pushedLeft = rawBarLeft.isFinite() && rawBarLeft <= -overPushPx
-    val pushedRight = rawBarRight.isFinite() && rawBarRight >= containerWidth + overPushPx
-    return when (current) {
-        FocusBarDock.LEFT_EDGE -> when {
-            touchBottom -> FocusBarDock.BOTTOM_EDGE
-            centerX >= containerWidth - enterEdgePx -> FocusBarDock.RIGHT_EDGE
-            centerX >= exitEdgePx -> FocusBarDock.FREE
-            else -> FocusBarDock.LEFT_EDGE
+fun stepFocusBarDrag(
+    state: FocusBarDragState,
+    fingerX: Float,
+    fingerY: Float,
+    horizW: Float,
+    horizH: Float,
+    currentMorph: Float,
+    containerW: Float,
+    containerH: Float,
+    marginPx: Float,
+    topSafePx: Float,
+    bottomSafePx: Float,
+    undockPullPx: Float,
+): FocusBarDragStep {
+    if (containerW <= 0f) {
+        return FocusBarDragStep(state.copy(dock = FocusBarDock.FREE), marginPx, topSafePx, false, false)
+    }
+    val rawLeft = fingerX - horizW * state.grabFracX
+    val rawRight = rawLeft + horizW
+    val activeH = lerpF(horizH, horizW, currentMorph.coerceIn(0f, 1f))
+    val rawBottom = fingerY + (1f - state.grabFracY) * activeH
+    val hitBottom = containerH > 0f && rawBottom >= containerH - bottomSafePx
+
+    val (nextDock, trackedRef) = resolveNextDockAndRef(
+        state, fingerX, fingerY, rawLeft, rawRight, hitBottom,
+        containerW, containerH, marginPx, undockPullPx,
+    )
+    val dockChanged = nextDock != state.dock
+    val axisChanged = state.dock.isVertical != nextDock.isVertical
+    val (nextFracX, nextFracY, nextRef) = if (!dockChanged) {
+        Triple(state.grabFracX, state.grabFracY, trackedRef)
+    } else {
+        transitionGrabAndRef(state, nextDock, fingerX, fingerY, horizW, containerW, marginPx)
+    }
+    val targetW = if (nextDock.isVertical) horizH else horizW
+    val targetH = if (nextDock.isVertical) horizW else horizH
+    val rawX = when (nextDock) {
+        FocusBarDock.LEFT_EDGE -> marginPx
+        FocusBarDock.RIGHT_EDGE -> containerW - targetW - marginPx
+        FocusBarDock.FREE, FocusBarDock.BOTTOM_EDGE -> fingerX - targetW * nextFracX
+    }
+    val rawY = when (nextDock) {
+        FocusBarDock.BOTTOM_EDGE -> containerH - targetH - bottomSafePx
+        else -> fingerY - targetH * nextFracY
+    }
+    val (cx, cy) = clampFocusBarPosition(
+        rawX, rawY, targetW, targetH, containerW, containerH, marginPx, topSafePx, bottomSafePx,
+    )
+    return FocusBarDragStep(
+        state = FocusBarDragState(nextDock, nextFracX, nextFracY, nextRef),
+        x = cx,
+        y = cy,
+        dockChanged = dockChanged,
+        axisChanged = axisChanged,
+    )
+}
+
+private fun resolveNextDockAndRef(
+    state: FocusBarDragState,
+    fingerX: Float,
+    fingerY: Float,
+    rawLeft: Float,
+    rawRight: Float,
+    hitBottom: Boolean,
+    containerW: Float,
+    containerH: Float,
+    marginPx: Float,
+    undockPullPx: Float,
+): Pair<FocusBarDock, Float> = when (state.dock) {
+    FocusBarDock.FREE -> when {
+        rawLeft <= 0f || fingerX <= marginPx -> FocusBarDock.LEFT_EDGE to fingerX
+        rawRight >= containerW || fingerX >= containerW - marginPx -> FocusBarDock.RIGHT_EDGE to fingerX
+        hitBottom -> FocusBarDock.BOTTOM_EDGE to fingerY
+        else -> FocusBarDock.FREE to Float.NaN
+    }
+    FocusBarDock.LEFT_EDGE -> {
+        val bestX = if (state.dockReferencePx.isFinite()) minOf(state.dockReferencePx, fingerX) else fingerX
+        when {
+            hitBottom -> FocusBarDock.BOTTOM_EDGE to fingerY
+            fingerX > marginPx && fingerX >= bestX + undockPullPx -> FocusBarDock.FREE to Float.NaN
+            else -> FocusBarDock.LEFT_EDGE to bestX
         }
-        FocusBarDock.RIGHT_EDGE -> when {
-            touchBottom -> FocusBarDock.BOTTOM_EDGE
-            centerX <= enterEdgePx -> FocusBarDock.LEFT_EDGE
-            centerX <= containerWidth - exitEdgePx -> FocusBarDock.FREE
-            else -> FocusBarDock.RIGHT_EDGE
+    }
+    FocusBarDock.RIGHT_EDGE -> {
+        val bestX = if (state.dockReferencePx.isFinite()) maxOf(state.dockReferencePx, fingerX) else fingerX
+        when {
+            hitBottom -> FocusBarDock.BOTTOM_EDGE to fingerY
+            fingerX < containerW - marginPx && fingerX <= bestX - undockPullPx -> FocusBarDock.FREE to Float.NaN
+            else -> FocusBarDock.RIGHT_EDGE to bestX
         }
-        FocusBarDock.BOTTOM_EDGE -> when {
-            centerX <= enterEdgePx || pushedLeft -> FocusBarDock.LEFT_EDGE
-            centerX >= containerWidth - enterEdgePx || pushedRight -> FocusBarDock.RIGHT_EDGE
-            leftBottom -> FocusBarDock.FREE
-            else -> FocusBarDock.BOTTOM_EDGE
+    }
+    FocusBarDock.BOTTOM_EDGE -> {
+        val bestY = if (state.dockReferencePx.isFinite()) maxOf(state.dockReferencePx, fingerY) else fingerY
+        val undocked = containerH > 0f && fingerY <= bestY - undockPullPx
+        if (undocked) FocusBarDock.FREE to Float.NaN else FocusBarDock.BOTTOM_EDGE to bestY
+    }
+}
+
+private fun transitionGrabAndRef(
+    state: FocusBarDragState,
+    nextDock: FocusBarDock,
+    fingerX: Float,
+    fingerY: Float,
+    horizW: Float,
+    containerW: Float,
+    marginPx: Float,
+): Triple<Float, Float, Float> = when (nextDock) {
+    FocusBarDock.LEFT_EDGE, FocusBarDock.RIGHT_EDGE -> Triple(0.5f, 0.5f, fingerX)
+    FocusBarDock.BOTTOM_EDGE -> {
+        val fracX = if (state.dock.isVertical) {
+            undockGrabFractionX(state.dock, fingerX, horizW, containerW, marginPx)
+        } else {
+            state.grabFracX
         }
-        FocusBarDock.FREE -> when {
-            centerX <= enterEdgePx || pushedLeft -> FocusBarDock.LEFT_EDGE
-            centerX >= containerWidth - enterEdgePx || pushedRight -> FocusBarDock.RIGHT_EDGE
-            touchBottom -> FocusBarDock.BOTTOM_EDGE
-            else -> FocusBarDock.FREE
+        Triple(fracX, 0.5f, fingerY)
+    }
+    FocusBarDock.FREE -> {
+        val fracX = if (state.dock.isVertical) {
+            undockGrabFractionX(state.dock, fingerX, horizW, containerW, marginPx)
+        } else {
+            state.grabFracX
         }
+        Triple(fracX, 0.5f, Float.NaN)
     }
 }
 

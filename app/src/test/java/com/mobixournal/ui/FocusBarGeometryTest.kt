@@ -78,21 +78,26 @@ class FocusBarGeometryTest {
     }
 
     @Test
-    fun `nextFocusBarDock enforces hysteresis near left and right edges`() {
-        val w = 1000f
-        val enter = 72f
-        val exit = 110f
+    fun `stepFocusBarDrag keeps FREE without side magnet inside margins`() {
+        val state = FocusBarDragState(FocusBarDock.FREE, grabFracX = 0.5f, grabFracY = 0.5f)
+        // Finger near the left side (but bar still inside [14, 1000 - 290 - 14]) stays FREE with zero pull.
+        val leftNear = stepFocusBarDrag(
+            state = state, fingerX = 165f, fingerY = 400f,
+            horizW = 290f, horizH = 52f, currentMorph = 0f,
+            containerW = 1000f, containerH = 800f,
+            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
+        )
+        assertEquals(FocusBarDock.FREE, leftNear.state.dock)
+        assertEquals(20f, leftNear.x, 0.01f)
 
-        assertEquals(FocusBarDock.LEFT_EDGE, nextFocusBarDock(FocusBarDock.FREE, 60f, w, enter, exit))
-        assertEquals(FocusBarDock.RIGHT_EDGE, nextFocusBarDock(FocusBarDock.FREE, 940f, w, enter, exit))
-        assertEquals(FocusBarDock.FREE, nextFocusBarDock(FocusBarDock.FREE, 500f, w, enter, exit))
-
-        // Inside hysteresis band (72..110), vertical dock stays latched.
-        assertEquals(FocusBarDock.LEFT_EDGE, nextFocusBarDock(FocusBarDock.LEFT_EDGE, 95f, w, enter, exit))
-        assertEquals(FocusBarDock.FREE, nextFocusBarDock(FocusBarDock.LEFT_EDGE, 120f, w, enter, exit))
-
-        assertEquals(FocusBarDock.RIGHT_EDGE, nextFocusBarDock(FocusBarDock.RIGHT_EDGE, 905f, w, enter, exit))
-        assertEquals(FocusBarDock.FREE, nextFocusBarDock(FocusBarDock.RIGHT_EDGE, 880f, w, enter, exit))
+        val rightNear = stepFocusBarDrag(
+            state = leftNear.state, fingerX = 835f, fingerY = 400f,
+            horizW = 290f, horizH = 52f, currentMorph = 0f,
+            containerW = 1000f, containerH = 800f,
+            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
+        )
+        assertEquals(FocusBarDock.FREE, rightNear.state.dock)
+        assertEquals(690f, rightNear.x, 0.01f)
     }
 
     @Test
@@ -139,66 +144,87 @@ class FocusBarGeometryTest {
     }
 
     @Test
-    fun `effectiveEdgeThresholds keeps wide free zone and allows clean dock and undock`() {
-        val (phoneEnter, phoneExit) = effectiveEdgeThresholds(360f, 56f, 92f)
-        assertEquals(56f, phoneEnter, 0.01f)
-        assertEquals(92f, phoneExit, 0.01f)
-        assertTrue("phone free middle > 240 px", 360f - 2f * phoneEnter > 240f)
-
-        val (tabEnter, tabExit) = effectiveEdgeThresholds(1000f, 56f, 92f)
-        assertEquals(56f, tabEnter, 0.01f)
-        assertEquals(92f, tabExit, 0.01f)
-
-        // Dragging anywhere in the middle stays FREE.
-        var dock = FocusBarDock.FREE
-        dock = nextFocusBarDock(dock, 200f, 1000f, tabEnter, tabExit)
-        assertEquals(FocusBarDock.FREE, dock)
-
-        // Finger entering outer 56-px edge docks LEFT_EDGE; stays latched at 75; exits cleanly at 95.
-        dock = nextFocusBarDock(dock, 45f, 1000f, tabEnter, tabExit)
-        assertEquals(FocusBarDock.LEFT_EDGE, dock)
-        dock = nextFocusBarDock(dock, 75f, 1000f, tabEnter, tabExit)
-        assertEquals(FocusBarDock.LEFT_EDGE, dock)
-        dock = nextFocusBarDock(dock, 95f, 1000f, tabEnter, tabExit)
-        assertEquals(FocusBarDock.FREE, dock)
-        // Staying at 95 stays FREE (never sucked back into LEFT_EDGE).
-        dock = nextFocusBarDock(dock, 95f, 1000f, tabEnter, tabExit)
-        assertEquals(FocusBarDock.FREE, dock)
-
-        // Right edge mirrors left edge cleanly.
-        dock = nextFocusBarDock(dock, 955f, 1000f, tabEnter, tabExit)
-        assertEquals(FocusBarDock.RIGHT_EDGE, dock)
-        dock = nextFocusBarDock(dock, 900f, 1000f, tabEnter, tabExit)
-        assertEquals(FocusBarDock.FREE, dock)
-
-        // Grabbing the left handle (grabFracX = 0.04) and pushing the horizontal 290-px bar past the right edge
-        // triggers RIGHT_EDGE even while fingerX is still ~730 px, and undocking computes a trap-free grabFracX.
-        val rightDocked = nextFocusBarDock(
-            FocusBarDock.FREE, centerX = 735f, containerWidth = 1000f,
-            enterEdgePx = tabEnter, exitEdgePx = tabExit,
-            rawBarLeft = 723f, rawBarRight = 1013f, overPushPx = 10f,
+    fun `stepFocusBarDrag docks and undocks sides without handle-push oscillation`() {
+        // Grabbing near the left handle (grabFracX = 0.05) and pushing the bar past the right edge.
+        val initial = FocusBarDragState(FocusBarDock.FREE, grabFracX = 0.05f, grabFracY = 0.5f)
+        val docked = stepFocusBarDrag(
+            state = initial, fingerX = 735f, fingerY = 400f,
+            horizW = 290f, horizH = 52f, currentMorph = 0f,
+            containerW = 1000f, containerH = 800f,
+            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
         )
-        assertEquals(FocusBarDock.RIGHT_EDGE, rightDocked)
-        val undockFrac = undockGrabFractionX(FocusBarDock.RIGHT_EDGE, fingerX = 900f, horizBarW = 290f, containerWidth = 1000f, edgeMarginPx = 14f)
-        val unfurledRight = 900f + (1f - undockFrac) * 290f
-        assertEquals(1000f - 14f, unfurledRight, 0.5f)
+        assertEquals(FocusBarDock.RIGHT_EDGE, docked.state.dock)
+        assertEquals(1000f - 52f - 14f, docked.x, 0.01f)
 
-        // Touching the bottom docks BOTTOM_EDGE horizontally and settles at containerH - barH - bottomSafe.
-        val bottomDocked = nextFocusBarDock(
-            FocusBarDock.FREE, centerX = 500f, containerWidth = 1000f,
-            enterEdgePx = 14f, exitEdgePx = 18f,
-            overPushPx = 4f, fingerY = 770f, rawBarBottom = 790f, containerHeight = 800f, bottomSafePx = 14f,
+        // Holding steady at the same fingerX (735f) stays RIGHT_EDGE (no oscillation).
+        val held = stepFocusBarDrag(
+            state = docked.state, fingerX = 735f, fingerY = 410f,
+            horizW = 290f, horizH = 52f, currentMorph = 1f,
+            containerW = 1000f, containerH = 800f,
+            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
         )
-        assertEquals(FocusBarDock.BOTTOM_EDGE, bottomDocked)
-        val (_, by) = snapFocusBarPosition(FocusBarDock.BOTTOM_EDGE, 400f, 700f, 290f, 52f, 1000f, 800f, 14f, 56f, 14f)
-        assertEquals(800f - 52f - 14f, by, 0.01f)
+        assertEquals(FocusBarDock.RIGHT_EDGE, held.state.dock)
 
-        // Dragging a vertical bar straight down along the left edge morphs to BOTTOM_EDGE as soon as its bottom touches.
-        val vertToBottom = nextFocusBarDock(
-            FocusBarDock.LEFT_EDGE, centerX = 10f, containerWidth = 1000f,
-            enterEdgePx = 14f, exitEdgePx = 18f,
-            overPushPx = 4f, fingerY = 600f, rawBarBottom = 786f, containerHeight = 800f, bottomSafePx = 14f,
+        // Pulling inward by >= undockPullPx (24f) cleanly undocks and stays FREE on subsequent frames.
+        val undocked = stepFocusBarDrag(
+            state = held.state, fingerX = 705f, fingerY = 410f,
+            horizW = 290f, horizH = 52f, currentMorph = 1f,
+            containerW = 1000f, containerH = 800f,
+            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
         )
-        assertEquals(FocusBarDock.BOTTOM_EDGE, vertToBottom)
+        assertEquals(FocusBarDock.FREE, undocked.state.dock)
+        val stillFree = stepFocusBarDrag(
+            state = undocked.state, fingerX = 705f, fingerY = 410f,
+            horizW = 290f, horizH = 52f, currentMorph = 0f,
+            containerW = 1000f, containerH = 800f,
+            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
+        )
+        assertEquals(FocusBarDock.FREE, stillFree.state.dock)
+    }
+
+    @Test
+    fun `stepFocusBarDrag unfolds vertical side dock cleanly along bottom edge and resists corner ping-pong`() {
+        // Vertical bar on LEFT_EDGE grabbed near the top (grabFracY = 0.1f) dragged straight down.
+        val leftVert = FocusBarDragState(FocusBarDock.LEFT_EDGE, grabFracX = 0.5f, grabFracY = 0.1f, dockReferencePx = 20f)
+        // rawBarBottom = 530 + 0.9 * 290 = 791 >= 800 - 14 (786)
+        val landedBottom = stepFocusBarDrag(
+            state = leftVert, fingerX = 20f, fingerY = 530f,
+            horizW = 290f, horizH = 52f, currentMorph = 1f,
+            containerW = 1000f, containerH = 800f,
+            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
+        )
+        assertEquals(FocusBarDock.BOTTOM_EDGE, landedBottom.state.dock)
+        assertEquals("unfolds horizontally aligned to left margin", 14f, landedBottom.x, 0.01f)
+        assertEquals("unfolds flush along the bottom edge, never higher up", 800f - 52f - 14f, landedBottom.y, 0.01f)
+
+        // Next frame at same finger position stays BOTTOM_EDGE (no corner ping-pong and no premature exit).
+        val heldBottom = stepFocusBarDrag(
+            state = landedBottom.state, fingerX = 20f, fingerY = 530f,
+            horizW = 290f, horizH = 52f, currentMorph = 0f,
+            containerW = 1000f, containerH = 800f,
+            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
+        )
+        assertEquals(FocusBarDock.BOTTOM_EDGE, heldBottom.state.dock)
+
+        // Pulling upward by >= undockPullPx (24f) detaches cleanly to FREE.
+        val lifted = stepFocusBarDrag(
+            state = heldBottom.state, fingerX = 20f, fingerY = 500f,
+            horizW = 290f, horizH = 52f, currentMorph = 0f,
+            containerW = 1000f, containerH = 800f,
+            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
+        )
+        assertEquals(FocusBarDock.FREE, lifted.state.dock)
+
+        // Mirror check on RIGHT_EDGE vertical-to-bottom.
+        val rightVert = FocusBarDragState(FocusBarDock.RIGHT_EDGE, grabFracX = 0.5f, grabFracY = 0.1f, dockReferencePx = 980f)
+        val rightBottom = stepFocusBarDrag(
+            state = rightVert, fingerX = 980f, fingerY = 530f,
+            horizW = 290f, horizH = 52f, currentMorph = 1f,
+            containerW = 1000f, containerH = 800f,
+            marginPx = 14f, topSafePx = 56f, bottomSafePx = 14f, undockPullPx = 24f,
+        )
+        assertEquals(FocusBarDock.BOTTOM_EDGE, rightBottom.state.dock)
+        assertEquals("unfolds flush to right margin", 1000f - 290f - 14f, rightBottom.x, 0.01f)
+        assertEquals("unfolds flush along the bottom edge", 800f - 52f - 14f, rightBottom.y, 0.01f)
     }
 }
