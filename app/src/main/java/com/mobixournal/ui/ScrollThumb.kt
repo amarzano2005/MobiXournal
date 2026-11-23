@@ -15,11 +15,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -30,6 +32,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.roundToInt
 
 private val THUMB_GRAB_WIDTH = 20.dp
@@ -48,33 +51,47 @@ private const val FADE_MS = 1400L
 
 @Composable
 fun ScrollThumb(
-    scrollY: Float,
-    totalHeightPx: Float,
-    viewportPx: Float,
-    currentPage: Int,
-    pageCount: Int,
+    scrollY: () -> Float,
+    totalHeightPx: () -> Float,
+    viewportPx: () -> Float,
+    currentPage: () -> Int,
+    pageCount: () -> Int,
     onScrollTo: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val maxScroll = (totalHeightPx - viewportPx).coerceAtLeast(0f)
-    if (maxScroll <= 0f || viewportPx <= 0f) return
-
+    val maxScroll by remember { derivedStateOf { (totalHeightPx() - viewportPx()).coerceAtLeast(0f) } }
     val density = LocalDensity.current
     val minThumbPx = with(density) { THUMB_MIN_HEIGHT.toPx() }
+    val thumbHeightPx by remember(minThumbPx) {
+        derivedStateOf {
+            val vp = viewportPx()
+            val tot = totalHeightPx()
+            if (vp <= 0f || tot <= 0f) 0f else (vp * vp / tot).coerceIn(minThumbPx, vp)
+        }
+    }
+    val travelPx by remember { derivedStateOf { (viewportPx() - thumbHeightPx).coerceAtLeast(0f) } }
+    if (maxScroll <= 0f || viewportPx() <= 0f) return
 
-    val thumbHeightPx = (viewportPx * viewportPx / totalHeightPx).coerceIn(minThumbPx, viewportPx)
-    val travelPx = (viewportPx - thumbHeightPx).coerceAtLeast(0f)
-    val scrollFraction = (scrollY / maxScroll).coerceIn(0f, 1f)
-    val thumbTopPx = scrollFraction * travelPx
+    val thumbTop: () -> Float = {
+        val max = maxScroll
+        if (max <= 0f) 0f else (scrollY() / max).coerceIn(0f, 1f) * travelPx
+    }
 
     var dragging by remember { mutableStateOf(false) }
     var recentlyScrolled by remember { mutableStateOf(false) }
 
-    LaunchedEffect(scrollY, totalHeightPx, dragging) {
-        recentlyScrolled = true
-        if (!dragging) {
-            delay(FADE_MS)
-            recentlyScrolled = false
+    LaunchedEffect(Unit) {
+        var initial = true
+        snapshotFlow { scrollY() to dragging }.collectLatest { (_, isDragging) ->
+            if (initial) {
+                initial = false
+                return@collectLatest
+            }
+            recentlyScrolled = true
+            if (!isDragging) {
+                delay(FADE_MS)
+                recentlyScrolled = false
+            }
         }
     }
 
@@ -88,22 +105,24 @@ fun ScrollThumb(
         ScrollThumbBand(
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .offset { IntOffset(0, thumbTopPx.roundToInt()) },
+                .offset { IntOffset(0, thumbTop().roundToInt()) },
             thumbHeightPx = thumbHeightPx,
             travelPx = travelPx,
             maxScroll = maxScroll,
-            bandTop = thumbTopPx,
+            bandTop = thumbTop,
             alpha = alpha,
+            onDraggingChange = { dragging = it },
             onScrollTo = onScrollTo,
         )
-        if (dragging && pageCount > 0) {
+        if (dragging && pageCount() > 0) {
+            val bubbleOffsetPx = with(density) { 16.dp.toPx() }
             PageBubble(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .offset { IntOffset(0, (thumbTopPx + thumbHeightPx / 2f - with(density) { 16.dp.toPx() }).roundToInt()) }
+                    .offset { IntOffset(0, (thumbTop() + thumbHeightPx / 2f - bubbleOffsetPx).roundToInt()) }
                     .padding(end = THUMB_GRAB_WIDTH + 4.dp),
-                currentPage = currentPage,
-                pageCount = pageCount,
+                currentPage = currentPage(),
+                pageCount = pageCount(),
             )
         }
     }
@@ -115,16 +134,17 @@ private fun ScrollThumbBand(
     thumbHeightPx: Float,
     travelPx: Float,
     maxScroll: Float,
-    bandTop: Float,
+    bandTop: () -> Float,
     alpha: Float,
+    onDraggingChange: (Boolean) -> Unit,
     onScrollTo: (Float) -> Unit,
 ) {
-    var dragging by remember { mutableStateOf(false) }
     var grip by remember { mutableStateOf(0f) }
 
     val travel by rememberUpdatedState(travelPx)
     val max by rememberUpdatedState(maxScroll)
     val top by rememberUpdatedState(bandTop)
+    val setDragging by rememberUpdatedState(onDraggingChange)
 
     Box(
         modifier = modifier
@@ -133,15 +153,15 @@ private fun ScrollThumbBand(
             .pointerInput(Unit) {
                 detectDragGestures(
                     onDragStart = { start ->
-                        dragging = true
+                        setDragging(true)
                         grip = start.y
                     },
-                    onDragEnd = { dragging = false },
-                    onDragCancel = { dragging = false },
+                    onDragEnd = { setDragging(false) },
+                    onDragCancel = { setDragging(false) },
                 ) { change, _ ->
                     change.consume()
                     if (travel > 0f) {
-                        val newTop = top + change.position.y - grip
+                        val newTop = top() + change.position.y - grip
                         onScrollTo((newTop / travel * max).coerceIn(0f, max))
                     }
                 }

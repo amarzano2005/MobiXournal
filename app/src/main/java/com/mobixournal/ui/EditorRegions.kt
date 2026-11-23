@@ -1623,11 +1623,11 @@ fun EditorPaneView(
                 modifier = Modifier.fillMaxSize(),
             )
             ScrollThumb(
-                scrollY = state.scrollY,
-                totalHeightPx = state.contentHeight,
-                viewportPx = state.viewportHeight,
-                currentPage = state.currentPage,
-                pageCount = state.pageCount,
+                scrollY = { state.scrollY },
+                totalHeightPx = { state.contentHeight },
+                viewportPx = { state.viewportHeight },
+                currentPage = { state.currentPage },
+                pageCount = { state.pageCount },
                 onScrollTo = { state.surface?.scrollToY(it) },
                 modifier = Modifier.matchParentSize(),
             )
@@ -1635,21 +1635,12 @@ fun EditorPaneView(
             // [pageCounterAlignment]), so they never sit under the tools or the writing hand. The zoom
             // badge rides directly above the page badge and shares its look, so the pair reads as one
             // stack; tapping the zoom one puts the view back at 100%.
-            Column(
+            PaneViewportBadges(
+                state = state,
                 modifier = Modifier
                     .align(pageCounterAlignment(settings.toolbarPosition))
                     .padding(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                ZoomBadge(
-                    zoom = state.zoom,
-                    onClick = { state.surface?.resetZoom() },
-                )
-                PageCounter(
-                    currentPage = state.currentPage,
-                    pageCount = state.pageCount,
-                )
-            }
+            )
             // The pen diagnostics panel floats over the canvas it reports on, in the corner the
             // chrome leaves free — the events it logs are then exactly the ones it describes.
             if (ui.penDiagnostics) {
@@ -1709,6 +1700,26 @@ fun EditorPaneView(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun PaneViewportBadges(
+    state: PaneState,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        ZoomBadge(
+            zoom = state.zoom,
+            onClick = { state.surface?.resetZoom() },
+        )
+        PageCounter(
+            currentPage = state.currentPage,
+            pageCount = state.pageCount,
+        )
     }
 }
 

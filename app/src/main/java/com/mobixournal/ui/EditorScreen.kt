@@ -311,7 +311,7 @@ fun EditorScreen(
     onSurfaceCreated: (Int, DrawingSurfaceView) -> Unit,
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
-    audio: AudioUiState = AudioUiState(),
+    audioProvider: @Composable () -> AudioUiState = { AudioUiState() },
     /** The document's identity, which its **page bookmarks** are keyed by (see [BookmarkStore]). */
     bookmarkKey: String = "",
     /** One tab session per pane, in pane order (see [com.mobixournal.panes.EditorPane]). */
@@ -384,10 +384,10 @@ fun EditorScreen(
                     if (topBar != null) {
                         topBar(ui, pane, activeTabs)
                     } else {
-                        EditorTopBar(
+                        EditorTopBarAudioHost(
                             ui = ui,
                             pane = pane,
-                            tabs = activeTabs,
+                            activeTabs = activeTabs,
                             paneTabs = tabs,
                             settings = settings,
                             onSettingsChange = onSettingsChange,
@@ -402,8 +402,7 @@ fun EditorScreen(
                             onSaveAsFormat = { format -> onSaveAs(currentSaveName(), format) },
                             splitView = splitView,
                             onToggleSplitView = onToggleSplitView,
-                            audio = audio,
-                            modifier = Modifier.fillMaxWidth(),
+                            audioProvider = audioProvider,
                         )
                     }
                 }
@@ -426,7 +425,7 @@ fun EditorScreen(
                         pane = pane,
                         settings = settings,
                         onSettingsChange = onSettingsChange,
-                        audio = audio,
+                        audioProvider = audioProvider,
                         splitView = splitView,
                         onActivePane = onActivePane,
                         onSurfaceCreated = onSurfaceCreated,
@@ -500,25 +499,9 @@ fun EditorScreen(
             onDismissNewerAppConsent = onDismissNewerAppConsent,
         )
 
-        LaunchedEffect(ui.tool) {
-            if (ui.tool != EditorTool.PLAY_OBJECT && audio.miniPlayerVisible) {
-                audio.onStopPlayback()
-            }
-        }
-
-        AudioMiniPlayer(
-            visible = audio.miniPlayerVisible,
-            playing = audio.playing,
-            playheadMs = audio.playheadMs ?: 0,
-            durationMs = audio.durationMs ?: 0,
-            waveform = audio.waveform,
-            clipTitle = audio.clipTitle,
-            playbackSpeed = audio.playbackSpeed,
-            onTogglePlay = audio.onPlayAutonomous,
-            onSeek = audio.onScrub,
-            onSkip = audio.onSkip,
-            onSpeedChange = audio.onSpeedChange,
-            onClose = audio.onStopPlayback,
+        AudioMiniPlayerHost(
+            tool = ui.tool,
+            audioProvider = audioProvider,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
         )
 
@@ -575,6 +558,79 @@ fun EditorScreen(
     }
 }
 
+@Composable
+private fun EditorTopBarAudioHost(
+    ui: EditorUiState,
+    pane: PaneState,
+    activeTabs: TabsUiState,
+    paneTabs: List<TabsUiState>,
+    settings: AppSettings,
+    onSettingsChange: (AppSettings) -> Unit,
+    onOpen: () -> Unit,
+    onNewTab: () -> Unit,
+    onSave: () -> Unit,
+    onImportPdf: () -> Unit,
+    onExportPagePng: () -> Unit,
+    onExportPageSvg: () -> Unit,
+    onSavePortableCopy: () -> Unit,
+    onShare: (ShareFormat) -> Unit,
+    onSaveAsFormat: (SaveFormat) -> Unit,
+    splitView: Boolean,
+    onToggleSplitView: () -> Unit,
+    audioProvider: @Composable () -> AudioUiState,
+) {
+    EditorTopBar(
+        ui = ui,
+        pane = pane,
+        tabs = activeTabs,
+        paneTabs = paneTabs,
+        settings = settings,
+        onSettingsChange = onSettingsChange,
+        onOpen = onOpen,
+        onNewTab = onNewTab,
+        onSave = onSave,
+        onImportPdf = onImportPdf,
+        onExportPagePng = onExportPagePng,
+        onExportPageSvg = onExportPageSvg,
+        onSavePortableCopy = onSavePortableCopy,
+        onShare = onShare,
+        onSaveAsFormat = onSaveAsFormat,
+        splitView = splitView,
+        onToggleSplitView = onToggleSplitView,
+        audio = audioProvider(),
+        modifier = Modifier.fillMaxWidth(),
+    )
+}
+
+@Composable
+private fun AudioMiniPlayerHost(
+    tool: EditorTool,
+    audioProvider: @Composable () -> AudioUiState,
+    modifier: Modifier = Modifier,
+) {
+    val audio = audioProvider()
+    LaunchedEffect(tool) {
+        if (tool != EditorTool.PLAY_OBJECT && audio.miniPlayerVisible) {
+            audio.onStopPlayback()
+        }
+    }
+    AudioMiniPlayer(
+        visible = audio.miniPlayerVisible,
+        playing = audio.playing,
+        playheadMs = audio.playheadMs ?: 0,
+        durationMs = audio.durationMs ?: 0,
+        waveform = audio.waveform,
+        clipTitle = audio.clipTitle,
+        playbackSpeed = audio.playbackSpeed,
+        onTogglePlay = audio.onPlayAutonomous,
+        onSeek = audio.onScrub,
+        onSkip = audio.onSkip,
+        onSpeedChange = audio.onSpeedChange,
+        onClose = audio.onStopPlayback,
+        modifier = modifier,
+    )
+}
+
 /**
  * The rail and the drawing area, laid out as **bands that do not overlap**: whatever the chrome
  * occupies, the canvas does not. The vertical rail gets a lane down either edge (per
@@ -593,7 +649,7 @@ private fun EditorBody(
     pane: PaneState,
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
-    audio: AudioUiState,
+    audioProvider: @Composable () -> AudioUiState,
     splitView: Boolean,
     onActivePane: (Int) -> Unit,
     onSurfaceCreated: (Int, DrawingSurfaceView) -> Unit,
@@ -607,7 +663,7 @@ private fun EditorBody(
 ) {
     val toolbar: @Composable () -> Unit = {
         if (!ui.fullPage) {
-            paneChrome(ui, pane, settings, onSettingsChange, audio)
+            paneChrome(ui, pane, settings, onSettingsChange, audioProvider())
         }
     }
     // The callbacks are read through the latest state because the movable content below is

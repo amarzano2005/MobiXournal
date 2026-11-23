@@ -540,7 +540,7 @@ class MainActivity : ComponentActivity() {
                     },
                     settings = settings,
                     onSettingsChange = ::commitSettings,
-                    audio = audioUiState(),
+                    audioProvider = { audioUiState() },
                     // Page bookmarks are kept per document, keyed by the tab's identity (see
                     // PageBookmarks) — never in the file, which has no page label to hold them.
                     bookmarkKey = panes.getOrNull(activePane.value)?.tabs?.active?.docKey.orEmpty(),
