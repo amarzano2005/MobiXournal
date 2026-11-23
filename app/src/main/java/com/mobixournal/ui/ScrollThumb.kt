@@ -1,10 +1,13 @@
 package com.mobixournal.ui
 
+import com.mobixournal.render.resetZoom
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberScrollThumbColor
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
@@ -223,3 +226,24 @@ private fun Modifier.heightPx(px: Float): Modifier = this.then(
         layout(placeable.width, placeable.height) { placeable.place(0, 0) }
     },
 )
+
+/** Narrow viewport badge wrapper isolating zoom and page-counter reads from [EditorPaneView]. */
+@Composable
+internal fun PaneViewportBadges(
+    state: PaneState,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        ZoomBadge(
+            zoom = state.zoom,
+            onClick = { state.surface?.resetZoom() },
+        )
+        PageCounter(
+            currentPage = state.currentPage,
+            pageCount = state.pageCount,
+        )
+    }
+}

@@ -92,10 +92,7 @@ internal fun MainActivity.openDocument(uri: Uri) {
             preparePdfImport(pdf.file, ImportPdfMode.REPLACE, uri.toString(), indices = null, base = null,
                 inStore = pdf.generated, title = PdfOutlineSeeding.defaultTitle(sourceName))
         }
-        // Pre-warm PDF font repair check on this background worker so opening the surface on UI never
-        // scans 50-100 MB PDFs synchronously on the main thread.
-        (read as? LoadedFile.Doc)?.pdf?.let(PdfRepairFiles::renderable)
-        plan?.file?.let(PdfRepairFiles::renderable)
+        (plan?.file ?: (read as? LoadedFile.Doc)?.pdf)?.let(PdfRepairFiles::renderable)
         Triple(staged, read, plan)
     }) { result ->
         val focus = activePane.value

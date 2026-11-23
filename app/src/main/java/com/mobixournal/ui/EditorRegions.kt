@@ -1703,26 +1703,6 @@ fun EditorPaneView(
     }
 }
 
-@Composable
-private fun PaneViewportBadges(
-    state: PaneState,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        ZoomBadge(
-            zoom = state.zoom,
-            onClick = { state.surface?.resetZoom() },
-        )
-        PageCounter(
-            currentPage = state.currentPage,
-            pageCount = state.pageCount,
-        )
-    }
-}
-
 /**
  * The tab row's lead-in from the canvas's own edge: the chips begin this far inside it, on the side the
  * rail's lane takes.
