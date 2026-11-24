@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "revive-mobix-meta-on-direct-xopp-open-and-snapshot-xopp-tabs-with-synthesis-and-zip-assets"
+title = "Revive mobix:meta on direct .xopp open and snapshot .xopp tabs with synthesis and ZIP assets"
+description = "Added Document.reviveFromBridge() in MobixMetaRevival.kt and applied it on direct .xopp opens (ORIGINAL, XML, and ZIPPED) in DocumentIo.kt; updated MobixTabSnapshots.kt to encode/read ORIGINAL and ZIPPED .xopp snapshots through DocumentIo so unsaved living entities and ZIPPED bg.pdf/pixmap assets survive restarts; added XoppSessionRoundTripTest.kt and updated docs/xopp-bridge.md; verified XoppSessionRoundTripTest, VerbatimSnapshotTest, TabSnapshotsTest, TabStoreTest, DocClaimsTest, SourceStructureTest, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "none: format I/O, bridge revival, and session snapshot persistence with no UI surface"
+
+[[task]]
 id = "remove-reorder-arrow-buttons-from-focusbarcustomizedialog"
 title = "Remove reorder arrow buttons from FocusBarCustomizeDialog"
 description = "Removed KeyboardArrowLeft/Right reorder buttons and onMoveSlot plumbing from FocusBarCustomizeDialog.kt so FocusBarSlotStatusRow stays clean and reordering uses hold-and-drag on FocusBarSlotPreviewStrip; verified FocusBarGeometryTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, ShapeFeedbackTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."

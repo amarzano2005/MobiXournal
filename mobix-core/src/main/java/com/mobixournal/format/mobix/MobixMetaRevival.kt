@@ -99,3 +99,9 @@ internal object MobixMetaRevival {
         return layer.copy(elements = out)
     }
 }
+
+/**
+ * Revive any verified `mobix:meta` living entities and outline targets on an opened `.xopp`
+ * [Document], leaving unverified or edited strokes untouched.
+ */
+fun Document.reviveFromBridge(): Document = MobixMetaRevival.apply(this).document

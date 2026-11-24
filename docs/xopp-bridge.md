@@ -48,9 +48,9 @@ bridge:
 └─────────────────┘       Synthesis Export         └─────────────────┘
 ```
 
-**Status: the format is openable and savable, the compiler is written in both directions, and the block
-that carries the semantics is written with it, and the export is wired.** The import half is `format/mobix/MobixDocument.kt` with
-`MobixBridgeFile.kt` — a `.xopp` becomes a `.mobix` document, its living elements revived where the
+**Status: the format is openable and savable, the compiler is written in both directions, the block
+that carries the semantics is written and revived on direct `.xopp` opens as well as conversions, and session snapshots preserve `.xopp` living entities and `ZIPPED` PDFs/images.** The import half is `format/mobix/MobixDocument.kt` with
+`MobixBridgeFile.kt` (and `reviveFromBridge()` in `DocumentIo.read` for direct `.xopp` opens) — a `.xopp` becomes a `.mobix` document or stays a `.xopp`, its living elements revived where the
 block still proves them (`MobixMetaRevival`). The export half is `render/XoppSynthesis.kt` in the
 desktop-shared `mobix-core`, which
 flattens a document holding living entities into ink through one compiler per family (`TableInk`,

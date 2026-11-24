@@ -17,6 +17,7 @@ import com.mobixournal.format.mobix.MobixMergeEngine
 import com.mobixournal.format.mobix.MobixOpenOutcome
 import com.mobixournal.format.mobix.MobixPageReuse
 import com.mobixournal.format.mobix.MobixPagedReader
+import com.mobixournal.format.mobix.reviveFromBridge
 import com.mobixournal.portability.PortabilityAudit
 import com.mobixournal.format.mobix.MobixPayload
 import com.mobixournal.format.mobix.PageSource
@@ -218,12 +219,13 @@ class DocumentIo(
                     // `pixmap` background points at, so they resolve without touching the filesystem.
                     XoppZip.open(input, pdfStore::newFile, imageStore::newFile)
                         .let { (doc, pdf, images) ->
+                            val revived = doc.reviveFromBridge()
                             LoadedFile.Doc(
-                                doc,
+                                revived,
                                 pdf,
                                 SaveFormat.ZIPPED,
                                 images = images,
-                                missingImage = refs.pixmapReferences(doc).any { it !in images },
+                                missingImage = refs.pixmapReferences(revived).any { it !in images },
                             )
                         }
                 }
@@ -414,13 +416,14 @@ class DocumentIo(
      * background intact. Only the first PDF-backed page carries the reference (import convention).
      */
     private fun linked(doc: Document, name: String, source: Uri?): LoadedFile.Doc {
-        val pdf = refs.resolvePdfBackground(doc, name, source)
-        val references = refs.pixmapReferences(doc)
-        val images = refs.resolvePixmapBackgrounds(doc, name, source)
-        val bg = doc.pages.firstNotNullOfOrNull { it.background as? Background.Pdf }
+        val revived = doc.reviveFromBridge()
+        val pdf = refs.resolvePdfBackground(revived, name, source)
+        val references = refs.pixmapReferences(revived)
+        val images = refs.resolvePixmapBackgrounds(revived, name, source)
+        val bg = revived.pages.firstNotNullOfOrNull { it.background as? Background.Pdf }
         val ref = bg?.filename
         return LoadedFile.Doc(
-            doc,
+            revived,
             pdf,
             SaveFormat.ORIGINAL,
             missingPdf = ref != null && pdf == null,

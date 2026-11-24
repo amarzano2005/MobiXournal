@@ -1,8 +1,6 @@
 package com.mobixournal.tabs
 
 import com.mobixournal.format.SaveFormat
-import com.mobixournal.format.Xopp
-import com.mobixournal.format.model.Document
 import com.mobixournal.io.DocumentIo
 import com.mobixournal.io.LoadedFile
 import java.io.File
@@ -52,30 +50,28 @@ class MobixTabSnapshots(
         if (tab.format == SaveFormat.MOBIX) TabSnapshots.MOBIX_SUFFIX else TabSnapshots.XOPP_SUFFIX
 
     override fun write(file: File, tab: OpenTab, sources: SnapshotSources) {
-        if (tab.format != SaveFormat.MOBIX) {
-            XoppSnapshots.write(file, tab, sources)
-            return
-        }
-        val verbatim = uneditedArchive(tab)
-        if (verbatim != null && verbatim.isFile) {
-            // Published the way an encode is: a half-copied archive must never be what a tab restores.
-            val pending = File(file.absolutePath + ".part")
-            verbatim.copyTo(pending, overwrite = true)
-            if (!pending.renameTo(file)) {
-                pending.copyTo(file, overwrite = true)
-                pending.delete()
+        if (tab.format == SaveFormat.MOBIX) {
+            val verbatim = uneditedArchive(tab)
+            if (verbatim != null && verbatim.isFile) {
+                // Published the way an encode is: a half-copied archive must never be what a tab restores.
+                val pending = File(file.absolutePath + ".part")
+                verbatim.copyTo(pending, overwrite = true)
+                if (!pending.renameTo(file)) {
+                    pending.copyTo(file, overwrite = true)
+                    pending.delete()
+                }
+                return
             }
-            return
         }
         val encoded = io.encode(
             document = tab.document,
             pdf = sources.pdf,
-            format = SaveFormat.MOBIX,
+            format = tab.format,
             // No target: a snapshot is never the file the document came from, so the write builds the
-            // archive rather than repacking over one.
+            // full container (synthesizing .xopp living entities and bundling ZIPPED PDFs/images too).
             target = null,
             images = sources.images,
-            audioFiles = audio,
+            audioFiles = if (tab.format == SaveFormat.MOBIX) audio else { _ -> null },
         )
         try {
             if (!encoded.file.renameTo(file)) encoded.file.copyTo(file, overwrite = true)
@@ -85,17 +81,9 @@ class MobixTabSnapshots(
     }
 
     override fun read(file: File, tab: OpenTab): SnapshotRead? = runCatching {
-        // The **file** decides, not the tab's current format: a snapshot keeps the shape it was written
-        // in (an upgrade, or a Save As that switched the document's format), and guessing from the tab
-        // would read the wrong container.
-        if (file.name.endsWith(TabSnapshots.MOBIX_SUFFIX)) {
-            // The open path itself, so the restored document's pages adopt their bundled assets when a
-            // page is read — and the resolver that does it goes back to the tab with them. Reading the
-            // container without that would draw the pages but not the pictures they name.
-            (io.read(file, file.name, null) as? LoadedFile.Doc)
-                ?.let { SnapshotRead(it.document, it.backgrounds, it.pdf, it.images) }
-        } else {
-            SnapshotRead(file.inputStream().use(Xopp::open))
-        }
+        // Sniff the written snapshot container via io.read so .mobix, ZIPPED .xopp (with bg.pdf +
+        // images), and ORIGINAL .xopp all restore bundled assets and revive mobix:meta living entities.
+        (io.read(file, file.name, null) as? LoadedFile.Doc)
+            ?.let { SnapshotRead(it.document, it.backgrounds, it.pdf, it.images) }
     }.getOrNull()
 }
