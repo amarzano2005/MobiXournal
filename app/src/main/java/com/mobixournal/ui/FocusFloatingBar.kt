@@ -53,6 +53,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
@@ -70,6 +71,7 @@ import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val FOCUS_SLOT_DP = DesignTokens.COMPACT_BUTTON_SIZE_DP.dp
@@ -106,7 +108,20 @@ internal fun FocusModeFloatingBarOverlay(
     onSettingsChange: (AppSettings) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     var customizing by remember { mutableStateOf(false) }
+    var showGuide by remember { mutableStateOf(false) }
+    LaunchedEffect(visible) {
+        if (visible) {
+            if (!FocusModeGuidePrefs.isSeen(context)) {
+                delay(260L)
+                showGuide = true
+            }
+        } else {
+            showGuide = false
+            customizing = false
+        }
+    }
     DialogPresence(visible) {
         FocusModeFloatingBarCanvas(
             ui = ui,
@@ -117,10 +132,27 @@ internal fun FocusModeFloatingBarOverlay(
             modifier = modifier,
         )
     }
+    DialogPresence(showGuide) {
+        FocusModeGuideDialog(
+            onDismiss = {
+                FocusModeGuidePrefs.markSeen(context)
+                showGuide = false
+            },
+            onCustomize = {
+                FocusModeGuidePrefs.markSeen(context)
+                showGuide = false
+                customizing = true
+            },
+        )
+    }
     DialogPresence(customizing) {
         FocusBarCustomizeDialog(
             settings = settings,
             onSettingsChange = onSettingsChange,
+            onShowGuide = {
+                customizing = false
+                showGuide = true
+            },
             onDismiss = { customizing = false },
         )
     }

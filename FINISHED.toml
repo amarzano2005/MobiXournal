@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "add-focus-mode-first-launch-guide-popup-and-category-filtered-quick-bar-editor"
+title = "Add Focus mode first-launch guide popup and category-filtered quick bar editor"
+description = "Created FocusModeGuideDialog.kt with SharedPreferences one-shot tracking (FocusModeGuidePrefs), two concise rows for bar drag/edge docking and long-press customization, and Got it / Customize bar actions wired in FocusFloatingBar.kt after slide-in; added FocusBarCategoryFilter and filterFocusBarSlots in FocusBarGeometry.kt; exposed FocusBarToolChip in FocusModeSection.kt and reorganized FocusBarCustomizeDialog.kt with fixed preview strip (drag-reorder, remove badge, inline add), status/reorder controls, category filter row (All/Default/Extra/Panels/STEM), scrollable icon+label catalog, and help icon to reopen the guide; added JVM coverage in FocusBarGeometryTest.kt and updated docs/chrome.md; verified unit/guard tests, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: both dialogs use FloatingDialog Liquid Glass surfaces with floatingRim and theme primaryContainer/surfaceVariant tokens; tokens: no hardcoded Color(0x...) verified by ColorContractGuardTest and TypeContractGuardTest; glyph: catalog chips reuse FocusPreviewSlotGlyph icons and FocusBarCustomizeTitle uses Material HelpOutline; states: first-launch guide shows once after delay(260L) on Focus entry, filter chips show All/Default/Extra/Panels/STEM with active/in-bar/add-disabled states, preview supports tap/drag/remove/add; copy: concise English UI labels; docs: docs/chrome.md updated in same commit; tests: FocusBarGeometryTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, ShapeFeedbackTest, and ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "prevent-splitpanestandin-drawcolor-leak-onto-pane-0-and-align-splitlayout-spring"
 title = "Prevent SplitPaneStandIn drawColor leak onto Pane 0 and align SplitLayout spring"
 description = "Replaced native.drawColor in SplitStandInCapture.kt and SplitPaneStandIn.kt with bounded Compose drawRect and Modifier.clipToBounds() plus graphicsLayer { clip = true } in SplitLayout.kt so the stand-in backdrop never leaks over Pane 0; restricted EditorRegions.kt first-frame veil to index == 1; switched SplitLayout rememberSplitProgress to animateFloatAsState + snapshotFlow matching Focus mode; updated docs/chrome.md; verified ViewportStateTest, InkCacheTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."

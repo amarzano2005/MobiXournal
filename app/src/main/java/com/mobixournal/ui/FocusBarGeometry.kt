@@ -52,6 +52,26 @@ enum class FocusBarSlotKind(
     }
 }
 
+/** Category filter pills for the Focus bar quick-customize catalog. */
+enum class FocusBarCategoryFilter(
+    val label: String,
+    val category: String?,
+) {
+    ALL("All", null),
+    DEFAULT("Default", "Default tools"),
+    EXTRA("Extra", "Extra tools"),
+    PANELS("Panels", "Panels"),
+    STEM("STEM", "Shapes & STEM"),
+}
+
+/** Return [FocusBarSlotKind] entries matching [filter] in catalog order. */
+fun filterFocusBarSlots(filter: FocusBarCategoryFilter): List<FocusBarSlotKind> =
+    if (filter.category == null) {
+        FocusBarSlotKind.entries
+    } else {
+        FocusBarSlotKind.entries.filter { it.category == filter.category }
+    }
+
 /** Factory-default 6 slots in Focus mode. */
 val FOCUS_BAR_DEFAULT_SLOTS: List<FocusBarSlotKind> = listOf(
     FocusBarSlotKind.PEN,

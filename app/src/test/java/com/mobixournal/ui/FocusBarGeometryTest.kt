@@ -328,4 +328,18 @@ class FocusBarGeometryTest {
             assertEquals("bottom pinned at morph=$morph", 800f - bh - 14f, by, 0.01f)
         }
     }
+
+    @Test
+    fun `filterFocusBarSlots covers every FocusBarSlotKind without gaps or duplicates`() {
+        assertEquals(FocusBarSlotKind.entries, filterFocusBarSlots(FocusBarCategoryFilter.ALL))
+        val partitioned = FocusBarCategoryFilter.entries
+            .filter { it != FocusBarCategoryFilter.ALL }
+            .flatMap { filterFocusBarSlots(it) }
+        assertEquals(FocusBarSlotKind.entries.size, partitioned.size)
+        assertEquals(FocusBarSlotKind.entries.toSet(), partitioned.toSet())
+        assertEquals(
+            listOf(FocusBarSlotKind.PAGES, FocusBarSlotKind.LAYERS),
+            filterFocusBarSlots(FocusBarCategoryFilter.PANELS),
+        )
+    }
 }

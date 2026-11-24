@@ -199,7 +199,7 @@ private fun FocusBarToolCatalog(
 }
 
 @Composable
-private fun FocusBarToolChip(
+internal fun FocusBarToolChip(
     kind: FocusBarSlotKind,
     isCurrent: Boolean,
     inBar: Boolean,
