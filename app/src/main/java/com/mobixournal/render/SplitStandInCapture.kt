@@ -55,10 +55,8 @@ internal fun drawSplitStandInPage(
     viewHeightPx: Int,
     topInsetPx: Float,
     rightInsetPx: Float,
-    backdropColor: Int,
     outlineColor: Int,
 ) {
-    canvas.drawColor(backdropColor)
     if (viewWidthPx <= 0 || viewHeightPx <= 0) return
     val stacked = PageStacker.stack(
         pages = listOf(page),

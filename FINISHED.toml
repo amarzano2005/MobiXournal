@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "prevent-splitpanestandin-drawcolor-leak-onto-pane-0-and-align-splitlayout-spring"
+title = "Prevent SplitPaneStandIn drawColor leak onto Pane 0 and align SplitLayout spring"
+description = "Replaced native.drawColor in SplitStandInCapture.kt and SplitPaneStandIn.kt with bounded Compose drawRect and Modifier.clipToBounds() plus graphicsLayer { clip = true } in SplitLayout.kt so the stand-in backdrop never leaks over Pane 0; restricted EditorRegions.kt first-frame veil to index == 1; switched SplitLayout rememberSplitProgress to animateFloatAsState + snapshotFlow matching Focus mode; updated docs/chrome.md; verified ViewportStateTest, InkCacheTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: SplitPaneStandIn bounded drawRect over canvas backdrop and graphicsLayer clip=true preserve Pane 0 and overlay isolation; tokens: chromeSlideSpring and canvas chrome tokens unchanged; states: opening, closing, and settled split states keep Pane 0 visible and Pane 1 covered by stand-in until first live frame; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, InkCacheTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, and ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "live-splitpanestandin-sheet-preview-and-zero-stall-144hz-split-toggle"
 title = "Live SplitPaneStandIn sheet preview and zero-stall 144Hz split toggle"
 description = "Added SplitStandInCapture.kt and SplitPaneStandIn.kt to draw Pane 1's actual page (matching PageStacker/BackgroundRenderer geometry) or closing snapshot inside SplitLayout's Compose GPU slide and keep it over Pane 1 until DrawingSurfaceView posts a non-empty page frame; deferred disk persistence and removed repaintAfterResize in MainActivityTabs.toggleSplitView; added InkCache.draw skipRasterize during chromeAnimating so closing/opening never falls back to CPU strokes or spams worker rasters; cancelled duplicate Choreographer paintCallback in DrawingSurfacePaint; seeded initial chrome insets in ViewportState/DrawingSurfaceResize/EditorRegions before first surfaceChanged; changed chromeSlideSpring to critically damped (1.0f/560f), made splitRightInsetPx/splitAnimating non-Compose fields on ChromeInsetController, and replaced BoxWithConstraints in SplitTabRow with onSizeChanged; updated docs/chrome.md; verified ViewportStateTest, InkCacheTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."

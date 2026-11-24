@@ -1,6 +1,5 @@
 package com.mobixournal.ui
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -145,16 +144,14 @@ fun SplitLayout(
     val overlaySpanDp = SPLIT_HANDLE_WIDTH + secondDp
 
     val controller = LocalChromeInsetController.current
-    val splitAnim = rememberSplitProgress(splitView, overlaySpanPx, controller)
+    val splitProgress = rememberSplitProgress(splitView, overlaySpanPx, controller)
     val latestSplitView by rememberUpdatedState(splitView)
 
     val showOverlay by remember {
-        derivedStateOf { splitAnim.value > 0.005f || latestSplitView }
+        derivedStateOf { splitProgress.value > 0.005f || latestSplitView }
     }
-    // Mount Pane 1's SurfaceView only once the slide stops at translationX == 0 while keeping
-    // [SplitPaneStandIn] on top until Pane 1 posts its first live page frame — zero lag, zero black hole.
     val mountSecond by remember {
-        derivedStateOf { latestSplitView && !splitAnim.isRunning && splitAnim.value >= 0.99f }
+        derivedStateOf { latestSplitView && splitProgress.value >= 0.99f }
     }
     val deskColor = Color(rememberCanvasChromeColors().backdrop)
 
@@ -163,8 +160,7 @@ fun SplitLayout(
             .fillMaxSize()
             .onSizeChanged { size ->
                 if (size.width > 0) totalWidthPx = size.width.toFloat()
-            }
-            .clipToBounds(),
+            },
     ) {
         first(Modifier.fillMaxSize())
         if (showOverlay) {
@@ -174,8 +170,9 @@ fun SplitLayout(
                     .width(overlaySpanDp)
                     .fillMaxHeight()
                     .graphicsLayer {
-                        val p = splitAnim.value.coerceIn(0f, 1f)
+                        val p = splitProgress.value.coerceIn(0f, 1f)
                         translationX = (1f - p) * overlaySpanPx
+                        clip = true
                     }
                     .background(deskColor)
                     .blockCanvasPointers(),
@@ -211,36 +208,27 @@ private fun rememberSplitProgress(
     splitView: Boolean,
     overlaySpanPx: Float,
     controller: ChromeInsetController,
-): Animatable<Float, *> {
-    val splitAnim = remember { Animatable(if (splitView) 1f else 0f) }
+): androidx.compose.runtime.State<Float> {
+    val splitProgress = animateFloatAsState(
+        targetValue = if (splitView) 1f else 0f,
+        animationSpec = chromeSlideSpring(),
+        label = "SplitView",
+    )
     val latestOverlaySpanPx by rememberUpdatedState(overlaySpanPx)
     val latestSplitView by rememberUpdatedState(splitView)
-    LaunchedEffect(splitView) {
-        splitAnim.animateTo(
-            targetValue = if (splitView) 1f else 0f,
-            animationSpec = chromeSlideSpring(),
-        ) {
-            val p = value.coerceIn(0f, 1f)
+    LaunchedEffect(controller) {
+        snapshotFlow {
+            val p = splitProgress.value.coerceIn(0f, 1f)
             val span = latestOverlaySpanPx
-            controller.updateSplit(
-                insetPx = span * p,
-                settledPx = if (latestSplitView) span else 0f,
-                animating = p in 0.001f..0.999f,
-            )
-        }
-        val span = if (splitView) latestOverlaySpanPx else 0f
-        controller.updateSplit(insetPx = span, settledPx = span, animating = false)
-    }
-    LaunchedEffect(overlaySpanPx) {
-        if (!splitAnim.isRunning) {
-            val span = if (latestSplitView) overlaySpanPx else 0f
-            controller.updateSplit(insetPx = span, settledPx = span, animating = false)
+            Triple(p in 0.001f..0.999f, span * p, if (latestSplitView) span else 0f)
+        }.collectLatest { (animating, liveInsetPx, settledInsetPx) ->
+            controller.updateSplit(insetPx = liveInsetPx, settledPx = settledInsetPx, animating = animating)
         }
     }
     DisposableEffect(controller) {
         onDispose { controller.updateSplit(insetPx = 0f, settledPx = 0f, animating = false) }
     }
-    return splitAnim
+    return splitProgress
 }
 
 @Composable

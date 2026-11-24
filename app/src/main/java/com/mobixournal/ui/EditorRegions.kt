@@ -1626,7 +1626,7 @@ fun EditorPaneView(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
-            if (!surfaceReady) {
+            if (index == 1 && !surfaceReady) {
                 Box(modifier = Modifier.fillMaxSize().background(Color(chrome.backdrop)))
             }
             ScrollThumb(
