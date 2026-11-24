@@ -23,12 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,16 +48,14 @@ import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
- * Coordinates Android system bars and canvas relayout when Focus mode (`fullPage`) toggles.
- *
- * Hides status and navigation bars using transient swipe reveal while active, restores them on exit
- * or disposal, and requests a canvas repaint after layout settles so the page fits the expanded viewport.
+ * Coordinates Android system bars when Focus mode (`fullPage`) toggles: hides status and
+ * navigation bars using transient swipe reveal while active and restores them on exit or disposal.
  */
+@Suppress("UNUSED_PARAMETER")
 @Composable
-internal fun FocusModeEffect(active: Boolean, onRepaint: () -> Unit) {
+internal fun FocusModeEffect(active: Boolean, onRepaint: () -> Unit = {}) {
     val view = LocalView.current
     val context = LocalContext.current
-    val currentOnRepaint by rememberUpdatedState(onRepaint)
 
     DisposableEffect(active, view) {
         val window = context.findActivity()?.window
@@ -81,17 +74,6 @@ internal fun FocusModeEffect(active: Boolean, onRepaint: () -> Unit) {
                 controller.show(WindowInsetsCompat.Type.systemBars())
             }
         }
-    }
-
-    var settled by remember { mutableStateOf(false) }
-    LaunchedEffect(active) {
-        if (!settled) {
-            settled = true
-            return@LaunchedEffect
-        }
-        withFrameNanos { }
-        withFrameNanos { }
-        currentOnRepaint()
     }
 }
 

@@ -56,6 +56,13 @@ class ImageBackgroundCache(
         }
     }
 
+    /** Return the best already-cached bitmap for [reference] without queuing new background decode work. */
+    fun requestCachedOnly(reference: String, targetWidthPx: Int): Bitmap? {
+        if (closed || targetWidthPx <= 0 || reference.isEmpty()) return null
+        val width = bucket(targetWidthPx.coerceAtMost(MAX_RASTER_WIDTH))
+        synchronized(lock) { return nearest(reference, width) }
+    }
+
     /** Decode [reference] at [targetWidthPx] synchronously (off the drawing path: export, tests). */
     fun render(reference: String, targetWidthPx: Int): Bitmap? {
         if (closed || targetWidthPx <= 0 || reference.isEmpty()) return null

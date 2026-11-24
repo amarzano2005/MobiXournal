@@ -189,8 +189,8 @@ private fun DrawingSurfaceView.reportMissingBackgrounds() {
 internal fun DrawingSurfaceView.pageBitmapFor(box: PageBox): Bitmap? {
     val width = box.widthPx.toInt()
     return when (val bg = box.page.background) {
-        is Background.Pdf -> pdfSourceFor(bg)?.request(bg.pageNo, width)
-        is Background.Pixmap -> imageSource.request(bg.filename, width)
+        is Background.Pdf -> pdfSourceFor(bg)?.let { if (chromeAnimating) it.requestCachedOnly(bg.pageNo, width) else it.request(bg.pageNo, width) }
+        is Background.Pixmap -> if (chromeAnimating) imageSource.requestCachedOnly(bg.filename, width) else imageSource.request(bg.filename, width)
         else -> null
     }
 }

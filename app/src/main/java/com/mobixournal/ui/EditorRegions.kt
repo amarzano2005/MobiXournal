@@ -183,7 +183,7 @@ fun EditorTopBar(
     // A caller with no settings to read has nowhere to put a second row, so its tabs stay in the
     // title slot; the editor itself gives them a strip of their own under the tools.
     val tabsInline = settings == null || onSettingsChange == null
-    val tabsUnderTheTools = !tabsInline && !ui.fullPage
+    val tabsUnderTheTools = !tabsInline
     val stripTabs = paneTabs.firstOrNull { it.focused } ?: tabs
     // No `shadowElevation`: a band on the tablet closes on its own edge instead of casting onto the
     // band beside it, and that edge stops where the rail's lane begins (`frameClosingEdge`, whose KDoc
@@ -235,7 +235,7 @@ fun EditorTopBar(
                 // The bar pads itself by the status-bar inset and then stands its own row of tools under it,
                 // so the glass slab — not the window background — is what the clock and the notch sit on.
                 modifier = Modifier
-                    .statusBarsPadding()
+                    .stableStatusBarsPadding()
                     .height(TOP_BAR_ROW_HEIGHT),
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.Transparent,

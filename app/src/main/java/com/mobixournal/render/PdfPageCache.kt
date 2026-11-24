@@ -99,6 +99,14 @@ class PdfPageCache(
         }
     }
 
+    /** Return the best already-cached bitmap for page [i] without queuing new background raster work. */
+    fun requestCachedOnly(i: Int, targetWidthPx: Int): Bitmap? {
+        if (targetWidthPx <= 0 || i < 0 || closed || i >= pageCount) return null
+        val (pw, ph) = pageSizePt(i)
+        val width = PdfTileGeometry.rasterWidth(pw, ph, budget, targetWidthPx)
+        synchronized(lock) { return nearest(i, width) }
+    }
+
     /**
      * The rasterised tiles covering the visible part of page [i], which the caller draws over the
      * upscaled whole-page bitmap from [request]. The visible region is given as fractions of the

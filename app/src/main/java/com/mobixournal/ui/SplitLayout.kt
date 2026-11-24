@@ -18,18 +18,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -39,7 +42,9 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.collectLatest
 
 /** How narrow either half may be dragged, as a fraction of the whole width. */
 internal const val SPLIT_MIN_FRACTION = 0.15f
@@ -121,25 +126,28 @@ fun SplitLayout(
     second: @Composable (Modifier) -> Unit,
 ) {
     val safeFraction = clampSplitFraction(fraction)
-    val haptics = LocalHapticFeedback.current
     val latestOnFraction = rememberUpdatedState(onFraction)
     val latestFraction = rememberUpdatedState(fraction)
-    var dragging by remember { mutableStateOf(false) }
-    var dragStart by remember { mutableStateOf(safeFraction) }
-    var dragPx by remember { mutableFloatStateOf(0f) }
     var totalWidthPx by remember { mutableFloatStateOf(1f) }
 
     val density = LocalDensity.current
     val totalPx = totalWidthPx.coerceAtLeast(1f)
     val handlePx = with(density) { SPLIT_HANDLE_WIDTH.toPx() }
-    val (firstPx, secondPx) = splitPaneSpans(totalPx, safeFraction, handlePx)
-    val firstWeight = firstPx.coerceAtLeast(1f)
-    val secondWeight = secondPx.coerceAtLeast(1f)
-
-    val dragState = rememberDraggableState { delta ->
-        dragPx += delta
-        latestOnFraction.value(splitFractionAfterDrag(dragStart, dragPx, totalPx))
+    val (_, secondPx) = splitPaneSpans(totalPx, safeFraction, handlePx)
+    val splitProgress = animateFloatAsState(
+        targetValue = if (splitView) 1f else 0f,
+        animationSpec = chromeSlideSpring(),
+        label = "SplitView",
+    )
+    val controller = LocalChromeInsetController.current
+    LaunchedEffect(controller) {
+        snapshotFlow { splitProgress.value in 0.001f..0.999f }.collectLatest {
+            controller.splitAnimating = it
+        }
     }
+    val p = splitProgress.value.coerceIn(0f, 1f)
+    val showSecond = p > 0.03f || splitView
+
     Row(
         modifier = modifier
             .fillMaxSize()
@@ -147,46 +155,87 @@ fun SplitLayout(
                 if (size.width > 0) totalWidthPx = size.width.toFloat()
             },
     ) {
-        first(Modifier.fillMaxHeight().weight(if (splitView) firstWeight else 1f))
-        if (splitView) {
-            Box(
-                modifier = Modifier
-                    .fillMaxHeight()
-                    .width(SPLIT_HANDLE_WIDTH)
-                    .semantics {
-                        contentDescription = "Resize split"
-                        customActions = listOf(
-                            CustomAccessibilityAction("Reset split") {
-                                latestOnFraction.value(SPLIT_EVEN_FRACTION)
-                                true
-                            },
-                        )
-                    }
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onDoubleTap = {
-                                latestOnFraction.value(SPLIT_EVEN_FRACTION)
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                            },
-                        )
-                    }
-                    .draggable(
-                        orientation = Orientation.Horizontal,
-                        state = dragState,
-                        onDragStarted = {
-                            dragStart = clampSplitFraction(latestFraction.value)
-                            dragPx = 0f
-                            dragging = true
-                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        },
-                        onDragStopped = { dragging = false },
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                SplitHandleLane(dragging = dragging)
-            }
-            second(Modifier.fillMaxHeight().weight(secondWeight))
+        if (showSecond) {
+            val currentFirstWeight = (totalPx - (secondPx + handlePx) * p).coerceAtLeast(1f)
+            val currentSecondWeight = (secondPx * p).coerceAtLeast(1f)
+            first(Modifier.fillMaxHeight().weight(currentFirstWeight))
+            SplitDividerBox(
+                width = SPLIT_HANDLE_WIDTH * p,
+                alpha = p,
+                interactive = splitView && p > 0.95f,
+                totalPx = totalPx,
+                latestFraction = latestFraction.value,
+                onFraction = { latestOnFraction.value(it) },
+            )
+            second(Modifier.fillMaxHeight().weight(currentSecondWeight).graphicsLayer { alpha = p })
+        } else {
+            first(Modifier.fillMaxHeight().weight(1f))
         }
+    }
+}
+
+@Composable
+private fun SplitDividerBox(
+    width: Dp,
+    alpha: Float,
+    interactive: Boolean,
+    totalPx: Float,
+    latestFraction: Float,
+    onFraction: (Float) -> Unit,
+) {
+    val haptics = LocalHapticFeedback.current
+    val currentOnFraction by rememberUpdatedState(onFraction)
+    val currentFraction by rememberUpdatedState(latestFraction)
+    var dragging by remember { mutableStateOf(false) }
+    var dragStart by remember { mutableStateOf(clampSplitFraction(latestFraction)) }
+    var dragPx by remember { mutableFloatStateOf(0f) }
+    val dragState = rememberDraggableState { delta ->
+        dragPx += delta
+        currentOnFraction(splitFractionAfterDrag(dragStart, dragPx, totalPx))
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(width)
+            .graphicsLayer { this.alpha = alpha }
+            .semantics {
+                contentDescription = "Resize split"
+                customActions = listOf(
+                    CustomAccessibilityAction("Reset split") {
+                        currentOnFraction(SPLIT_EVEN_FRACTION)
+                        true
+                    },
+                )
+            }
+            .then(
+                if (interactive) {
+                    Modifier
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onDoubleTap = {
+                                    currentOnFraction(SPLIT_EVEN_FRACTION)
+                                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                },
+                            )
+                        }
+                        .draggable(
+                            orientation = Orientation.Horizontal,
+                            state = dragState,
+                            onDragStarted = {
+                                dragStart = clampSplitFraction(currentFraction)
+                                dragPx = 0f
+                                dragging = true
+                                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            },
+                            onDragStopped = { dragging = false },
+                        )
+                } else {
+                    Modifier
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        SplitHandleLane(dragging = dragging)
     }
 }
 

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,9 +35,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -132,6 +137,8 @@ internal fun DocumentNavigationWorkspace(
         val session = pane.navigationSessions.getOrPut(pane.navigationDocumentKey) { ContentsSession() }
         val laneOpen = ui.pageListOpen && !ui.fullPage
         val railOpen = !ui.fullPage
+        val latestLaneOpen by rememberUpdatedState(laneOpen)
+        val latestRailOpen by rememberUpdatedState(railOpen)
         val railProgress = animateFloatAsState(
             targetValue = if (railOpen) 1f else 0f,
             animationSpec = chromeSlideSpring(),
@@ -158,13 +165,13 @@ internal fun DocumentNavigationWorkspace(
                 controller.settledRightPx = if (!railOnLeft) settledTotal else 0f
             }
         }
-        val topInsetDp = with(density) { controller.topInsetPx.toDp() }
-        val railEdgeDp = with(density) { (railFullPx * railProgress.value).toDp() }
+        val showLane by remember { derivedStateOf { laneProgress.value > 0.001f || latestLaneOpen } }
+        val showRail by remember { derivedStateOf { railProgress.value > 0.001f || latestRailOpen } }
 
         Box(Modifier.fillMaxSize().background(rememberChromeColor())) {
             canvas(Modifier.fillMaxSize())
-            Box(Modifier.fillMaxSize().padding(top = topInsetDp)) {
-                if (laneProgress.value > 0.001f || laneOpen) {
+            Box(Modifier.fillMaxSize().topInsetLayout { controller.topInsetPx.roundToInt() }) {
+                if (showLane) {
                     OverlayNavigationSidebar(
                         ui = ui,
                         pane = pane,
@@ -172,17 +179,18 @@ internal fun DocumentNavigationWorkspace(
                         compact = compact,
                         railOnLeft = railOnLeft,
                         laneOpen = laneOpen,
-                        laneProgress = laneProgress.value,
+                        laneProgressProvider = { laneProgress.value },
+                        railProgressProvider = { railProgress.value },
                         laneFullPx = laneFullPx,
+                        railFullPx = railFullPx,
                         width = width,
-                        railEdgeDp = railEdgeDp,
                     )
                 }
-                if (railProgress.value > 0.001f || railOpen) {
+                if (showRail) {
                     OverlayRailLane(
                         railOnLeft = railOnLeft,
                         railOpen = railOpen,
-                        railProgress = railProgress.value,
+                        railProgressProvider = { railProgress.value },
                         railFullPx = railFullPx,
                         toolbar = toolbar,
                     )
@@ -200,16 +208,17 @@ private fun BoxScope.OverlayNavigationSidebar(
     compact: Boolean,
     railOnLeft: Boolean,
     laneOpen: Boolean,
-    laneProgress: Float,
+    laneProgressProvider: () -> Float,
+    railProgressProvider: () -> Float,
     laneFullPx: Float,
+    railFullPx: Float,
     width: Dp,
-    railEdgeDp: Dp,
 ) {
     if (compact) {
         Box(
             Modifier
                 .fillMaxSize()
-                .graphicsLayer { alpha = laneProgress.coerceIn(0f, 1f) }
+                .graphicsLayer { alpha = laneProgressProvider().coerceIn(0f, 1f) }
                 .then(if (laneOpen) Modifier.blockCanvasPointers() else Modifier),
         ) {
             DocumentNavigationLane(ui, pane, session, compact = true, width = width, backEnabled = laneOpen)
@@ -217,11 +226,13 @@ private fun BoxScope.OverlayNavigationSidebar(
         return
     }
     val edgeAlign = if (railOnLeft) Alignment.CenterStart else Alignment.CenterEnd
-    val railPad = if (railOnLeft) Modifier.padding(start = railEdgeDp) else Modifier.padding(end = railEdgeDp)
     Box(
         Modifier
             .align(edgeAlign)
-            .then(railPad)
+            .offset {
+                val railPx = (railFullPx * railProgressProvider()).roundToInt()
+                IntOffset(if (railOnLeft) railPx else -railPx, 0)
+            }
             .width(width)
             .fillMaxHeight()
             .clipToBounds(),
@@ -230,8 +241,8 @@ private fun BoxScope.OverlayNavigationSidebar(
             Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    translationX = if (railOnLeft) -(1f - laneProgress) * laneFullPx
-                    else (1f - laneProgress) * laneFullPx
+                    val p = laneProgressProvider()
+                    translationX = if (railOnLeft) -(1f - p) * laneFullPx else (1f - p) * laneFullPx
                 }
                 .then(if (laneOpen) Modifier.blockCanvasPointers() else Modifier),
         ) {
@@ -244,7 +255,7 @@ private fun BoxScope.OverlayNavigationSidebar(
 private fun BoxScope.OverlayRailLane(
     railOnLeft: Boolean,
     railOpen: Boolean,
-    railProgress: Float,
+    railProgressProvider: () -> Float,
     railFullPx: Float,
     toolbar: @Composable () -> Unit,
 ) {
@@ -254,8 +265,8 @@ private fun BoxScope.OverlayRailLane(
             .align(railAlign)
             .fillMaxHeight()
             .graphicsLayer {
-                translationX = if (railOnLeft) -(1f - railProgress) * railFullPx
-                else (1f - railProgress) * railFullPx
+                val p = railProgressProvider()
+                translationX = if (railOnLeft) -(1f - p) * railFullPx else (1f - p) * railFullPx
             }
             .then(if (railOpen) Modifier.blockCanvasPointers() else Modifier),
     ) {

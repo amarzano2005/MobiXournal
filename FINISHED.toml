@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "zero-recomposition-focus-and-animated-split"
+title = "Eliminate Focus mode transition heaviness and animate Split Screen"
+description = "Eliminated Focus mode heaviness (stableStatusBarsPadding and kept TabStrip visible during TopBar exit, pure layout/draw-phase overlay offsets via topInsetLayout and progress lambdas, removed stale repaintAfterResize() from FocusModeEffect, added cache-only requestCachedOnly stand-ins on PdfPageCache and ImageBackgroundCache during chromeAnimating) and animated SplitLayout with chromeSlideSpring() coordinated with ChromeInsetController.splitAnimating; updated docs/chrome.md. Verified with ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and signed release APK."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-24
+completed = 2026-11-24
+tags = ["ui", "render", "android"]
+design = "material: keeps opaque chrome bands over rememberChromeColor and existing SplitHandleLane styling; states: zero-recomposition spring transitions for Focus mode, sidebar, and split view with cached stand-in blitting; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "opaque-topbar-and-144hz-chrome-transitions"
 title = "Make overlaid top bar opaque and optimize chrome inset animations for 120-144 Hz"
 description = "Composited AnimatedEditorTopBarHost over rememberChromeColor and removed alpha fade on top bar and RailLane so chrome bands stay 100% opaque over pages; introduced stable ChromeInsetController + snapshotFlow (zero per-frame recomposition of EditorScreen/EditorBody/EditorPaneView), suspended reportScroll/reportCurrentPage while chromeAnimating in DrawingSurfacePaint, painted on the same vsync in setChromeInsets, switched to chromeSlideSpring(), and updated docs/chrome.md. Verified with ViewportStateTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and signed release APK."
