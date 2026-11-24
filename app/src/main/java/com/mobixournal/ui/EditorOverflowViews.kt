@@ -404,6 +404,7 @@ private fun SheetSwitchRow(
                 )
             }
         }
+        Spacer(Modifier.width(12.dp))
         Box(
             modifier = Modifier
                 .size(width = 36.dp, height = 20.dp)

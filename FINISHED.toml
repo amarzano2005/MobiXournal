@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "fix-focus-mode-toggle-spacing"
+title = "Add spacing between Focus mode subtitle and toggle in overflow menu"
+description = "Added a 12 dp Spacer between the text Column and switch track in SheetSwitchRow (app/src/main/java/com/mobixournal/ui/EditorOverflowViews.kt) so the Focus mode subtitle no longer touches the toggle. Verified with DocsGuardTest, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and signed release APK."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = ["ui", "android"]
+design = "material: keeps existing floating-sheet surface and switch track in SheetSwitchRow with a 12 dp horizontal gap between weighted text column and toggle; copy: English label and subtitle unchanged; tests: DocsGuardTest, SourceStructureTest, and ColorContractGuardTest pass."
+
+[[task]]
 id = "xopp-mobile-scroll-and-save-perf"
 title = "Optimize mobile scroll for xopp, dense rulings, images, PDFs, and ZIP saves"
 description = "Implemented all 4 xopp/mobile scroll optimizations across ElementRenderer, BackgroundRenderer, InkCache, DrawingSurfaceView/Paint, PdfRasterSource, PdfPageCache, XoppZip, and CanvasPageSource; verified XoppZipTest, render.*, DocsGuardTest, and SourceStructureTest passing, built signed APK MobiXournal-2.4.0.apk, and refreshed :desktop:createDistributable."
