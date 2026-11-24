@@ -183,7 +183,7 @@ private fun MainActivity.adoptOfferedRight(rightTab: String?): Boolean {
     val at = rightSession.tabs.indexOfFirst { it.id == rightTab }.takeIf { it >= 0 }
         ?: rightSession.activeIndex
     right.tabs.select(at.coerceIn(0, rightSession.tabs.lastIndex))
-    right.persist()
+    window.decorView.postDelayed({ right.persist() }, 380L)
     return true
 }
 
@@ -249,8 +249,8 @@ internal fun MainActivity.startFreshSession() {
     entryRecents.previous.value = null
     // Starting new work answers the whole offer, the split included.
     entryRecents.previousRight.value = null
-    entryRecents.rememberSplitLeft(null)
-    newTab()
+    newTab(deferPersist = true)
+    window.decorView.postDelayed({ entryRecents.rememberSplitLeft(null) }, 380L)
 }
 
 /** A card's `×`: out of the recents, and out of the stored session when the card stands for one. */

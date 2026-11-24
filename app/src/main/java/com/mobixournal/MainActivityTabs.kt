@@ -333,14 +333,18 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
 }
 
 /** Open a fresh blank document in a new tab of [p] and switch to it. */
-internal fun MainActivity.newTab(p: EditorPane = pane) {
+internal fun MainActivity.newTab(p: EditorPane = pane, deferPersist: Boolean = false) {
     // The "+" belongs to a lane, so the new document opens — and the tools land — in that pane.
     activePane.value = panes.indexOf(p).coerceAtLeast(0)
     snapshotActiveTab(p)
     p.tabs.open(blankTab(p))
     p.tabs.active?.let { show(it, p) }
     tabsTick.value++
-    p.persist()
+    if (deferPersist) {
+        window.decorView.postDelayed({ p.persist() }, 380L)
+    } else {
+        p.persist()
+    }
 }
 
 /**

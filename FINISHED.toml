@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "eliminate-home-to-editor-frame-0-micro-stutters-while-keeping-chromeslidespring-pace"
+title = "Eliminate Home-to-Editor frame-0 micro-stutters while keeping chromeSlideSpring pace"
+description = "Restored chromeSlideSpring() pace in DocumentArea.kt using Animatable with two withFrameNanos yields before animating Home out so EditorBody and DrawingSurfaceView finish mounting and first paint under the opaque entry overlay; added deferPersist option to newTab in MainActivityTabs.kt and deferred disk persist/rememberSplitLeft by 380ms in startFreshSession and adoptOfferedRight (RememberRecentNotebook.kt); updated docs/chrome.md; verified DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: pure-Compose Home overlay and steady DrawingSurfaceView unchanged; tokens: restored chromeSlideSpring() pace with zero frame-0 inflation clock loss; states: Home-to-Editor transition starts on a clean vsync with zero synchronous main-thread disk I/O; docs: docs/chrome.md updated in same commit; tests: DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, and FocusBarGeometryTest pass."
+
+[[task]]
 id = "make-documentarea-home-to-editor-transition-snappier"
 title = "Make DocumentArea Home-to-Editor transition snappier"
 description = "Replaced chromeSlideSpring() in DocumentArea.kt with EntryExitSpring (dampingRatio 1.0f, stiffness 1400f) and EntryEnterSpring (1.0f, 1100f), quadratic exit fade (p * p), and 0.02f overlay unmount threshold for snappy ~135-160 ms Home-Editor transitions at 144Hz; updated docs/chrome.md; verified DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, :desktop:createDistributable, and release-apk.sh."
