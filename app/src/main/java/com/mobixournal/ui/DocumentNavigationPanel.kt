@@ -260,13 +260,18 @@ private fun BoxScope.OverlayRailLane(
     toolbar: @Composable () -> Unit,
 ) {
     val railAlign = if (railOnLeft) Alignment.CenterStart else Alignment.CenterEnd
+    val controller = LocalChromeInsetController.current
+    val revealSlidePx = with(LocalDensity.current) { 16.dp.toPx() }
     Box(
         Modifier
             .align(railAlign)
             .fillMaxHeight()
             .graphicsLayer {
                 val p = railProgressProvider()
-                translationX = if (railOnLeft) -(1f - p) * railFullPx else (1f - p) * railFullPx
+                val reveal = controller.entryReveal.coerceIn(0f, 1f)
+                val offset = (1f - p) * railFullPx + (1f - reveal) * revealSlidePx
+                translationX = if (railOnLeft) -offset else offset
+                alpha = reveal
             }
             .then(if (railOpen) Modifier.blockCanvasPointers() else Modifier),
     ) {

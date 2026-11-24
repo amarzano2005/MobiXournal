@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "separate-home-screen-fade-from-editor-rails-in-two-phase-dual-crossfade"
+title = "Separate Home screen fade from editor rails in two-phase dual crossfade"
+description = "Added draw-phase entryReveal (0..1) on ChromeInsetController in ChromeInsetsState.kt and applied alpha plus 16.dp micro-slide in AnimatedEditorTopBarHost and OverlayRailLane (DocumentNavigationPanel.kt) without touching canvas insets; updated DocumentArea.kt to drive homeLayerAlpha in p in [0.40, 1] and editorChromeReveal in p in [0, 0.48] symmetrically along chromeSlideSpring() so Home and editor rails never visually bleed into each other; updated docs/chrome.md; verified DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: offscreen Home layer and opaque chrome rails never bleed through one another during crossfade; tokens: chromeSlideSpring and 16.dp micro-slide read in draw phase only (zero recomposition or SurfaceView repaints); states: Focus mode keeps entryReveal at 1f while Home-Editor enter and exit play exact dual two-phase choreography; docs: docs/chrome.md updated in same commit; tests: DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, and ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "make-editor-to-home-exit-animation-exact-dual-of-entrance"
 title = "Make Editor-to-Home exit animation exact dual of entrance"
 description = "Unified DocumentArea.kt entrance and exit onto the exact dual curve (alpha = p, scale = 1 + 0.025 * (1 - p)) on an offscreen GPU layer with withFrameNanos inflation yield in both directions, kept editor() mounted underneath until entryProgress >= 0.99f so exit settles over the live sheet instead of a black cut, restricted EditorPaneView emptyEntry in EditorScreen.kt to splitView so single-pane last-tab close never flashes a nested entry screen, and deferred persist/prunePdfCache by 380ms in MainActivityTabs.closeTab when closing the last tab; updated docs/chrome.md; verified DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."

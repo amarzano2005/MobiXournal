@@ -19,14 +19,17 @@ import androidx.compose.ui.graphics.graphicsLayer
 /** Subtle scale lift on the pure-Compose entry layer; the SurfaceView editor never scales. */
 private const val ENTRY_OVERLAY_SCALE_DELTA = 0.025f
 
+/** Two-phase crossfade boundaries so the Home screen and editor rails never overlap visibly. */
+private fun homeLayerAlpha(progress: Float): Float = ((progress - 0.40f) / 0.60f).coerceIn(0f, 1f)
+private fun editorChromeReveal(progress: Float): Float = ((0.48f - progress) / 0.48f).coerceIn(0f, 1f)
+
 /**
  * The document area: **the entry screen when nothing is open, the editor when something is**, and
- * symmetric, stutter-free 144 Hz transitions between them.
+ * symmetric, two-phase 144 Hz transitions between them.
  *
- * Entrance (Home → Editor, `p: 1 → 0`) and exit (Editor → Home, `p: 0 → 1`) are exact mathematical
- * duals: the editor stays steady underneath at `scale = 1f, alpha = 1f`, while the pure-Compose
- * entry overlay animates along the same curve (`alpha = p`, `scale = 1 + 0.025 * (1 - p)`) on an
- * offscreen GPU layer after waiting for view inflation (`withFrameNanos`).
+ * Entrance (Home → Editor, `p: 1 → 0`) fades Home out first (`p: 1 → 0.40`) over the steady sheet
+ * and then reveals the top bar and side rail (`p: 0.48 → 0`); exit (Editor → Home, `p: 0 → 1`)
+ * plays the exact dual in reverse so the rails never bleed through the Home cards.
  */
 @Composable
 internal fun DocumentArea(
@@ -35,31 +38,37 @@ internal fun DocumentArea(
     entry: @Composable () -> Unit,
     editor: @Composable () -> Unit,
 ) {
+    val controller = LocalChromeInsetController.current
     val latestEmpty by rememberUpdatedState(empty)
     val entryProgress = remember { Animatable(if (empty) 1f else 0f) }
     var initialized by remember { mutableStateOf(false) }
 
-    LaunchedEffect(empty) {
+    LaunchedEffect(empty, controller) {
         if (!initialized) {
             initialized = true
-            entryProgress.snapTo(if (empty) 1f else 0f)
+            val initial = if (empty) 1f else 0f
+            entryProgress.snapTo(initial)
+            controller.entryReveal = editorChromeReveal(initial)
             return@LaunchedEffect
         }
-        // Let the arriving subtree finish inflating (EditorBody + SurfaceView on enter, or
-        // NotebookEntryScreen offscreen layer on exit) before starting the spring on a clean vsync.
+        // Keep rails hidden while EditorBody + SurfaceView mount on enter, or let Home prepare its
+        // offscreen layer on exit, before starting the spring on a clean vsync.
         withFrameNanos { }
         if (!empty) withFrameNanos { }
         entryProgress.animateTo(
             targetValue = if (empty) 1f else 0f,
             animationSpec = chromeSlideSpring(),
-        )
+        ) {
+            controller.entryReveal = editorChromeReveal(value.coerceIn(0f, 1f))
+        }
+        controller.entryReveal = if (empty) 0f else 1f
     }
 
     val showEditor by remember {
         derivedStateOf { !latestEmpty || entryProgress.value < 0.99f }
     }
     val showEntry by remember {
-        derivedStateOf { latestEmpty || entryProgress.value > 0.01f }
+        derivedStateOf { latestEmpty || entryProgress.value > 0.40f }
     }
 
     Box(modifier = modifier) {
@@ -72,13 +81,14 @@ internal fun DocumentArea(
                     .fillMaxSize()
                     .graphicsLayer {
                         val p = entryProgress.value.coerceIn(0f, 1f)
-                        compositingStrategy = if (p < 0.999f || !latestEmpty) {
+                        val a = homeLayerAlpha(p)
+                        compositingStrategy = if (a < 0.999f || !latestEmpty) {
                             CompositingStrategy.Offscreen
                         } else {
                             CompositingStrategy.Auto
                         }
-                        alpha = p
-                        val s = 1f + ENTRY_OVERLAY_SCALE_DELTA * (1f - p)
+                        alpha = a
+                        val s = 1f + ENTRY_OVERLAY_SCALE_DELTA * (1f - a)
                         scaleX = s
                         scaleY = s
                     },

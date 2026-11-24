@@ -31,6 +31,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import com.mobixournal.render.setChromeInsets
 import com.mobixournal.ui.theme.rememberChromeColor
 import kotlinx.coroutines.flow.collectLatest
@@ -65,6 +66,8 @@ internal class ChromeInsetController {
     var topInsetPx by mutableFloatStateOf(0f)
     var topAnimating by mutableStateOf(false)
     var settledTopPx by mutableFloatStateOf(0f)
+    /** Draw-phase opacity/micro-slide reveal (0..1) for top bar and side rail during Home ↔ Editor transitions. */
+    var entryReveal by mutableFloatStateOf(1f)
 
     var leftInsetPx by mutableFloatStateOf(0f)
     var rightInsetPx by mutableFloatStateOf(0f)
@@ -263,6 +266,7 @@ internal fun AnimatedEditorTopBarHost(
         }
     }
     val showBar by remember { derivedStateOf { progress.value > 0.001f || latestVisible } }
+    val revealSlidePx = with(LocalDensity.current) { 16.dp.toPx() }
     if (showBar) {
         Box(
             modifier = modifier
@@ -273,7 +277,9 @@ internal fun AnimatedEditorTopBarHost(
                     }
                 }
                 .graphicsLayer {
-                    translationY = -(1f - progress.value) * measuredHeightPx
+                    val reveal = controller.entryReveal.coerceIn(0f, 1f)
+                    translationY = -(1f - progress.value) * measuredHeightPx - (1f - reveal) * revealSlidePx
+                    alpha = reveal
                 }
                 .background(rememberChromeColor())
                 .then(if (visible) Modifier.blockCanvasPointers() else Modifier),
