@@ -1,8 +1,10 @@
 package com.mobixournal.ui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -19,17 +21,19 @@ import androidx.compose.ui.graphics.graphicsLayer
 /** Subtle scale lift on the pure-Compose entry layer; the SurfaceView editor never scales. */
 private const val ENTRY_OVERLAY_SCALE_DELTA = 0.025f
 
-/** Two-phase crossfade boundaries so the Home screen and editor rails never overlap visibly. */
-private fun homeLayerAlpha(progress: Float): Float = ((progress - 0.40f) / 0.60f).coerceIn(0f, 1f)
-private fun editorChromeReveal(progress: Float): Float = ((0.48f - progress) / 0.48f).coerceIn(0f, 1f)
+/** Symmetric two-phase crossfade boundaries so Home never visually overlaps the sheet or rails. */
+private fun homeLayerAlpha(progress: Float): Float = ((progress - 0.42f) / 0.58f).coerceIn(0f, 1f)
+private fun editorChromeReveal(progress: Float): Float = ((0.46f - progress) / 0.46f).coerceIn(0f, 1f)
+private fun editorVeilAlpha(progress: Float): Float = (progress / 0.46f).coerceIn(0f, 1f)
 
 /**
  * The document area: **the entry screen when nothing is open, the editor when something is**, and
  * symmetric, two-phase 144 Hz transitions between them.
  *
- * Entrance (Home → Editor, `p: 1 → 0`) fades Home out first (`p: 1 → 0.40`) over the steady sheet
- * and then reveals the top bar and side rail (`p: 0.48 → 0`); exit (Editor → Home, `p: 0 → 1`)
- * plays the exact dual in reverse so the rails never bleed through the Home cards.
+ * Entrance (Home → Editor, `p: 1 → 0`) fades Home out first (`p: 1 → 0.42`) over a clean theme
+ * backdrop scrim and then unveils the sheet together with the top bar and side rail (`p: 0.46 → 0`);
+ * exit (Editor → Home, `p: 0 → 1`) plays the exact dual in reverse so neither the sheet nor the
+ * rails ever overlap the Home screen.
  */
 @Composable
 internal fun DocumentArea(
@@ -51,8 +55,6 @@ internal fun DocumentArea(
             controller.entryReveal = editorChromeReveal(initial)
             return@LaunchedEffect
         }
-        // Keep rails hidden while EditorBody + SurfaceView mount on enter, or let Home prepare its
-        // offscreen layer on exit, before starting the spring on a clean vsync.
         withFrameNanos { }
         if (!empty) withFrameNanos { }
         entryProgress.animateTo(
@@ -65,15 +67,27 @@ internal fun DocumentArea(
     }
 
     val showEditor by remember {
-        derivedStateOf { !latestEmpty || entryProgress.value < 0.99f }
+        derivedStateOf { !latestEmpty || entryProgress.value < 0.48f }
+    }
+    val showVeil by remember {
+        derivedStateOf { showEditor && entryProgress.value > 0.005f }
     }
     val showEntry by remember {
-        derivedStateOf { latestEmpty || entryProgress.value > 0.40f }
+        derivedStateOf { latestEmpty || entryProgress.value > 0.42f }
     }
+    val backdropColor = MaterialTheme.colorScheme.background
 
-    Box(modifier = modifier) {
+    Box(modifier = modifier.background(backdropColor)) {
         if (showEditor) {
             editor()
+        }
+        if (showVeil) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { alpha = editorVeilAlpha(entryProgress.value.coerceIn(0f, 1f)) }
+                    .background(backdropColor),
+            )
         }
         if (showEntry) {
             Box(
