@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -1566,10 +1565,11 @@ fun EditorPaneView(
                 ui.editingShape == null && !state.searchOpen) state.surface?.requestFocus()
         }
     }
+    val insetPadding = ApplyPaneChromeInsets(state, index)
     if (emptyEntry != null) {
         // No document, no canvas: the half **is** its own entry screen, instead of a surface still painting
         // the tab that was just closed and taking no document back.
-        Box(modifier = modifier.then(paneFocus)) { emptyEntry(Modifier.fillMaxSize()) }
+        Box(modifier = modifier.then(paneFocus)) { emptyEntry(Modifier.fillMaxSize().padding(insetPadding)) }
         return
     }
     Column(
@@ -1596,6 +1596,7 @@ fun EditorPaneView(
             AndroidView(
                 factory = { ctx ->
                     DrawingSurfaceView(ctx).also {
+                        if (index == 1) it.setZOrderMediaOverlay(true)
                         it.applyInitialStyle(ui, settings)
                         it.bindTo(state)
                         it.bindEditorActions(
@@ -1622,7 +1623,6 @@ fun EditorPaneView(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
-            val insetPadding = ApplyPaneChromeInsets(state, index)
             ScrollThumb(
                 scrollY = { state.scrollY },
                 totalHeightPx = { state.contentHeight },

@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +31,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -44,6 +47,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.rememberChromeColor
 import kotlinx.coroutines.flow.collectLatest
 
 /** How narrow either half may be dragged, as a fraction of the whole width. */
@@ -112,9 +116,10 @@ internal fun splitFractionAfterDrag(startFraction: Float, dragPx: Float, totalPx
 /**
  * Two panes side by side with a draggable divider down the middle (or single-pane when [splitView] is false).
  *
- * Uses a single [Row] with [onSizeChanged] rather than `BoxWithConstraints` (`SubcomposeLayout`) so that
- * toggling [splitView] off never moves the first pane's `AndroidView` (`SurfaceView`) across a
- * subcomposition boundary, ensuring it immediately expands back to the full width of the row.
+ * Keeps Pane 0's `DrawingSurfaceView` at full viewport width and slides the divider + Pane 1 in as an
+ * opaque right-anchored overlay translated purely via `graphicsLayer { translationX }`, while pushing
+ * animated [ChromeInsetController.splitRightInsetPx] to Pane 0 so content re-centers at 144 Hz without
+ * reallocating native Surface buffers.
  */
 @Composable
 fun SplitLayout(
@@ -134,42 +139,76 @@ fun SplitLayout(
     val totalPx = totalWidthPx.coerceAtLeast(1f)
     val handlePx = with(density) { SPLIT_HANDLE_WIDTH.toPx() }
     val (_, secondPx) = splitPaneSpans(totalPx, safeFraction, handlePx)
+    val overlaySpanPx = secondPx + handlePx
+    val secondDp = with(density) { secondPx.toDp() }
+    val overlaySpanDp = SPLIT_HANDLE_WIDTH + secondDp
+
     val splitProgress = animateFloatAsState(
         targetValue = if (splitView) 1f else 0f,
         animationSpec = chromeSlideSpring(),
         label = "SplitView",
     )
+    val latestOverlaySpanPx by rememberUpdatedState(overlaySpanPx)
+    val latestSplitView by rememberUpdatedState(splitView)
     val controller = LocalChromeInsetController.current
     LaunchedEffect(controller) {
-        snapshotFlow { splitProgress.value in 0.001f..0.999f }.collectLatest {
-            controller.splitAnimating = it
+        snapshotFlow {
+            val p = splitProgress.value.coerceIn(0f, 1f)
+            val span = latestOverlaySpanPx
+            Triple(p in 0.001f..0.999f, span * p, if (latestSplitView) span else 0f)
+        }.collectLatest { (animating, liveInsetPx, settledInsetPx) ->
+            controller.splitAnimating = animating
+            controller.splitRightInsetPx = liveInsetPx
+            controller.settledSplitRightPx = settledInsetPx
         }
     }
-    val p = splitProgress.value.coerceIn(0f, 1f)
-    val showSecond = p > 0.03f || splitView
+    DisposableEffect(controller) {
+        onDispose {
+            controller.splitAnimating = false
+            controller.splitRightInsetPx = 0f
+            controller.settledSplitRightPx = 0f
+        }
+    }
 
-    Row(
+    val showSecond by remember {
+        derivedStateOf { splitProgress.value > 0.005f || latestSplitView }
+    }
+    val chromeColor = rememberChromeColor()
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .onSizeChanged { size ->
                 if (size.width > 0) totalWidthPx = size.width.toFloat()
-            },
+            }
+            .clipToBounds(),
     ) {
+        first(Modifier.fillMaxSize())
         if (showSecond) {
-            val currentFirstWeight = (totalPx - (secondPx + handlePx) * p).coerceAtLeast(1f)
-            val currentSecondWeight = (secondPx * p).coerceAtLeast(1f)
-            first(Modifier.fillMaxHeight().weight(currentFirstWeight))
-            SplitDividerBox(
-                width = SPLIT_HANDLE_WIDTH * p,
-                alpha = p,
-                interactive = splitView && p > 0.95f,
-                totalPx = totalPx,
-                latestFraction = latestFraction.value,
-                onFraction = { latestOnFraction.value(it) },
-            )
-            second(Modifier.fillMaxHeight().weight(currentSecondWeight).graphicsLayer { alpha = p })
-        } else {
-            first(Modifier.fillMaxHeight().weight(1f))
+            Row(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .width(overlaySpanDp)
+                    .fillMaxHeight()
+                    .graphicsLayer {
+                        val p = splitProgress.value.coerceIn(0f, 1f)
+                        translationX = (1f - p) * overlaySpanPx
+                    }
+                    .background(chromeColor)
+                    .blockCanvasPointers(),
+            ) {
+                SplitDividerBox(
+                    width = SPLIT_HANDLE_WIDTH,
+                    alpha = 1f,
+                    interactive = splitView,
+                    totalPx = totalPx,
+                    latestFraction = latestFraction.value,
+                    onFraction = { latestOnFraction.value(it) },
+                )
+                Box(modifier = Modifier.fillMaxHeight().width(secondDp)) {
+                    second(Modifier.fillMaxSize())
+                }
+            }
         }
     }
 }

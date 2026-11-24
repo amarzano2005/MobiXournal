@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
@@ -71,6 +72,8 @@ internal class ChromeInsetController {
     var settledRightPx by mutableFloatStateOf(0f)
 
     var splitAnimating by mutableStateOf(false)
+    var splitRightInsetPx by mutableFloatStateOf(0f)
+    var settledSplitRightPx by mutableFloatStateOf(0f)
 
     fun snapshot(): CanvasChromeInsets = CanvasChromeInsets(
         leftPx = leftInsetPx,
@@ -87,6 +90,18 @@ internal class ChromeInsetController {
         bottomPx = 0f,
         animating = false,
     )
+
+    fun snapshotForPane(paneIndex: Int, splitView: Boolean): CanvasChromeInsets {
+        val base = snapshot().forPane(paneIndex, splitView)
+        if (paneIndex != 0 || splitRightInsetPx <= 0f) return base
+        return base.copy(rightPx = maxOf(base.rightPx, splitRightInsetPx))
+    }
+
+    fun settledForPane(paneIndex: Int, splitView: Boolean): CanvasChromeInsets {
+        val base = settledSnapshot().forPane(paneIndex, splitView)
+        if (paneIndex != 0 || settledSplitRightPx <= 0f) return base
+        return base.copy(rightPx = maxOf(base.rightPx, settledSplitRightPx))
+    }
 }
 
 internal val LocalChromeInsetController = compositionLocalOf { ChromeInsetController() }
@@ -125,6 +140,7 @@ internal fun Modifier.stableStatusBarsPadding(): Modifier {
     var latchedTopPx by remember { mutableIntStateOf(0) }
     if (topPx > latchedTopPx) latchedTopPx = topPx
     return padding(top = with(density) { latchedTopPx.toDp() })
+        .consumeWindowInsets(WindowInsets.statusBars)
 }
 
 /**
@@ -158,7 +174,7 @@ internal fun ApplyPaneChromeInsets(
     val splitView = LocalSplitView.current
     val surface = state.surface
     LaunchedEffect(controller, surface, paneIndex, splitView) {
-        snapshotFlow { controller.snapshot().forPane(paneIndex, splitView) }.collectLatest { paneInsets ->
+        snapshotFlow { controller.snapshotForPane(paneIndex, splitView) }.collectLatest { paneInsets ->
             surface?.setChromeInsets(
                 leftPx = paneInsets.leftPx,
                 topPx = paneInsets.topPx,
@@ -168,7 +184,7 @@ internal fun ApplyPaneChromeInsets(
             )
         }
     }
-    val settled = controller.settledSnapshot().forPane(paneIndex, splitView)
+    val settled = controller.settledForPane(paneIndex, splitView)
     val density = LocalDensity.current
     return with(density) {
         PaddingValues(

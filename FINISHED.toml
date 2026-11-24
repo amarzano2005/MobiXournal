@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "fix-squashed-editortopbar-and-upgrade-splitlayout-to-144hz-slide"
+title = "Fix squashed EditorTopBar and upgrade SplitLayout to 144Hz slide"
+description = "Consumed WindowInsets.statusBars in stableStatusBarsPadding (ChromeInsetsState.kt) so TopAppBar keeps full 52.dp height without double top padding; replaced animated Row weights in SplitLayout.kt with full-width Pane 0 + translationX overlay for Divider and Pane 1 over rememberChromeColor, wired splitRightInsetPx/settledSplitRightPx through ChromeInsetController, applied insetPadding to Pane 1 emptyEntry and setZOrderMediaOverlay(true) on Pane 1 DrawingSurfaceView (EditorRegions.kt); updated docs/chrome.md; verified ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: TopAppBar status-bar consume fix preserves Chrome/Sheet backdrop while SplitLayout overlay backs Pane 1 with opaque rememberChromeColor; tokens: chromeSlideSpring and TOP_BAR_ROW_HEIGHT unchanged and checked by ColorContractGuardTest/TypeContractGuardTest; states: ChromeInsetController live splitRightInsetPx and settledForPane keep active, animating, emptyEntry, and settled split bounds aligned; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, and ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "zero-recomposition-focus-and-animated-split"
 title = "Eliminate Focus mode transition heaviness and animate Split Screen"
 description = "Eliminated Focus mode heaviness (stableStatusBarsPadding and kept TabStrip visible during TopBar exit, pure layout/draw-phase overlay offsets via topInsetLayout and progress lambdas, removed stale repaintAfterResize() from FocusModeEffect, added cache-only requestCachedOnly stand-ins on PdfPageCache and ImageBackgroundCache during chromeAnimating) and animated SplitLayout with chromeSlideSpring() coordinated with ChromeInsetController.splitAnimating; updated docs/chrome.md. Verified with ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and signed release APK."
