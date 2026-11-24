@@ -11,9 +11,12 @@
 [![Android and desktop CI](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml/badge.svg)](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml)
 [![Licence: GPL-2.0-or-later](https://img.shields.io/badge/Licence-GPL--2.0--or--later-blue.svg)](LICENSE)
 
-[<img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png"
-     alt="Get it on Obtainium"
-     height="80">](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/amarzano2005/MobiXournal)
+<a href="https://github.com/amarzano2005/MobiXournal/releases">
+  <img src="docs/assets/get-it-on-github.png" alt="Get it on GitHub" height="80">
+</a>
+<a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/amarzano2005/MobiXournal">
+  <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80">
+</a>
 
 [**Install on Android**](docs/guide-install-android.md) · [**Install on Windows 11**](docs/guide-install-windows.md) · [**User guide**](docs/guide-index.md) · [**Releases**](https://github.com/amarzano2005/MobiXournal/releases)
 
