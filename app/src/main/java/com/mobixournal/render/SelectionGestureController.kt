@@ -51,6 +51,8 @@ internal class SelectionGestureController(
     private val lassoMode: () -> Boolean,
     /** True when a rotate snaps to fixed angle steps. */
     private val snapRotation: () -> Boolean,
+    /** True when dragging a parametric shape corner snaps adjacent sides to 0/30/45/90°. */
+    private val snapVertices: () -> Boolean = { false },
     /** Latch the pre-gesture document, so the whole drag records as one undo step on release. */
     private val beginGesture: (Document) -> Unit,
     /** Re-fit the layout and repaint after a live transform changed the document. */
@@ -348,18 +350,17 @@ internal class SelectionGestureController(
     }
 
     /**
-     * Move the dragged corner **to the pointer**, with nothing pulling it sideways: a corner is where the
-     * finger is, so a shape can be flattened to any angle it likes. (The window offers Shift for the sides
-     * that should land on a guided direction; a tablet has no key to ask with, so it never guesses.)
-     * Re-applied from the live base every frame, so the drag accumulates no rounding drift.
+     * Move the dragged corner to the pointer (snapping sides to 0/30/45/90° when [snapVertices] holds).
+     * Re-applied from the live base each frame so the drag accumulates no rounding drift.
      */
     fun dragVertex(event: MotionEvent) {
         val base = vertexBase ?: return
         val sel = selection ?: return
         val box = layout().boxes.getOrNull(sel.pageIndex) ?: return
         val page = pageAt(sel.pageIndex) ?: return
-        val x = box.toPtX(event.x, viewport.scrollX)
-        val y = box.toPtY(event.y, viewport.scrollY)
+        val rawX = box.toPtX(event.x, viewport.scrollX)
+        val rawY = box.toPtY(event.y, viewport.scrollY)
+        val (x, y) = if (snapVertices()) ParametricShapes.snappedVertex(base, vertexIndex, rawX, rawY) else rawX to rawY
         val updated = ParametricShapes.moveVertex(base, vertexIndex, x, y)
         if (updated === base) return
         val edited = ElementEdits.replaceElementOn(page, base, updated) ?: return
@@ -375,13 +376,12 @@ internal class SelectionGestureController(
         vertexBase = null
     }
 
-    /** True if every element in [sel] is a stroke (the only element whose rotation round-trips) —
-     *  the condition for offering the rotate knob, which the view also asks before drawing it. */
+    /** True if every element in [sel] supports rotation (`Stroke`, `CircuitElement`, `ParametricShapeElement`). */
     fun isAllStrokes(sel: ActiveSelection): Boolean {
         val page = pageAt(sel.pageIndex) ?: return false
         return sel.refs.isNotEmpty() && sel.refs.all {
             val el = page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex)
-            el is Stroke || el is CircuitElement
+            el is Stroke || el is CircuitElement || el is ParametricShapeElement
         }
     }
 

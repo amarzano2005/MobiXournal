@@ -527,6 +527,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         activeLayerOf = { resolvedActiveLayer(it) },
         lassoMode = { lassoMode },
         snapRotation = { snapRotation },
+        snapVertices = { snapToGrid || snapRotation || guide is DrawingGuide.Ruling },
         beginGesture = { session.open(it) },
         refresh = { relayout(); render() },
         render = { render() },

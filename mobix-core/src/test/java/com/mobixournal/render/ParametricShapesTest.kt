@@ -1,5 +1,6 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.ShapeVertex
 import com.mobixournal.format.model.StrokePoint
@@ -7,6 +8,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
@@ -87,12 +89,21 @@ class ParametricShapesTest {
 
     @Test fun aSideAwayFromEveryGuidedAngleIsLeftAlone() {
         val shape = rect(0.0, 0.0, 100.0, 50.0)
-        val angle = Math.toRadians(20.0)
+        // 12° from v[2]=(100,50) also keeps v[0]->v[3] around 21.5°, so neither adjacent edge sits near 0/30/45/90°.
+        val angle = Math.toRadians(12.0)
         val x = 100.0 + 60.0 * cos(angle)
         val y = 50.0 + 60.0 * sin(angle)
         val (sx, sy) = ParametricShapes.snappedVertex(shape, 3, x, y)
         assertEquals(x, sx, 1e-9)
         assertEquals(y, sy, 1e-9)
+    }
+
+    @Test fun anOutgoingSideNearAGuidedAngleAlsoSnaps() {
+        val shape = rect(0.0, 0.0, 100.0, 50.0)
+        // Drag vertex 3 so edge v[3]->v[0] (vertical line at x=0) is 2° off vertical while incoming v[2]->v[3] is ~27° off horizontal (not snapped).
+        val (sx, sy) = ParametricShapes.snappedVertex(shape, 3, 2.0, 90.0)
+        assertEquals("outgoing side snaps vertical to x=0", 0.0, sx, 1e-5)
+        assertEquals(hypot(2.0, 90.0), sy, 1e-5)
     }
 
     @Test fun theSnappedCornerKeepsThePointersDistance() {
@@ -141,5 +152,44 @@ class ParametricShapesTest {
         val sum = (0..3).sumOf { ParametricShapes.interiorAngleDeg(dragged, it) }
         assertEquals(360.0, sum, 1e-6)
         assertTrue(ParametricShapes.interiorAngleDeg(dragged, 1) < 90.0)
+        // Breaking right angles reclassifies a rectangle honestly as a polygon.
+        assertEquals(ParametricShapes.POLYGON, dragged.shape)
+    }
+
+    @Test fun polygonShapeToolsCreateLivingShapesWithLineStyle() {
+        val rectPts = ShapeBuilder.build(ShapeKind.RECTANGLE, 10.0, 20.0, 110.0, 80.0, 2.0)
+        val rectShape = ParametricShapes.elementForShapeTool(
+            ShapeKind.RECTANGLE, rectPts, 0xFF112233.toInt(), 2.0, LineStyle.DASHED,
+        )
+        requireNotNull(rectShape)
+        assertEquals(ParametricShapes.RECTANGLE, rectShape.shape)
+        assertEquals(4, rectShape.vertices.size)
+        assertEquals(LineStyle.DASHED, rectShape.lineStyle)
+        // Lines and circles stay non-parametric strokes.
+        assertNull(
+            ParametricShapes.elementForShapeTool(
+                ShapeKind.ELLIPSE,
+                ShapeBuilder.build(ShapeKind.ELLIPSE, 0.0, 0.0, 40.0, 40.0, 2.0),
+                0xFF000000.toInt(),
+                2.0,
+            ),
+        )
+    }
+
+    @Test fun parametricSideLengthAndInteriorAngleEditVerticesAccurately() {
+        val tri = ParametricShapes.elementFor(triangleFigure(), 0xFF000000.toInt(), 1.5)!!
+        val stretched = ParametricShapes.setSideLength(tri, 0, 160.0)
+        assertEquals(160.0, ParametricShapes.sideLengthPt(stretched, 0), 1e-6)
+        val angled = ParametricShapes.setInteriorAngle(stretched, 0, 60.0)
+        assertEquals(60.0, ParametricShapes.interiorAngleDeg(angled, 0), 1e-6)
+    }
+
+    @Test fun rotateSelectionTurnsParametricShapeVerticesAroundPivot() {
+        val shape = rect(0.0, 0.0, 100.0, 50.0)
+        val rotated = SelectionOps.rotate(shape, PI / 2.0, 50.0, 25.0) as ParametricShapeElement
+        // Rotating 90° around centre (50,25) turns a 100x50 rectangle into a 50x100 rectangle.
+        val bounds = ElementBounds.of(rotated)
+        assertEquals(50.0, bounds.width - shape.strokeWidth, 1e-6)
+        assertEquals(100.0, bounds.height - shape.strokeWidth, 1e-6)
     }
 }

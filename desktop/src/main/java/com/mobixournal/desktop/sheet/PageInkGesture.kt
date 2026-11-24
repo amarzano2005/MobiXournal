@@ -381,7 +381,7 @@ internal class PageInkGesture(
         val drawnTool = tool.inkTool() ?: return
         val samples = draft.toList()
         val onLiftFigure = if (dwellFigure == null && recognition == ShapeRecognition.ON_LIFT && samples.size >= 3 &&
-            (drawnTool == Tool.PEN || drawnTool == Tool.HIGHLIGHTER) && ink.lineStyle == LineStyle.PLAIN
+            (drawnTool == Tool.PEN || drawnTool == Tool.HIGHLIGHTER)
         ) {
             val width = ink.width.toDouble()
             val points = samples.map { StrokePoint(it.x, it.y, width * it.factor) }
@@ -391,7 +391,7 @@ internal class PageInkGesture(
             null
         }
         val activeFigure = dwellFigure ?: onLiftFigure
-        val figure = activeFigure?.takeIf { drawnTool == Tool.PEN && ink.lineStyle == LineStyle.PLAIN }
+        val figure = activeFigure?.takeIf { drawnTool == Tool.PEN }
         dwellFigure = null
         drawnSamples = emptyList()
         draft.clear()
@@ -407,7 +407,7 @@ internal class PageInkGesture(
         }
         val index = tab.page
         val before = tab.document.snapshot()
-        val shape = figure?.let { ParametricShapes.elementFor(it, ink.colour, sampleWidth(samples)) }
+        val shape = figure?.let { ParametricShapes.elementFor(it, ink.colour, sampleWidth(samples), ink.lineStyle) }
         val wrote = if (shape != null) {
             // New ink lands on the tab's **active layer**, the tablet's rule: a layer picked in the Layers
             // menu is the one being written on, not always the stack's last sheet.
@@ -532,15 +532,18 @@ internal fun commitShape(
     ink: DesktopInk,
     onEdited: (Int) -> Unit,
 ) {
-    val stroke = shapeStroke(points, ink.colour, ink.width, ink.lineStyle, kind) ?: return
+    val element: com.mobixournal.format.model.Element =
+        ParametricShapes.elementForShapeTool(kind, points, ink.colour, ink.width.toDouble(), ink.lineStyle)
+            ?: shapeStroke(points, ink.colour, ink.width, ink.lineStyle, kind)
+            ?: return
     val index = tab.page
     val page = runCatching { tab.document.page(index) }.getOrNull() ?: return
-    val (grown, refs) = SelectionOps.addToLayerOn(page, listOf(stroke), tab.inkLayer(page))
+    val (grown, refs) = SelectionOps.addToLayerOn(page, listOf(element), tab.inkLayer(page))
     if (refs.isEmpty()) return
     val before = tab.document.snapshot()
     if (tab.document.editPage(index) { grown } == null) return
     tab.record(before)
-    val bounds = ElementBounds.of(stroke)
+    val bounds = ElementBounds.of(element)
     tab.selection = PageSelection(rectRegion(bounds.left, bounds.top, bounds.right, bounds.bottom), refs)
     onEdited(index)
 }

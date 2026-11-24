@@ -380,12 +380,8 @@ internal fun DrawingSurfaceView.commitCurrent() {
         recognised?.points
             ?: StrokeSimplifier.simplify(raw, StrokeSimplifier.toleranceFor(pxPerPt, strokePrecision))
     }
-    // A closed polygon is kept as geometry, not as the ink it would flatten into (`DrawingSurfaceFigures`).
-    val kept = figure != null && commitRecognisedFigure(figure, raw)
-    if (kept) {
-        render()
-        return
-    }
+    val kept = if (wasShaping) commitShapeToolFigure(shapeKind, raw) else figure != null && commitRecognisedFigure(figure, raw)
+    if (kept) { render(); return }
     val finalPts = magnetised(pts, wasShaping)
     // A highlighter over an imported PDF's text layer becomes flat bands on the lines it crossed; a
     // drag that is not a horizontal highlight over text gets an empty list and stays freehand.

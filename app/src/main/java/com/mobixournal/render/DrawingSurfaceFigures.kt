@@ -11,6 +11,7 @@ package com.mobixournal.render
 
 import android.graphics.Canvas
 import com.mobixournal.format.model.LineStyle
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.CanvasChrome.Companion.HANDLE_DRAW_PX
@@ -34,16 +35,16 @@ internal fun DrawingSurfaceView.recogniseStroke(raw: List<StrokePoint>): Recogni
 }
 
 /**
- * Draw a dot on each corner of the selected figure — the handles [SelectionGestureController] drags,
- * drawn exactly where its hit test looks for them.
+ * Draw a haloed dot on each corner of the selected figure — distinct from box edge handles and
+ * drawn exactly where [SelectionGestureController] hit-tests them.
  */
 internal fun DrawingSurfaceView.drawShapeVertexHandles(canvas: Canvas, box: PageBox) {
     val shape = singleSelectedShape() ?: return
     for (v in shape.vertices) {
-        canvas.drawCircle(
-            box.toViewX(v.x, scrollX), box.toViewY(v.y, scrollY),
-            HANDLE_DRAW_PX, chrome.handle,
-        )
+        val vx = box.toViewX(v.x, scrollX)
+        val vy = box.toViewY(v.y, scrollY)
+        canvas.drawCircle(vx, vy, HANDLE_DRAW_PX + 2f, chrome.pinHalo)
+        canvas.drawCircle(vx, vy, HANDLE_DRAW_PX, chrome.handle)
     }
 }
 
@@ -51,27 +52,49 @@ internal fun DrawingSurfaceView.drawShapeVertexHandles(canvas: Canvas, box: Page
  * Commit [figure] as a living shape and return **true** when it was kept as geometry; false means the
  * caller should carry on and commit the stroke as ink.
  *
- * Only the pen and a plain line qualify:
- *  - a highlighter's ink is its own thing (alpha, blending) and a `parametricShape` has no such field,
- *  - a dashed line style is not carried by the element either, so keeping the figure would silently
- *    straighten a dashed outline into a solid one.
- *
- * The stroke is adopted through the gesture's own bookkeeping (as a stroke is), so one drawn figure is
- * one undo step.
+ * A highlighter's ink carries its own blending and stays a stroke, while a dashed or dotted outline
+ * now travels cleanly on `ParametricShapeElement.lineStyle`.
  */
 internal fun DrawingSurfaceView.commitRecognisedFigure(
     figure: RecognisedFigure,
     raw: List<StrokePoint>,
 ): Boolean {
-    if (shapeDraft.active || tool != Tool.PEN || currentLineStyle != LineStyle.PLAIN) return false
+    if (shapeDraft.active || tool != Tool.PEN) return false
     val shape = ParametricShapes.elementFor(
         figure = figure,
         strokeColor = strokeColor(),
         strokeWidth = raw.map { it.width }.average(),
+        lineStyle = currentLineStyle,
     ) ?: return false
+    commitLivingShape(shape, select = false)
+    return true
+}
+
+/**
+ * Commit an explicit closed-polygon tool drag (`RECTANGLE`, `SQUARE`, `TRIANGLE`, `TRAPEZOID`, `POLYGON`)
+ * as a living [ParametricShapeElement] and leave it selected; returns false for strokes such as lines,
+ * arrows, axes, and ellipses.
+ */
+internal fun DrawingSurfaceView.commitShapeToolFigure(
+    kind: ShapeKind?,
+    points: List<StrokePoint>,
+): Boolean {
+    if (kind == null || tool != Tool.PEN) return false
+    val shape = ParametricShapes.elementForShapeTool(
+        kind = kind,
+        points = points,
+        strokeColor = strokeColor(),
+        strokeWidth = shapeDraft.widthPt,
+        lineStyle = currentLineStyle,
+    ) ?: return false
+    commitLivingShape(shape, select = true)
+    return true
+}
+
+private fun DrawingSurfaceView.commitLivingShape(shape: ParametricShapeElement, select: Boolean) {
     ElementEdits.addElement(doc, ink.currentPage, shape) { resolvedActiveLayer(it) }?.let { edited ->
         doc = edited
+        if (select) selectInsertedElement(ink.currentPage)
         relayout()
     }
-    return true
 }

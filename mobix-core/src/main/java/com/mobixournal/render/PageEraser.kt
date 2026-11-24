@@ -3,6 +3,7 @@ package com.mobixournal.render
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.isLivingEntity
@@ -84,7 +85,7 @@ object PageEraser {
         for (idx in elements.indices) {
             val el = elements[idx]
             if (el.isLivingEntity) {
-                if (hitsLiving(el, px, py, radius)) {
+                if (mode == EraserMode.WHOLE_STROKE && hitsLiving(el, px, py, radius)) {
                     ensureRebuilt(idx)
                 } else {
                     rebuilt?.add(el)
@@ -114,10 +115,11 @@ object PageEraser {
         }
         val ink = LivingInk.of(element)
         val radiusSq = radius * radius
+        val ignoreLabels = element is ParametricShapeElement
         for (el in ink.elements) {
             when (el) {
                 is Stroke -> if (StrokeHitTester.hits(el, px, py, radius)) return true
-                is TextElement -> {
+                is TextElement -> if (!ignoreLabels) {
                     val b = ElementBounds.of(el)
                     val cx = px.coerceIn(b.left, b.right)
                     val cy = py.coerceIn(b.top, b.bottom)

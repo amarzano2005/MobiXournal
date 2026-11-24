@@ -6,6 +6,7 @@ import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
@@ -13,6 +14,7 @@ import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.FigurePins
 import com.mobixournal.render.LivingSlot
+import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.SelectionTester
 import com.mobixournal.render.ShapeBuilder
 import com.mobixournal.render.ShapeKind
@@ -98,10 +100,14 @@ internal fun placementPick(
     }
 }
 
-/** The figure [kind]'s own stroke under the press, or null — and never half of a multi-stroke figure. */
+/** The figure [kind]'s own stroke or living polygon under the press, or null — and never half of a multi-stroke figure. */
 private fun figurePick(page: Page, kind: ShapeKind, xPt: Double, yPt: Double): ElementRef? {
     if (ShapeBuilder.isMultiStroke(kind)) return null
-    return SelectionTester.pickTopmost(page, xPt, yPt) { it is Stroke && FigurePins.isFigureOf(it, kind) }
+    val shapeName = ParametricShapes.shapeNameForTool(kind)
+    return SelectionTester.pickTopmost(page, xPt, yPt) {
+        (it is Stroke && FigurePins.isFigureOf(it, kind)) ||
+            (shapeName != null && it is ParametricShapeElement && it.shape == shapeName)
+    }
 }
 
 /**

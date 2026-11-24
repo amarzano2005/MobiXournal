@@ -6,6 +6,7 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.render.ParametricShapes
+import com.mobixournal.render.TableElementFactory
 import kotlin.math.hypot
 
 /**
@@ -100,26 +101,16 @@ internal fun dragGrip(element: Element, grip: LivingGrip, dx: Double, dy: Double
 
         element is TableElement && grip is LivingGrip.ColumnEdge -> {
             val before = element.colWidths.getOrNull(grip.index - 1) ?: return element
-            val after = element.colWidths.getOrNull(grip.index) ?: return element
-            val delta = dx.coerceIn(GRIP_MIN_CELL_PT - before, after - GRIP_MIN_CELL_PT)
-            if (delta == 0.0) return element
-            val widths = element.colWidths.toMutableList().also {
-                it[grip.index - 1] = before + delta
-                it[grip.index] = after - delta
-            }
-            element.copy(colWidths = widths)
+            val newWidth = (before + dx).coerceAtLeast(TableElementFactory.MIN_COL_WIDTH_PT)
+            if (newWidth == before) return element
+            TableElementFactory.updateColWidth(element, grip.index - 1, newWidth)
         }
 
         element is TableElement && grip is LivingGrip.RowEdge -> {
             val before = element.rowHeights.getOrNull(grip.index - 1) ?: return element
-            val after = element.rowHeights.getOrNull(grip.index) ?: return element
-            val delta = dy.coerceIn(GRIP_MIN_CELL_PT - before, after - GRIP_MIN_CELL_PT)
-            if (delta == 0.0) return element
-            val heights = element.rowHeights.toMutableList().also {
-                it[grip.index - 1] = before + delta
-                it[grip.index] = after - delta
-            }
-            element.copy(rowHeights = heights)
+            val newHeight = (before + dy).coerceAtLeast(TableElementFactory.MIN_ROW_HEIGHT_PT)
+            if (newHeight == before) return element
+            TableElementFactory.updateRowHeight(element, grip.index - 1, newHeight)
         }
 
         else -> element

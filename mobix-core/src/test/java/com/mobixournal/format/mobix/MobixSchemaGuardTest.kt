@@ -274,7 +274,7 @@ class MobixSchemaGuardTest {
             {"type":"parametricShape","id":"shp_1","shape":"pentagon",
              "bounds":{"left":1.0,"top":2.0,"right":3.0,"bottom":4.0},
              "vertices":[{"x":1.0,"y":2.0}],
-             "strokeColor":"#000000ff","strokeWidth":1.5,"fillColor":"#11223344",
+             "strokeColor":"#000000ff","strokeWidth":1.5,"lineStyle":"DASHED","fillColor":"#11223344",
              "showAngles":true,"showSideLengths":true}
         """,
         "circuit" to """

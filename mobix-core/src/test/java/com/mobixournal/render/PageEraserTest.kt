@@ -3,14 +3,16 @@ package com.mobixournal.render
 import com.mobixournal.format.model.Background
 import com.mobixournal.format.model.Layer
 import com.mobixournal.format.model.Page
-import com.mobixournal.format.model.Stroke
-import com.mobixournal.format.model.StrokePoint
-import com.mobixournal.format.model.Tool
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotCurve
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
+import com.mobixournal.format.model.ShapeVertex
+import com.mobixournal.format.model.Stroke
+import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TableCell
 import com.mobixournal.format.model.TableElement
+import com.mobixournal.format.model.Tool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -119,12 +121,34 @@ class PageEraserTest {
         assertTrue(out!!.layers[0].elements.isEmpty())
     }
 
-    @Test fun erasingTableDeletesItInStandardMode() {
+    @Test fun standardModeIgnoresLivingEntities() {
         val tbl = table()
         val p = page(Layer(listOf(tbl)))
-        val out = PageEraser.erase(p, 50.0, 50.0, 3.0, EraserMode.STANDARD)
-        assertNotNull(out)
-        assertTrue(out!!.layers[0].elements.isEmpty())
+        assertNull(PageEraser.erase(p, 50.0, 50.0, 3.0, EraserMode.STANDARD))
+    }
+
+    @Test fun erasingParametricShapeIgnoresReadoutLabels() {
+        val shape = ParametricShapeElement(
+            shape = ParametricShapes.RECTANGLE,
+            vertices = listOf(
+                ShapeVertex(100.0, 100.0),
+                ShapeVertex(220.0, 100.0),
+                ShapeVertex(220.0, 180.0),
+                ShapeVertex(100.0, 180.0),
+            ),
+            strokeColor = 0xFF000000.toInt(),
+            strokeWidth = 2.0,
+            showAngles = true,
+            showSideLengths = true,
+            id = "shp_label_guard",
+        )
+        val p = page(Layer(listOf(shape)))
+        // Side 0 length label sits outside the top edge (midX = 160, above y = 100). Grazing it must not delete.
+        assertNull(PageEraser.erase(p, 160.0, 88.0, 3.0, EraserMode.WHOLE_STROKE))
+        // Touching the outline itself in WHOLE_STROKE mode deletes the living shape.
+        val erased = PageEraser.erase(p, 160.0, 100.0, 3.0, EraserMode.WHOLE_STROKE)
+        assertNotNull(erased)
+        assertTrue(erased!!.layers[0].elements.isEmpty())
     }
 
     @Test fun missingLivingEntityLeavesItAlone() {

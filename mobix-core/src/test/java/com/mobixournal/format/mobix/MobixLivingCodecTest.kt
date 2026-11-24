@@ -128,6 +128,7 @@ class MobixLivingCodecTest {
         showAngles = true,
         showSideLengths = true,
         id = "shp_01",
+        lineStyle = LineStyle.DASHED,
     )
 
     private fun circuit() = CircuitElement(

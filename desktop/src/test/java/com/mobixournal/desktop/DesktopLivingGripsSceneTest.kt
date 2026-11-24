@@ -85,7 +85,7 @@ class DesktopLivingGripsSceneTest {
 
             val after = elements(tab).filterIsInstance<TableElement>().single()
             assertEquals("the first column took the drag", table.colWidths[0] + 30.0, after.colWidths[0], 1.5)
-            assertEquals("the grid did not grow", table.width, after.width, 1.5)
+            assertEquals("the grid grew by the column delta", table.width + 30.0, after.width, 1.5)
             assertEquals("under the same selection", 1, tab.selection?.refs?.size)
             assertEquals(
                 "the outline still traces the element's box",

@@ -128,6 +128,7 @@ Example: [mobix-living-entities.md](mobix-living-entities.md) → *Function plot
 | `vertices[]` | array of `{ x, y }`, numbers in pt | pt | **required and non-empty**: no vertices, no figure |
 | `strokeColor` | `#RRGGBBAA` | — | opaque black |
 | `strokeWidth` | number | pt | `1.0` |
+| `lineStyle` | `PLAIN` \| `DASHED` \| `DASH_DOT` \| `DOTTED` | — | `PLAIN`; an unknown style refuses the element |
 | `fillColor` | `#RRGGBBAA` | — | absent: an unfilled outline |
 | `showAngles` | boolean | — | `false` |
 | `showSideLengths` | boolean | — | `false` |

@@ -1,7 +1,10 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.ElementId
+import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.ShapeVertex
+import com.mobixournal.format.model.StrokePoint
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -28,6 +31,21 @@ object ParametricShapes {
 
     /** The shape-library key a recognised rectangle is stored under. */
     const val RECTANGLE = "RECTANGLE"
+
+    /** The shape-library key a square-tool polygon is stored under. */
+    const val SQUARE = "SQUARE"
+
+    /** The shape-library key a trapezoid-tool polygon is stored under. */
+    const val TRAPEZOID = "TRAPEZOID"
+
+    /** The shape-library key a generic or regular polygon is stored under. */
+    const val POLYGON = "POLYGON"
+
+    /** Maximum deviation (degrees) from 90° for a quadrilateral to still count as rectangular. */
+    private const val RIGHT_ANGLE_TOL_DEG = 0.5
+
+    /** Maximum side-length spread (pt) for a rectangular 4-gon to still count as square. */
+    private const val EQUAL_SIDE_TOL_PT = 0.5
 
     /**
      * How far (degrees) a dragged side may sit from a guided direction and still be pulled onto it.
@@ -61,6 +79,16 @@ object ParametricShapes {
         else -> null
     }
 
+    /** The shape-library key a closed-polygon figure tool [kind] writes, or null when it stays a stroke. */
+    fun shapeNameForTool(kind: ShapeKind): String? = when (kind) {
+        ShapeKind.RECTANGLE -> RECTANGLE
+        ShapeKind.SQUARE -> SQUARE
+        ShapeKind.TRIANGLE -> TRIANGLE
+        ShapeKind.TRAPEZOID -> TRAPEZOID
+        ShapeKind.POLYGON -> POLYGON
+        else -> null
+    }
+
     /**
      * [figure] as the living shape it should be kept as, or **null** when it is not a closed polygon
      * (the caller then keeps the recognised stroke).
@@ -68,11 +96,13 @@ object ParametricShapes {
      * @param figure What the recogniser matched.
      * @param strokeColor The ink the stroke was drawn in, as an ARGB int.
      * @param strokeWidth The width the stroke was drawn at, in points.
+     * @param lineStyle Stroke pattern of the outline ([LineStyle.PLAIN] by default).
      */
     fun elementFor(
         figure: RecognisedFigure,
         strokeColor: Int,
         strokeWidth: Double,
+        lineStyle: LineStyle = LineStyle.PLAIN,
     ): ParametricShapeElement? {
         if (!figure.isClosedPolygon) return null
         val vertices = verticesOf(figure)
@@ -82,12 +112,40 @@ object ParametricShapes {
             vertices = vertices,
             strokeColor = strokeColor,
             strokeWidth = strokeWidth,
+            id = ElementId.mint(ElementId.SHAPE),
+            lineStyle = lineStyle,
+        )
+    }
+
+    /**
+     * A closed-polygon tool's [points] turned into a living [ParametricShapeElement], or **null**
+     * when [kind] is not a polygon tool or has fewer than three corners.
+     */
+    fun elementForShapeTool(
+        kind: ShapeKind,
+        points: List<StrokePoint>,
+        strokeColor: Int,
+        strokeWidth: Double,
+        lineStyle: LineStyle = LineStyle.PLAIN,
+    ): ParametricShapeElement? {
+        val key = shapeNameForTool(kind) ?: return null
+        val vertices = verticesOfPoints(points)
+        if (vertices.size < MIN_VERTICES) return null
+        return ParametricShapeElement(
+            shape = key,
+            vertices = vertices,
+            strokeColor = strokeColor,
+            strokeWidth = strokeWidth,
+            id = ElementId.mint(ElementId.SHAPE),
+            lineStyle = lineStyle,
         )
     }
 
     /** [figure]'s corners: its emitted points without the closing repetition of the first one. */
-    fun verticesOf(figure: RecognisedFigure): List<ShapeVertex> {
-        val points = figure.points
+    fun verticesOf(figure: RecognisedFigure): List<ShapeVertex> = verticesOfPoints(figure.points)
+
+    /** Polygon corners extracted from [points], dropping any closing repeat of the first point. */
+    private fun verticesOfPoints(points: List<StrokePoint>): List<ShapeVertex> {
         if (points.isEmpty()) return emptyList()
         val first = points.first()
         val last = points.last()
@@ -97,25 +155,78 @@ object ParametricShapes {
     }
 
     /**
-     * [shape] with the vertex at [index] moved to ([x], [y]) pt. Out-of-range indices and figures
-     * with too few corners come back unchanged, so a stale handle can never corrupt a shape.
+     * [shape] with the vertex at [index] moved to ([x], [y]) pt. Out-of-range indices come back
+     * unchanged so a stale handle can never corrupt a shape; a rectangular kind whose right angles
+     * or equal sides were broken by the move is honestly relabelled.
      */
     fun moveVertex(shape: ParametricShapeElement, index: Int, x: Double, y: Double): ParametricShapeElement {
         if (index !in shape.vertices.indices) return shape
         val moved = shape.vertices.toMutableList()
         moved[index] = ShapeVertex(x, y)
-        return shape.copy(vertices = moved)
+        val raw = shape.copy(vertices = moved)
+        return raw.copy(shape = reclassifiedKind(raw))
+    }
+
+    /**
+     * Updates [edgeIndex]'s side length to [newLengthPt] pt by moving its end vertex along the side's
+     * current direction. Leaves the start corner fixed so the figure grows or shrinks cleanly.
+     */
+    fun setSideLength(shape: ParametricShapeElement, edgeIndex: Int, newLengthPt: Double): ParametricShapeElement {
+        val count = shape.vertices.size
+        if (count < MIN_VERTICES || edgeIndex !in shape.vertices.indices) return shape
+        if (!newLengthPt.isFinite() || newLengthPt <= SAME_POINT_PT) return shape
+        val from = shape.vertices[edgeIndex]
+        val nextIndex = (edgeIndex + 1) % count
+        val to = shape.vertices[nextIndex]
+        val dx = to.x - from.x
+        val dy = to.y - from.y
+        val current = hypot(dx, dy)
+        val (ux, uy) = if (current > SAME_POINT_PT) (dx / current) to (dy / current) else 1.0 to 0.0
+        return moveVertex(shape, nextIndex, from.x + ux * newLengthPt, from.y + uy * newLengthPt)
+    }
+
+    /**
+     * Sets the interior angle at [vertexIndex] to [newAngleDeg] degrees by rotating its outgoing side
+     * around [vertexIndex] while preserving that side's length and the polygon's local winding.
+     */
+    fun setInteriorAngle(shape: ParametricShapeElement, vertexIndex: Int, newAngleDeg: Double): ParametricShapeElement {
+        val count = shape.vertices.size
+        if (count < MIN_VERTICES || vertexIndex !in shape.vertices.indices) return shape
+        if (!newAngleDeg.isFinite() || newAngleDeg !in 1.0..179.0) return shape
+        val prev = shape.vertices[(vertexIndex - 1 + count) % count]
+        val vertex = shape.vertices[vertexIndex]
+        val nextIndex = (vertexIndex + 1) % count
+        val next = shape.vertices[nextIndex]
+        val ax = prev.x - vertex.x
+        val ay = prev.y - vertex.y
+        val bx = next.x - vertex.x
+        val by = next.y - vertex.y
+        val lenA = hypot(ax, ay)
+        val lenB = hypot(bx, by)
+        if (lenA <= SAME_POINT_PT || lenB <= SAME_POINT_PT) return shape
+        val sign = if (ax * by - ay * bx >= 0.0) 1.0 else -1.0
+        val targetAngle = atan2(ay, ax) + sign * Math.toRadians(newAngleDeg)
+        return moveVertex(shape, nextIndex, vertex.x + lenB * cos(targetAngle), vertex.y + lenB * sin(targetAngle))
+    }
+
+    /** Keeps `SQUARE` and `RECTANGLE` labels truthful after free vertex edits. */
+    private fun reclassifiedKind(shape: ParametricShapeElement): String {
+        if (shape.shape != RECTANGLE && shape.shape != SQUARE) return shape.shape
+        if (shape.vertices.size != 4) return POLYGON
+        val rightAngles = (0 until 4).all { abs(interiorAngleDeg(shape, it) - 90.0) <= RIGHT_ANGLE_TOL_DEG }
+        if (!rightAngles) return POLYGON
+        if (shape.shape == SQUARE) {
+            val lengths = (0 until 4).map { sideLengthPt(shape, it) }
+            if (lengths.max() - lengths.min() > EQUAL_SIDE_TOL_PT) return RECTANGLE
+        }
+        return shape.shape
     }
 
     /**
      * Where the vertex at [index] should sit for a pointer at ([x], [y]) pt: the free position,
-     * unless the side leading into it — from its previous vertex — is within
-     * [VERTEX_SNAP_TOLERANCE_DEG] of one of [VERTEX_SNAP_ANGLES_DEG], in which case the side is
-     * pulled exactly onto that direction and the corner keeps the pointer's distance from the
-     * previous vertex.
-     *
-     * The point follows the pen's radius rather than its exact position, so a snapped drag feels
-     * like the corner is on a rail under the finger instead of jumping away from it.
+     * unless either adjacent side (from the previous or next vertex) is within [toleranceDeg] of
+     * [VERTEX_SNAP_ANGLES_DEG], in which case the closer-aligned side snaps onto that direction while
+     * keeping the pointer's distance from that anchor.
      */
     fun snappedVertex(
         shape: ParametricShapeElement,
@@ -126,14 +237,32 @@ object ParametricShapes {
     ): Pair<Double, Double> {
         val count = shape.vertices.size
         if (count < 2 || index !in shape.vertices.indices) return x to y
-        val anchor = shape.vertices[(index - 1 + count) % count]
-        val dx = x - anchor.x
-        val dy = y - anchor.y
-        val length = hypot(dx, dy)
-        if (length < SAME_POINT_PT) return x to y
-        val direction = snapDirectionDeg(Math.toDegrees(atan2(dy, dx)), toleranceDeg) ?: return x to y
-        val radians = Math.toRadians(direction)
-        return (anchor.x + length * cos(radians)) to (anchor.y + length * sin(radians))
+        val anchors = listOf(
+            shape.vertices[(index - 1 + count) % count],
+            shape.vertices[(index + 1) % count],
+        )
+        var bestAnchor: ShapeVertex? = null
+        var bestDirection = 0.0
+        var bestLength = 0.0
+        var bestDelta = Double.MAX_VALUE
+        for (anchor in anchors) {
+            val dx = x - anchor.x
+            val dy = y - anchor.y
+            val length = hypot(dx, dy)
+            if (length < SAME_POINT_PT) continue
+            val rawDeg = Math.toDegrees(atan2(dy, dx))
+            val direction = snapDirectionDeg(rawDeg, toleranceDeg) ?: continue
+            val delta = abs(normaliseDeg(rawDeg - direction))
+            if (delta < bestDelta) {
+                bestDelta = delta
+                bestAnchor = anchor
+                bestDirection = direction
+                bestLength = length
+            }
+        }
+        val anchor = bestAnchor ?: return x to y
+        val radians = Math.toRadians(bestDirection)
+        return (anchor.x + bestLength * cos(radians)) to (anchor.y + bestLength * sin(radians))
     }
 
     /** The length of the side that starts at [index] and ends at the next vertex, in pt. */

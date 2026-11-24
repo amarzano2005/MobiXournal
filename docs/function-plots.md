@@ -41,22 +41,8 @@ pulled back inside the sheet, the same idea as `placeGuide`.
 
 ## Living figures
 
-**Living figures (`ParametricShapes.kt`, `ShapeEditorDialog.kt`).** A closed polygon drawn freehand is
-the one recognised figure that is kept as **geometry instead of ink**: when the recogniser's kind is a
-triangle or a rectangle, `commitCurrent` commits a `ParametricShapeElement` (its corners, the pen's
-colour and width) rather than the uniform-width stroke the same geometry would have become
-(`docs/mobix-elements.md`). Only the pen and a plain line qualify — a highlighter's ink and a dashed
-line are properties the element does not carry, so those stay strokes, and so do circles, ellipses,
-arrows, arcs and lines, whose vertices would not be corners to drag.
+**Living figures (`ParametricShapes.kt`, `ShapeEditorDialog.kt`).** Closed polygons — whether drawn freehand and matched as a triangle/rectangle or drawn with the Rectangle, Square, Triangle, Trapezoid, or Polygon tool — commit as a living `ParametricShapeElement` (its corners, pen colour/width, and `LineStyle`) rather than a dead stroke (`docs/mobix-elements.md`). A highlighter's ink keeps alpha blending as a stroke, and circles, ellipses, arrows, arcs, axes, and lines stay strokes.
 
-Selecting one draws a handle on each corner. Dragging a handle deforms the figure **live** — the box,
-the selection outline and the readout badges all follow the same frame — and the corner goes exactly
-where the pointer is: a plain drag never pulls a side onto the page's axes, so a shape can be flattened
-to any angle it likes. The window adds the constraint on request — **Shift** while dragging turns the
-side leading into the corner onto 0°, 30°, 45° or 90° when it is within `VERTEX_SNAP_TOLERANCE_DEG`
-(7°) of one, keeping the pointer's distance from the previous corner so it reads as a rail, not a jump.
-**Edit shape** on the selection bar toggles the two readouts (*Show side lengths*, *Show angles*).
+Selecting a living figure replaces the bounding box's corner squares with distinct corner vertex handles so corners bend cleanly without overlap, while edge handles stretch and the rotate knob turns the figure (`SelectionOps.rotate`). Dragging a corner snaps adjacent sides to 0°, 30°, 45° or 90° (within 7°) when `Shift` is held on desktop or when Snap / Page ruling is enabled on Android, leaving drags free otherwise. Both **Edit shape** (`ShapeEditorDialog.kt`) and the desktop inspector (`ShapeInspector.kt`) edit exact side lengths, interior angles, outline width/colour, fill colour, and label toggles (*Show side lengths*, *Show angles*).
 
-The maths is pure and unit-tested (`ParametricShapesTest`) — `moveVertex`, `snappedVertex`,
-`sideLengthPt`, `interiorAngleDeg` — and the labels on screen are drawn by `ShapeInk` calling those
-same functions, so what the sheet shows is what the `.xopp` export writes.
+The maths is pure and unit-tested (`ParametricShapesTest`) — `elementForShapeTool`, `moveVertex`, `snappedVertex`, `setSideLength`, `setInteriorAngle`, `sideLengthPt`, `interiorAngleDeg` — and the labels on screen are drawn by `ShapeInk` calling those same functions, so what the sheet shows is what the `.xopp` export writes.

@@ -2,6 +2,7 @@ package com.mobixournal.format.mobix
 
 import com.mobixournal.format.json.JsonNode
 import com.mobixournal.format.model.ElementId
+import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.ShapeVertex
 
@@ -31,7 +32,7 @@ internal object MobixShapeCodec {
 
     private val SHAPE_KEYS = setOf(
         "type", "id", "shape", MobixJson.BOUNDS, VERTICES, "strokeColor", "strokeWidth",
-        "fillColor", "showAngles", "showSideLengths", MobixJson.ATTRS,
+        "lineStyle", "fillColor", "showAngles", "showSideLengths", MobixJson.ATTRS,
     )
     private val VERTEX_KEYS = setOf("x", "y")
 
@@ -44,6 +45,7 @@ internal object MobixShapeCodec {
         out[VERTICES] = JsonNode.arr(shape.vertices.map(::encodeVertex))
         out["strokeColor"] = MobixJson.colour(shape.strokeColor)
         out["strokeWidth"] = JsonNode.of(shape.strokeWidth)
+        if (shape.lineStyle != LineStyle.PLAIN) out["lineStyle"] = JsonNode.of(shape.lineStyle.name)
         shape.fillColor?.let { out["fillColor"] = MobixJson.colour(it) }
         out["showAngles"] = JsonNode.of(shape.showAngles)
         out["showSideLengths"] = JsonNode.of(shape.showSideLengths)
@@ -75,6 +77,8 @@ internal object MobixShapeCodec {
      */
     fun decode(node: JsonNode.Obj, mint: (String) -> String = ElementId::mint): ParametricShapeElement? {
         val vertices = decodeVertices(node) ?: return null
+        val styleName = node.getStr("lineStyle", LineStyle.PLAIN.name)
+        val lineStyle = LineStyle.entries.firstOrNull { it.name == styleName } ?: return null
         return ParametricShapeElement(
             shape = node.getStrOrNull("shape") ?: return null,
             vertices = vertices,
@@ -86,6 +90,7 @@ internal object MobixShapeCodec {
             extraAttrs = MobixJson.readAttrs(node),
             id = node.getStrOrNull("id") ?: mint(ElementId.SHAPE),
             unknown = MobixJson.unknownFields(node, SHAPE_KEYS),
+            lineStyle = lineStyle,
         )
     }
 

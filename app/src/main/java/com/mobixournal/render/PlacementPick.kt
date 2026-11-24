@@ -30,6 +30,7 @@ package com.mobixournal.render
 import android.view.MotionEvent
 import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.Stroke
 import kotlin.math.hypot
@@ -96,8 +97,10 @@ internal fun pickPlotRef(page: Page, xPt: Double, yPt: Double): ElementRef? =
  */
 internal fun pickFigureElement(page: Page, xPt: Double, yPt: Double, kind: ShapeKind): ElementRef? {
     if (ShapeBuilder.isMultiStroke(kind)) return null
+    val shapeName = ParametricShapes.shapeNameForTool(kind)
     return SelectionTester.pickTopmost(page, xPt, yPt) {
-        it is Stroke && FigurePins.isFigureOf(it, kind)
+        (it is Stroke && FigurePins.isFigureOf(it, kind)) ||
+            (shapeName != null && it is ParametricShapeElement && it.shape == shapeName)
     }
 }
 

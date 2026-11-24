@@ -201,9 +201,7 @@ land on the mid-line where the hand presses to carry it, and a handle that could
 the press back to the body (`SelectionMovePaintTest`). The same rule makes a **corner** drag on a line its end
 handle — the aspect lock has no ratio to keep on a flat axis, so it is skipped rather than copying a factor
 read off a couple of points of ink — and a scale is bounded (0.05–20) so a short span cannot turn a hand's
-travel into an explosion (`DesktopSelectionTest`). The outline also carries
-— for an all-stroke selection only — a **right-edge rotate knob**
-(`SelectionOps.rotate`, which bakes the angle into stroke vertices). A **lasso** marquee
+travel into an explosion (`DesktopSelectionTest`). The outline also carries — for selections of strokes, circuit components, or parametric shapes — a **rotate knob** (`SelectionOps.rotate`). A **lasso** marquee
 (`lassoMode`) selects everything wholly inside a traced polygon (`SelectionTester.inPolygon`),
 alongside the rectangle. Both containment tests judge a **stroke's own points**, never its bounding
 box — a diagonal or curved stroke's box reaches past the trace, so a box test dropped exactly the stroke

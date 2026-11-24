@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.SelectionShaft
@@ -36,7 +37,13 @@ internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, l
     // A line or an arrow shows **no outline**: two end squares and the turn ring are the whole of its
     // selection, because the box round a shaft would promise corners the ink does not have.
     if (shaft == null) drawRegion(selection.region, pxPerPt, dashed = true)
-    drawHandles(selection, pxPerPt, isImage = living is ImageElement, shaft = shaft)
+    drawHandles(
+        selection,
+        pxPerPt,
+        isImage = living is ImageElement,
+        shaft = shaft,
+        includeCorners = living !is ParametricShapeElement,
+    )
     // The element's own grips, inside the box: a figure's corners and a table's dividers. They are round
     // where the box's handles are square, so the two never read as the same thing.
     if (living != null) drawGrips(living, pxPerPt)
@@ -104,6 +111,7 @@ private fun DrawScope.drawHandles(
     pxPerPt: Float,
     isImage: Boolean = false,
     shaft: SelectionShaft? = null,
+    includeCorners: Boolean = true,
 ) {
     val box = selection.bounds
     fun off(x: Double, y: Double) = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
@@ -120,7 +128,7 @@ private fun DrawScope.drawHandles(
         square(off(shaft.tailX, shaft.tailY))
         square(off(shaft.tipX, shaft.tipY))
     } else {
-        if (!box.isFlatX && !box.isFlatY) {
+        if (includeCorners && !box.isFlatX && !box.isFlatY) {
             for (corner in listOf(
                 off(box.left, box.top), off(box.right, box.top),
                 off(box.right, box.bottom), off(box.left, box.bottom),

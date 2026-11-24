@@ -1,7 +1,6 @@
 package com.mobixournal.desktop
 
 import com.mobixournal.desktop.ink.of
-import com.mobixournal.desktop.sheet.GRIP_MIN_CELL_PT
 import com.mobixournal.desktop.sheet.LivingGrip
 import com.mobixournal.desktop.sheet.TapTracker
 import com.mobixournal.desktop.sheet.dragGrip
@@ -125,35 +124,31 @@ class LivingGripsTest {
     }
 
     @Test
-    fun `a divider widens its column, keeps the box's width and touches no cell`() {
+    fun `a divider widens its column without stealing from its neighbour`() {
         val table = table()
         val width = table.colWidths[0]
+        val second = table.colWidths[1]
         val moved = dragGrip(table, LivingGrip.ColumnEdge(1), dx = 20.0, dy = 0.0)
         assertTrue(moved is TableElement)
         moved as TableElement
         assertEquals(width + 20.0, moved.colWidths[0], 1e-9)
-        assertEquals(width - 20.0, moved.colWidths[1], 1e-9)
-        assertEquals("the grid is still as wide", table.width, moved.width, 1e-9)
-        assertEquals("and as high", table.rowHeights, moved.rowHeights)
+        assertEquals(second, moved.colWidths[1], 1e-9)
+        assertEquals("the total grid grows by the column delta", table.width + 20.0, moved.width, 1e-9)
+        assertEquals("and height is unchanged", table.rowHeights, moved.rowHeights)
         assertEquals("the cells are untouched", table.cells, moved.cells)
         assertEquals("the box's corner does not move", table.left, moved.left, 1e-9)
     }
 
     @Test
-    fun `a divider stops before it swallows its neighbour`() {
+    fun `a divider clamps at the minimum cell size rather than collapsing`() {
         val table = table()
-        val moved = dragGrip(table, LivingGrip.RowEdge(1), dx = 0.0, dy = 10_000.0) as TableElement
-        assertEquals("the lower row keeps a readable height", GRIP_MIN_CELL_PT, moved.rowHeights[1], 1e-9)
-        assertEquals(
-            "the row above gives up only what the neighbour needs, not its own height",
-            table.rowHeights[0] + table.rowHeights[1] - GRIP_MIN_CELL_PT,
-            moved.rowHeights[0],
-            1e-9,
-        )
-        assertEquals("the grid is still as high", table.height, moved.height, 1e-9)
-        val other = dragGrip(table, LivingGrip.RowEdge(1), dx = 0.0, dy = -10_000.0) as TableElement
-        assertEquals(GRIP_MIN_CELL_PT, other.rowHeights[0], 1e-9)
-        assertEquals(table.height, other.height, 1e-9)
+        val moved = dragGrip(table, LivingGrip.RowEdge(1), dx = 0.0, dy = 40.0) as TableElement
+        assertEquals(table.rowHeights[0] + 40.0, moved.rowHeights[0], 1e-9)
+        assertEquals(table.rowHeights[1], moved.rowHeights[1], 1e-9)
+        assertEquals(table.height + 40.0, moved.height, 1e-9)
+        val clamped = dragGrip(table, LivingGrip.RowEdge(1), dx = 0.0, dy = -10_000.0) as TableElement
+        assertEquals(com.mobixournal.render.TableElementFactory.MIN_ROW_HEIGHT_PT, clamped.rowHeights[0], 1e-9)
+        assertEquals(table.rowHeights[1], clamped.rowHeights[1], 1e-9)
     }
 
     @Test

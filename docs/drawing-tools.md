@@ -145,9 +145,7 @@ figure with a number, exactly as the tablet's Polygons slot. **Settings → Figu
 so the two surfaces write one stored value. The **shape recogniser** (`ShapeRecognizer`) runs on commit for the pen and the highlighter, and a
 stroke it does not name commits exactly as drawn. Its classes, thresholds and invariants are owned by
 [`shape-perfection-engine.md`](shape-perfection-engine.md) — what belongs to the tools is that nothing
-is simplified first (`StrokeSimplifier` only sees the strokes the recogniser rejected, since thinning
-hides the detail the fit reads and can round a circle into facets), and that a recognised shape is an
-ordinary constant-width stroke, so it round-trips like any ink. **Snapping** (`Snapping`, pure and tested) is
+is simplified first (`StrokeSimplifier` only sees the strokes the recogniser rejected, since thinning hides the detail the fit reads and can round a circle into facets), and that closed polygons (triangle, rectangle) commit as living `ParametricShapeElement`s while open/curved figures commit as constant-width strokes. **Snapping** (`Snapping`, pure and tested) is
 applied at the input edge rather than in the geometry builders: with **Snap to grid** on, the shape
 drag's start and end points are rounded onto the page background's ruling before they reach
 `ShapeBuilder`, and with **Snap rotation** on, the *swept* angle (not the absolute one) of the rotate

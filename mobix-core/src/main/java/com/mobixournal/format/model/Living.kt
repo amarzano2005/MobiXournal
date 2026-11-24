@@ -281,6 +281,7 @@ data class ShapeVertex(
  * @param showSideLengths Whether the side lengths are labelled.
  * @param extraAttrs Attributes a later schema added, preserved for round-trip.
  * @param id The element's stable identity; see [ElementId].
+ * @param lineStyle Stroke pattern of the outline ([LineStyle.PLAIN] when absent on disk).
  */
 data class ParametricShapeElement(
     val shape: String,
@@ -294,6 +295,7 @@ data class ParametricShapeElement(
     val id: String? = null,
     /** JSON keys a newer writer put on this figure and this build did not read. */
     val unknown: Map<String, JsonNode> = emptyMap(),
+    val lineStyle: LineStyle = LineStyle.PLAIN,
 ) : Element
 
 /**

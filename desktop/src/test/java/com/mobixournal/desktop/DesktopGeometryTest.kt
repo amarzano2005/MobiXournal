@@ -258,13 +258,14 @@ class DesktopGeometryTest {
             pen(scene, PointerEventType.Move, 200f, 180f, 1_016L)
             pen(scene, PointerEventType.Release, 200f, 180f, 1_032L, pressed = false)
 
-            val drawn = strokes(tab.document.page(0)).last()
-            assertEquals("three corners plus the closing repeat", 4, drawn.points.size)
-            val corners = drawn.points.dropLast(1)
+            val drawn = tab.document.page(0).layers.flatMap { it.elements }
+                .filterIsInstance<com.mobixournal.format.model.ParametricShapeElement>()
+                .last()
+            assertEquals("three triangle corners", 3, drawn.vertices.size)
             assertEquals(
                 "a right-angled triangle stands on a vertical leg, so two corners share an x",
                 2,
-                corners.count { it.x == corners.first().x },
+                drawn.vertices.count { it.x == drawn.vertices.first().x },
             )
         } finally {
             scene.close()
@@ -382,13 +383,14 @@ class DesktopGeometryTest {
             pen(scene, PointerEventType.Move, 240f, 140f, 2_016L)
             pen(scene, PointerEventType.Release, 240f, 140f, 2_032L, pressed = false)
 
-            assertEquals(before + 1, strokes(tab.document.page(0)).size)
-            val box = strokes(tab.document.page(0)).last()
-            assertEquals("four corners and back to the start", 5, box.points.size)
-            assertEquals(box.points.first().x, box.points.last().x, 1e-9)
-            assertEquals(box.points.first().y, box.points.last().y, 1e-9)
-            assertEquals("the drag's box", 40.0, box.points[0].x, 0.5)
-            assertEquals(240.0, box.points[1].x, 0.5)
+            assertEquals("a polygon tool emits no dead stroke", before, strokes(tab.document.page(0)).size)
+            val shapes = tab.document.page(0).layers.flatMap { it.elements }
+                .filterIsInstance<com.mobixournal.format.model.ParametricShapeElement>()
+            assertEquals(1, shapes.size)
+            val box = shapes.last()
+            assertEquals("four rectangle vertices", 4, box.vertices.size)
+            assertEquals("the drag's box", 40.0, box.vertices[0].x, 0.5)
+            assertEquals(240.0, box.vertices[1].x, 0.5)
         } finally {
             scene.close()
             tab.document.close()

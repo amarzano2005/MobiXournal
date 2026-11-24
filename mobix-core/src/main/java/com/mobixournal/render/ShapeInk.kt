@@ -69,6 +69,7 @@ object ShapeInk {
             points = outline,
             color = shape.strokeColor,
             widthPt = shape.strokeWidth,
+            lineStyle = shape.lineStyle,
             fill = fill?.takeIf { sameInk(it, shape.strokeColor) }?.alphaChannel(),
         )
         out += labels(shape)

@@ -56,7 +56,6 @@ import com.mobixournal.format.model.PlotShading
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.render.LivingSlot
-import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.PlotCurve
 import com.mobixournal.render.PlotElementFactory
 import com.mobixournal.render.SelectionOps
@@ -525,23 +524,6 @@ private fun TableBody(table: TableElement, commit: (Element) -> Unit) {
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ShapeBody(shape: ParametricShapeElement, commit: (Element) -> Unit) {
-    SectionCard("Geometry") {
-        for (index in shape.vertices.indices) {
-            val side = ParametricShapes.sideLengthPt(shape, index)
-            val angle = ParametricShapes.interiorAngleDeg(shape, index)
-            Readout("side ${index + 1}", "${side.roundToTenth()} pt · ${angle.roundToTenth()}°")
-        }
-    }
-    SectionCard("Outline") {
-        NumberField("width pt", shape.strokeWidth) { value ->
-            if (value > 0 && value != shape.strokeWidth) commit(shape.copy(strokeWidth = value))
-        }
-        ColourRow(current = shape.strokeColor) { colour -> commit(shape.copy(strokeColor = colour)) }
     }
 }
 

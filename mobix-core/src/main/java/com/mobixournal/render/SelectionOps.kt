@@ -306,6 +306,15 @@ object SelectionOps {
                 rotation = if (newRot < 0.0) newRot + 360.0 else newRot,
             )
         }
+        is ParametricShapeElement -> {
+            val c = cos(angle); val s = sin(angle)
+            element.copy(
+                vertices = element.vertices.map { v ->
+                    val rx = v.x - px; val ry = v.y - py
+                    v.copy(x = px + rx * c - ry * s, y = py + rx * s + ry * c)
+                },
+            )
+        }
         else -> element
     }
 

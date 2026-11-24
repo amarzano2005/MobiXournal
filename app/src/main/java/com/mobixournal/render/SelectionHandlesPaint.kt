@@ -48,8 +48,9 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
             )
         }
     }
-    // Corner resize handles: proportional (both axes together).
-    if (shaft == null && !flatX && !flatY) {
+    // Corner resize handles: skipped for a single living parametric shape whose vertices own corners.
+    val isSingleShape = singleSelectedShape() != null
+    if (shaft == null && !flatX && !flatY && !isSingleShape) {
         for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bottom)) {
             canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)
         }

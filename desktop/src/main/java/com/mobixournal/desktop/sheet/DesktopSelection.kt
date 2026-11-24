@@ -139,6 +139,8 @@ fun selectionHandleAt(
     includeRotate: Boolean = true,
     /** The shaft when the selection is a single line or arrow; null for every other selection. */
     shaft: SelectionShaft? = null,
+    /** False when a single parametric shape's own vertex grips own the corners. */
+    includeCorners: Boolean = true,
 ): SelectionHandle {
     val box = selection.bounds
     val (reachX, reachY) = handleReach(box, tolPt)
@@ -165,7 +167,7 @@ fun selectionHandleAt(
         val (rotateX, rotateY) = rotateHandleOf(box, rotateGapPt)
         if (near(x, y, rotateX, rotateY, reachX, reachY)) return SelectionHandle.ROTATE
     }
-    if (!box.isFlatX && !box.isFlatY) {
+    if (includeCorners && !box.isFlatX && !box.isFlatY) {
         val corners = listOf(
             SelectionHandle.TOP_LEFT to (box.left to box.top),
             SelectionHandle.TOP_RIGHT to (box.right to box.top),

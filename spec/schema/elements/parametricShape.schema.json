@@ -25,6 +25,7 @@
     },
     "strokeColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$", "default": "#000000ff" },
     "strokeWidth": { "type": "number", "default": 1.0 },
+    "lineStyle": { "type": "string", "examples": ["PLAIN", "DASHED", "DASH_DOT", "DOTTED"], "default": "PLAIN", "$comment": "an unrecognised name keeps the element whole rather than failing the page" },
     "fillColor": { "type": "string", "pattern": "^#[0-9a-fA-F]{8}$" },
     "showAngles": { "type": "boolean", "default": false },
     "showSideLengths": { "type": "boolean", "default": false }

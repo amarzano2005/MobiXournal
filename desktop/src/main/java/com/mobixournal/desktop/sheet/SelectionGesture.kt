@@ -14,6 +14,7 @@ import androidx.compose.ui.input.pointer.isShiftPressed
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Page
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.isLivingEntity
 import com.mobixournal.render.CircuitSnapping
 import com.mobixournal.render.ElementBounds
@@ -162,18 +163,14 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     // should bend the figure rather than carry the whole selection.
     val living = live?.takeIf { it.refs.size == 1 }?.let { selectedLivingElement(tab) }
     val grip = living?.let { gripAt(it, x0, y0, tol) }
-    val isLiveImage = live?.takeIf { it.refs.size == 1 }?.let { one ->
-        val ref = one.refs.first()
-        page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) is ImageElement
-    } ?: false
+    val isLiveImage = (live?.let { page?.let { p -> singleElementOf(p, it) } } is ImageElement)
     // The eight handles of the tablet, and the turn is an image's to lose (its model carries no rotation).
     // A line or an arrow is a shaft, not a figure: its two ends are its only handles (`SelectionShaft`).
     val shaft = live?.let { sel -> page?.let { shaftOf(singleElementOf(it, sel)) } }
-    val handle = if (live == null) {
-        SelectionHandle.NONE
-    } else {
-        selectionHandleAt(live, x0, y0, tol, rotateGapPt = gap, includeRotate = !isLiveImage, shaft = shaft)
-    }
+    val handle = if (live == null) SelectionHandle.NONE else selectionHandleAt(
+        live, x0, y0, tol, rotateGapPt = gap, includeRotate = !isLiveImage,
+        shaft = shaft, includeCorners = living !is ParametricShapeElement,
+    )
     // The ink's picker first, then the **pins**: a part is grabbed by its end as readily as by its middle,
     // which is where the hand aims when two parts have to be joined (`PinPress`).
     val picked = page?.let { pickForDrag(it, x0, y0, tol) }

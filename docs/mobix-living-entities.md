@@ -25,7 +25,7 @@ Two field names are deliberately **open key sets rather than enums**, for the sa
 
 The circuit component is the third family: a living `CircuitElement` authored by circuit tools (`render/CircuitElementFactory.kt`), with a hit-testable rotated stroke box and move/rotate/restyle from `render/SelectionOps.kt`, edited in place via `ui/CircuitEditorDialog.kt` (value, stroke, rotation, colour, `labelSide`, pins). Its value has a keyboard of its own instead of the system IME — see `circuit` below.
 
-The parametric shape is the fourth family: a closed polygon the recogniser keeps as **geometry** instead of ink (`render/ParametricShapes.kt`), with a stroke box `render/ElementBounds.kt` **recomputes from its vertices on every read** and move/resize/restyle from `render/SelectionOps.kt`. It is edited on the page — a handle on each corner (`render/DrawingSurfacePaint.kt`, hit-tested in `render/SelectionGestureController.kt`), and dragging one deforms the figure live with the side leading into it snapped to 0/30/45/90° — and **Edit shape** on the selection bar switches its two readout badges (`ui/ShapeEditorDialog.kt`).
+The parametric shape is the fourth family: a closed polygon kept as **geometry** instead of ink (`render/ParametricShapes.kt`) — created by both the freehand recogniser (triangle, rectangle) and the explicit polygon shape tools (rectangle, square, triangle, trapezoid, polygon) — with a stroke box `render/ElementBounds.kt` **recomputes from its vertices on every read** and move/resize/rotate/restyle from `render/SelectionOps.kt`. It is edited on the page — a haloed handle on each corner (`render/DrawingSurfaceFigures.kt`, hit-tested in `render/SelectionGestureController.kt`, skipping overlapping box corner squares so vertices own corners), snapping adjacent sides to 0/30/45/90° when Snap/Page ruling is enabled on Android or `Shift` is held on desktop — and numerically through **Edit shape** (`ui/ShapeEditorDialog.kt`) and the desktop inspector (`tools/ShapeInspector.kt`) for exact side lengths, interior angles, outline width/colour, fill colour, and angle/length badge visibility.
 
 **A double-tap in the Select tool opens whichever family is under the finger** — a table cell, a plot, a component, a figure — through one dispatch (`render/LivingEditTargets.kt`) and one UI seam (`ui/LivingEditors.kt`), the same target the action bar's **Edit** buttons open (`LivingEditCoverageTest`). Ink is not a living element, and outside Select each tool's second tap keeps its own meaning.
 
@@ -158,12 +158,9 @@ functions the handles report (`ParametricShapes.sideLengthPt` / `interiorAngleDe
 never disagree with the figure under the pen; they are ordinary text, on the sheet and in the `.xopp`
 export (`XoppSynthesis`) alike.
 
-What becomes a shape, and what does not: a **closed polygon** the pen drew (triangle, rectangle) is
-committed as one `ParametricShapeElement` instead of the stroke it would have flattened into. Circles
-and ellipses keep the recogniser's stroke — their "vertices" would be sampling points of an
-approximation rather than corners, and this element has no centre and radius to drag instead. A
-highlighter figure and a dashed one also stay strokes: a `parametricShape` carries one outline colour
-and width and no line style, so neither would survive the round trip.
+What becomes a shape, and what does not: **closed polygons** — whether recognised from freehand pen drawing (triangle, rectangle) or committed by an explicit polygon shape tool (rectangle, square, triangle, trapezoid, polygon), in any `LineStyle` — become a living `ParametricShapeElement`. Circles and ellipses keep strokes because they lack polygon corners, and highlighter ink stays a stroke to preserve alpha blending. A `RECTANGLE` or `SQUARE` whose vertices are freely dragged off 90° reclassifies as `POLYGON`.
+
+With the eraser, living entities are deleted **only in whole-stroke mode** (`EraserMode.WHOLE_STROKE`); standard segment erasing skips them, and grazing a parametric shape's length/angle readout labels never deletes the shape.
 
 ### Circuit component (`circuit`)
 
@@ -234,4 +231,4 @@ a build that does not know a symbol cannot draw it, and says so rather than inve
 
 `MathBlockElement` is the living formula: its `source` in `flavor` (`LATEX`/`TYPST`), colour and box, and **no rendered bytes** — the drawing is a function of the source. `MobixMathCodec` spells it; the canvas typesets it with `LatexRenderer`, and so do the window and the PDF plan (`TexPainter`) — all three through `LatexLayout`, which places every glyph on its own measured advance and sizes a line by the glyphs' measured rise and depth (`TextAdvance`) — so a narrow formula takes the width it is drawn at, a line of x-height letters is not as tall as one with a capital, and one formula sits the same way on both shells and in an export — and the `.xopp` bridge compiles it to a `<teximage>` (`MathBlockInk`), the ink `LivingInk` produces. **The window writes one too**: the Text slot's Formula member (`Shift+T`) asks for the source, previews it and writes it on **Place** (`PendingPlacement.mathSource`, `MathPreview`), and an unknown type stays verbatim (rule 1).
 
-**A family is edited where it is drawn**: the window's selection carries the element's own grips (`LivingGrips.kt`) — a figure's corners through `ParametricShapes.moveVertex` (Shift adds the direction snap), a table's dividers rewriting `colWidths`/`rowHeights` without touching `cells`; a plot's interval and a component's outline have none.
+**A family is edited where it is drawn**: the window's selection carries the element's own grips (`LivingGrips.kt`) — a figure's corners through `ParametricShapes.moveVertex` (Shift adds the direction snap), a table's dividers resizing the column/row before the divider via `TableElementFactory.updateColWidth`/`updateRowHeight` (growing or shrinking the grid, matching Android); a plot's interval and a component's outline have none.
