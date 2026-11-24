@@ -1,8 +1,10 @@
 package com.mobixournal.ui
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,12 +19,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.DeleteOutline
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -31,14 +30,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.render.GuideKind
 import com.mobixournal.ui.theme.ModernTheme
@@ -46,64 +53,79 @@ import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
+import kotlin.math.roundToInt
+
+private val PREVIEW_SLOT_OUTER_DP = 42.dp
+private val PREVIEW_SLOT_GAP_DP = 2.dp
 
 /**
- * **Focus mode** Settings page: live preview of the Focus floating bar with integrated
- * reordering and removal, a categorized visual chip catalog for toggling tools (3..10 slots),
- * and a reset action for both tools and saved screen placement.
+ * **Focus mode** Settings page: live interactive preview of the Focus floating bar with
+ * hold-and-drag reordering, single-badge removal, inline `+` slot, and a contextual visual
+ * chip catalog for replacing or adding tools (3..10 slots).
  */
 @Composable
 fun FocusModeSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     val slots = resolveFocusBarSlots(settings.focusBarSlots)
     var picked by remember { mutableStateOf(0) }
+    var adding by remember { mutableStateOf(false) }
+    val isAdding = adding && slots.size < FOCUS_BAR_MAX_SLOTS
     val index = picked.coerceIn(0, (slots.size - 1).coerceAtLeast(0))
-    val canRemove = slots.size > FOCUS_BAR_MIN_SLOTS
 
     SettingsGroup("Floating bar") {
         SettingsNote(
             "Floating bar shown during Focus mode. Drag it to the left or right " +
-                "edge to switch between horizontal and vertical. Tap a slot to reorder or remove it.",
+                "edge to switch between horizontal and vertical.",
         )
         Box(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 6.dp),
             contentAlignment = Alignment.Center,
         ) {
             FocusBarSlotPreviewStrip(
                 slots = slots,
                 selectedIndex = index,
-                onSelect = { picked = it },
+                onSelect = { idx ->
+                    picked = idx
+                    adding = false
+                },
                 onRemove = { removeIdx ->
                     val next = updateFocusBarSlotList(slots, removeIdx, null)
                     onChange(settings.copy(focusBarSlots = next.map { it.id }))
                     picked = removeIdx.coerceAtMost(next.lastIndex)
+                    adding = false
                 },
+                onReorder = { from, to ->
+                    val moved = reorderFocusBarSlot(slots, from, to)
+                    onChange(settings.copy(focusBarSlots = moved.map { it.id }))
+                    picked = to.coerceIn(0, moved.lastIndex)
+                    adding = false
+                },
+                addingSelected = isAdding,
+                onSelectAdd = { adding = true },
             )
         }
-        FocusBarSlotReorderBar(
-            selectedLabel = slots[index].label,
-            index = index,
-            total = slots.size,
-            canRemove = canRemove,
-            onMove = { delta ->
-                val moved = moveFocusBarSlot(slots, index, delta)
-                onChange(settings.copy(focusBarSlots = moved.map { it.id }))
-                picked = (index + delta).coerceIn(0, moved.lastIndex)
-            },
-            onRemove = {
-                val next = updateFocusBarSlotList(slots, index, null)
-                onChange(settings.copy(focusBarSlots = next.map { it.id }))
-                picked = index.coerceAtMost(next.lastIndex)
-            },
+        Text(
+            text = "Hold and drag a slot to reorder · ${slots.size} of $FOCUS_BAR_MAX_SLOTS slots",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
         )
         SettingsDivider()
         FocusBarToolCatalog(
             slots = slots,
-            onToggle = { kind ->
-                val wasPresent = kind in slots
-                val next = toggleFocusBarSlot(slots, kind)
-                if (next != slots) {
+            selectedIndex = index,
+            isAdding = isAdding,
+            onPick = { kind ->
+                if (isAdding) {
+                    val next = addFocusBarSlot(slots, kind)
+                    if (next != slots) {
+                        onChange(settings.copy(focusBarSlots = next.map { it.id }))
+                        picked = next.lastIndex
+                        adding = false
+                    }
+                } else {
+                    val next = updateFocusBarSlotList(slots, index, kind)
                     onChange(settings.copy(focusBarSlots = next.map { it.id }))
-                    picked = if (!wasPresent) next.lastIndex else index.coerceAtMost(next.lastIndex)
                 }
             },
         )
@@ -112,6 +134,7 @@ fun FocusModeSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
                 onClick = {
                     onChange(settings.copy(focusBarSlots = emptyList(), focusBarAnchor = ""))
                     picked = 0
+                    adding = false
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -127,51 +150,24 @@ fun FocusModeSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     }
 }
 
-@Composable
-private fun FocusBarSlotReorderBar(
-    selectedLabel: String,
-    index: Int,
-    total: Int,
-    canRemove: Boolean,
-    onMove: (Int) -> Unit,
-    onRemove: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Text(
-            "$selectedLabel · ${index + 1} of $total",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(enabled = index > 0, onClick = { onMove(-1) }) {
-                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = "Move slot left")
-            }
-            IconButton(enabled = index < total - 1, onClick = { onMove(+1) }) {
-                Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = "Move slot right")
-            }
-            IconButton(enabled = canRemove, onClick = onRemove) {
-                Icon(Icons.Outlined.DeleteOutline, contentDescription = "Remove slot")
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FocusBarToolCatalog(
     slots: List<FocusBarSlotKind>,
-    onToggle: (FocusBarSlotKind) -> Unit,
+    selectedIndex: Int,
+    isAdding: Boolean,
+    onPick: (FocusBarSlotKind) -> Unit,
 ) {
     val grouped = remember { FocusBarSlotKind.entries.groupBy { it.category } }
+    val selectedKind = if (isAdding) null else slots[selectedIndex]
     Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
         ControlHeader(
-            title = "Tools in bar",
-            subtitle = "Tap a tool to add or remove it (${slots.size} of $FOCUS_BAR_MAX_SLOTS active).",
+            title = if (isAdding) "Add a tool" else "Slot ${selectedIndex + 1} · ${selectedKind!!.label}",
+            subtitle = if (isAdding) {
+                "Tap a tool to add it to the bar (${slots.size} of $FOCUS_BAR_MAX_SLOTS)."
+            } else {
+                "Tap any tool to replace this slot. Tools already in the bar swap positions."
+            },
             modifier = Modifier.settingsBlockInset(),
         )
         grouped.forEach { (category, items) ->
@@ -186,13 +182,15 @@ private fun FocusBarToolCatalog(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items.forEach { kind ->
-                    val active = kind in slots
-                    val enabled = if (active) slots.size > FOCUS_BAR_MIN_SLOTS else slots.size < FOCUS_BAR_MAX_SLOTS
+                    val isCurrent = kind == selectedKind
+                    val inBar = kind in slots
+                    val enabled = if (isAdding) !inBar else !isCurrent
                     FocusBarToolChip(
                         kind = kind,
-                        active = active,
+                        isCurrent = isCurrent,
+                        inBar = inBar,
                         enabled = enabled,
-                        onClick = { onToggle(kind) },
+                        onClick = { onPick(kind) },
                     )
                 }
             }
@@ -203,37 +201,40 @@ private fun FocusBarToolCatalog(
 @Composable
 private fun FocusBarToolChip(
     kind: FocusBarSlotKind,
-    active: Boolean,
+    isCurrent: Boolean,
+    inBar: Boolean,
     enabled: Boolean,
     onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(10.dp)
-    val bgColor = if (active) {
-        MaterialTheme.colorScheme.primaryContainer
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (enabled) 0.45f else 0.22f)
+    val bgColor = when {
+        isCurrent -> MaterialTheme.colorScheme.primaryContainer
+        inBar && enabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.60f)
+        enabled -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+        else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.22f)
     }
-    val borderColor = if (active) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        ModernTheme.hairlineBorder(chromeIsDark())
+    val borderWidth = if (isCurrent) 1.5.dp else 1.dp
+    val borderColor = when {
+        isCurrent -> MaterialTheme.colorScheme.primary
+        inBar && enabled -> MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+        else -> ModernTheme.hairlineBorder(chromeIsDark())
     }
-    val textTint = if (active) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 0.88f else 0.38f)
+    val textTint = when {
+        isCurrent -> MaterialTheme.colorScheme.onPrimaryContainer
+        enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f)
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
     }
-    val iconTint = if (active) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 0.78f else 0.38f)
+    val iconTint = when {
+        isCurrent -> MaterialTheme.colorScheme.primary
+        enabled -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.78f)
+        else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
     }
 
     Box(
         modifier = Modifier
             .clip(shape)
             .background(bgColor)
-            .border(1.dp, borderColor, shape)
+            .border(borderWidth, borderColor, shape)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 7.dp),
     ) {
@@ -248,6 +249,14 @@ private fun FocusBarToolChip(
                 color = textTint,
                 maxLines = 1,
             )
+            if (inBar && !isCurrent) {
+                Box(
+                    modifier = Modifier
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else 0.38f)),
+                )
+            }
         }
     }
 }
@@ -259,10 +268,19 @@ internal fun FocusBarSlotPreviewStrip(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     onRemove: ((Int) -> Unit)? = null,
+    onReorder: ((from: Int, to: Int) -> Unit)? = null,
+    addingSelected: Boolean = false,
+    onSelectAdd: (() -> Unit)? = null,
 ) {
     val shape = RoundedCornerShape(ModernTheme.panelCornerRadiusDp)
     val ink = rememberChromeInk()
+    val pitchPx = with(LocalDensity.current) { (PREVIEW_SLOT_OUTER_DP + PREVIEW_SLOT_GAP_DP).toPx() }
+    val pitchInt = pitchPx.roundToInt().coerceAtLeast(1)
+    var dragIndex by remember { mutableStateOf(-1) }
+    var dragOffsetX by remember { mutableStateOf(0f) }
+    val dropIndex = dragTargetIndex(dragIndex, dragOffsetX, pitchInt, slots.size)
     val showRemoveBadge = onRemove != null && slots.size > FOCUS_BAR_MIN_SLOTS
+
     Surface(
         shape = shape,
         color = rememberFloatingSurfaceColor(),
@@ -274,35 +292,122 @@ internal fun FocusBarSlotPreviewStrip(
             modifier = Modifier
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 8.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            horizontalArrangement = Arrangement.spacedBy(PREVIEW_SLOT_GAP_DP),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             slots.forEachIndexed { idx, kind ->
-                val selected = idx == selectedIndex
+                val dragging = dragIndex == idx
+                val selected = !addingSelected && idx == selectedIndex
+                val targetShift = previewSlotShift(idx, dragIndex, dropIndex, pitchPx)
+                val animatedShift by animateFloatAsState(
+                    targetValue = if (dragging) 0f else targetShift,
+                    label = "FocusSlotShift",
+                )
+                val shiftX = if (dragging) dragOffsetX else animatedShift
                 FocusBarPreviewSlotBox(
                     kind = kind,
+                    index = idx,
+                    slotCount = slots.size,
                     selected = selected,
-                    showRemove = selected && showRemoveBadge,
+                    dragging = dragging,
+                    shiftX = shiftX,
+                    pitchInt = pitchInt,
+                    showRemove = selected && dragIndex < 0 && showRemoveBadge,
+                    reorderable = onReorder != null,
                     ink = ink,
                     onSelect = { onSelect(idx) },
                     onRemove = { onRemove?.invoke(idx) },
+                    onDragStart = {
+                        onSelect(idx)
+                        dragIndex = idx
+                        dragOffsetX = 0f
+                    },
+                    onDrag = { dx -> dragOffsetX += dx },
+                    onDragEnd = { to ->
+                        if (dragIndex >= 0 && to != dragIndex) onReorder?.invoke(dragIndex, to)
+                        dragIndex = -1
+                        dragOffsetX = 0f
+                    },
+                    onDragCancel = {
+                        dragIndex = -1
+                        dragOffsetX = 0f
+                    },
                 )
+            }
+            if (onSelectAdd != null && slots.size < FOCUS_BAR_MAX_SLOTS) {
+                FocusBarAddSlotBox(selected = addingSelected, ink = ink, onClick = onSelectAdd)
             }
         }
     }
 }
 
+private fun previewSlotShift(idx: Int, dragIndex: Int, dropIndex: Int, pitchPx: Float): Float = when {
+    dragIndex < 0 -> 0f
+    idx in (dragIndex + 1)..dropIndex -> -pitchPx
+    idx in dropIndex until dragIndex -> pitchPx
+    else -> 0f
+}
+
 @Composable
 private fun FocusBarPreviewSlotBox(
     kind: FocusBarSlotKind,
+    index: Int,
+    slotCount: Int,
     selected: Boolean,
+    dragging: Boolean,
+    shiftX: Float,
+    pitchInt: Int,
     showRemove: Boolean,
+    reorderable: Boolean,
     ink: Color,
     onSelect: () -> Unit,
     onRemove: () -> Unit,
+    onDragStart: () -> Unit,
+    onDrag: (Float) -> Unit,
+    onDragEnd: (Int) -> Unit,
+    onDragCancel: () -> Unit,
 ) {
+    val haptics = LocalHapticFeedback.current
+    val latestCount by rememberUpdatedState(slotCount)
+    val latestOnDragStart by rememberUpdatedState(onDragStart)
+    val latestOnDrag by rememberUpdatedState(onDrag)
+    val latestOnDragEnd by rememberUpdatedState(onDragEnd)
+    val latestOnDragCancel by rememberUpdatedState(onDragCancel)
+    val dragModifier = if (reorderable) {
+        Modifier.pointerInput(index, slotCount) {
+            var accumX = 0f
+            detectDragGesturesAfterLongPress(
+                onDragStart = {
+                    accumX = 0f
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    latestOnDragStart()
+                },
+                onDrag = { change, dragAmount ->
+                    change.consume()
+                    accumX += dragAmount.x
+                    latestOnDrag(dragAmount.x)
+                },
+                onDragEnd = {
+                    latestOnDragEnd(dragTargetIndex(index, accumX, pitchInt, latestCount))
+                },
+                onDragCancel = { latestOnDragCancel() },
+            )
+        }
+    } else {
+        Modifier
+    }
+
     Box(
-        modifier = Modifier.size(42.dp),
+        modifier = Modifier
+            .size(PREVIEW_SLOT_OUTER_DP)
+            .zIndex(if (dragging) 1f else 0f)
+            .graphicsLayer {
+                translationX = shiftX
+                val scale = if (dragging) 1.08f else 1f
+                scaleX = scale
+                scaleY = scale
+            }
+            .then(dragModifier),
         contentAlignment = Alignment.Center,
     ) {
         Box(
@@ -337,6 +442,38 @@ private fun FocusBarPreviewSlotBox(
                     modifier = Modifier.size(12.dp),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun FocusBarAddSlotBox(selected: Boolean, ink: Color, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.size(PREVIEW_SLOT_OUTER_DP),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(ModernTheme.railSlotShape)
+                .background(
+                    if (selected) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                )
+                .border(
+                    width = if (selected) 1.5.dp else 1.dp,
+                    color = if (selected) MaterialTheme.colorScheme.primary else ModernTheme.hairlineBorder(chromeIsDark()),
+                    shape = ModernTheme.railSlotShape,
+                )
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Outlined.Add,
+                contentDescription = "Add slot",
+                tint = if (selected) MaterialTheme.colorScheme.primary else ink.copy(alpha = 0.72f),
+                modifier = Modifier.size(20.dp),
+            )
         }
     }
 }

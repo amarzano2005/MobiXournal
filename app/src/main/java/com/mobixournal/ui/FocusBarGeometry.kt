@@ -139,6 +139,21 @@ fun moveFocusBarSlot(slots: List<FocusBarSlotKind>, index: Int, delta: Int): Lis
     }
 }
 
+/** Append [kind] if it is not already present and under [FOCUS_BAR_MAX_SLOTS]. */
+fun addFocusBarSlot(slots: List<FocusBarSlotKind>, kind: FocusBarSlotKind): List<FocusBarSlotKind> {
+    if (kind in slots || slots.size >= FOCUS_BAR_MAX_SLOTS) return slots
+    return slots + kind
+}
+
+/** Move the slot at [from] to index [to], shifting intermediate slots while preserving order. */
+fun reorderFocusBarSlot(slots: List<FocusBarSlotKind>, from: Int, to: Int): List<FocusBarSlotKind> {
+    if (from !in slots.indices || to !in slots.indices || from == to) return slots
+    return slots.toMutableList().apply {
+        val item = removeAt(from)
+        add(to, item)
+    }
+}
+
 /** Edge-dock state driving the floating bar's liquid horizontal ↔ vertical orientation. */
 enum class FocusBarDock {
     FREE,

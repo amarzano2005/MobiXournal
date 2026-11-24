@@ -127,7 +127,7 @@ private fun TouchDoubleTapRow(onClick: () -> Unit) {
             subtitle = "Double-tap the canvas with a finger (any tool): left third for previous page, centre for Focus mode, right third for next page.",
             modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(24.dp))
         Text(
             text = "Focus mode",
             style = MaterialTheme.typography.bodyLarge,

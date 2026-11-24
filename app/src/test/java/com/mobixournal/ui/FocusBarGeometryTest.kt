@@ -99,6 +99,48 @@ class FocusBarGeometryTest {
     }
 
     @Test
+    fun `addFocusBarSlot appends absent tool and guards duplicates and max`() {
+        val defaults = FOCUS_BAR_DEFAULT_SLOTS
+        val added = addFocusBarSlot(defaults, FocusBarSlotKind.UNDO)
+        assertEquals(defaults.size + 1, added.size)
+        assertEquals(FocusBarSlotKind.UNDO, added.last())
+
+        // Duplicate is a no-op.
+        assertEquals(defaults, addFocusBarSlot(defaults, FocusBarSlotKind.PEN))
+
+        // Respects FOCUS_BAR_MAX_SLOTS.
+        var full = defaults
+        for (candidate in FocusBarSlotKind.entries) {
+            if (full.size >= FOCUS_BAR_MAX_SLOTS) break
+            full = addFocusBarSlot(full, candidate)
+        }
+        assertEquals(FOCUS_BAR_MAX_SLOTS, full.size)
+        val extra = FocusBarSlotKind.entries.first { it !in full }
+        assertEquals(full, addFocusBarSlot(full, extra))
+    }
+
+    @Test
+    fun `reorderFocusBarSlot shifts slots forward, backward, and ignores invalid indices`() {
+        val slots = listOf(
+            FocusBarSlotKind.PEN,
+            FocusBarSlotKind.HIGHLIGHTER,
+            FocusBarSlotKind.COLORS,
+            FocusBarSlotKind.ERASER,
+        )
+        assertEquals(
+            listOf(FocusBarSlotKind.HIGHLIGHTER, FocusBarSlotKind.COLORS, FocusBarSlotKind.PEN, FocusBarSlotKind.ERASER),
+            reorderFocusBarSlot(slots, 0, 2),
+        )
+        assertEquals(
+            listOf(FocusBarSlotKind.ERASER, FocusBarSlotKind.PEN, FocusBarSlotKind.HIGHLIGHTER, FocusBarSlotKind.COLORS),
+            reorderFocusBarSlot(slots, 3, 0),
+        )
+        assertEquals(slots, reorderFocusBarSlot(slots, 1, 1))
+        assertEquals(slots, reorderFocusBarSlot(slots, -1, 2))
+        assertEquals(slots, reorderFocusBarSlot(slots, 1, 9))
+    }
+
+    @Test
     fun `anchor encode and decode round-trips and handles malformed inputs`() {
         val anchor = FocusBarAnchor(FocusBarDock.RIGHT_EDGE, 0.875f, 0.42f)
         val decoded = decodeFocusBarAnchor(encodeFocusBarAnchor(anchor))
