@@ -72,6 +72,33 @@ class FocusBarGeometryTest {
     }
 
     @Test
+    fun `toggleFocusBarSlot appends absent tools up to max and removes present tools down to min`() {
+        val defaults = FOCUS_BAR_DEFAULT_SLOTS
+        // Absent tool is appended when below FOCUS_BAR_MAX_SLOTS.
+        val withUndo = toggleFocusBarSlot(defaults, FocusBarSlotKind.UNDO)
+        assertEquals(defaults.size + 1, withUndo.size)
+        assertEquals(FocusBarSlotKind.UNDO, withUndo.last())
+
+        // Cannot append beyond FOCUS_BAR_MAX_SLOTS.
+        var full = defaults
+        for (candidate in FocusBarSlotKind.entries) {
+            if (full.size >= FOCUS_BAR_MAX_SLOTS) break
+            if (candidate !in full) full = toggleFocusBarSlot(full, candidate)
+        }
+        assertEquals(FOCUS_BAR_MAX_SLOTS, full.size)
+        val extra = FocusBarSlotKind.entries.first { it !in full }
+        assertEquals(full, toggleFocusBarSlot(full, extra))
+
+        // Present tool is removed down to FOCUS_BAR_MIN_SLOTS, never below.
+        val removed = toggleFocusBarSlot(defaults, FocusBarSlotKind.SELECT)
+        assertEquals(defaults.size - 1, removed.size)
+        assertTrue(FocusBarSlotKind.SELECT !in removed)
+
+        val minimum = defaults.take(FOCUS_BAR_MIN_SLOTS)
+        assertEquals(minimum, toggleFocusBarSlot(minimum, minimum.first()))
+    }
+
+    @Test
     fun `anchor encode and decode round-trips and handles malformed inputs`() {
         val anchor = FocusBarAnchor(FocusBarDock.RIGHT_EDGE, 0.875f, 0.42f)
         val decoded = decodeFocusBarAnchor(encodeFocusBarAnchor(anchor))

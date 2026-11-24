@@ -3,7 +3,9 @@ package com.mobixournal.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -11,11 +13,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -23,8 +27,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.mobixournal.design.SettingsGlyph
 import com.mobixournal.render.BarrelAction
 import com.mobixournal.render.QuickAction
 import com.mobixournal.render.StrokePrecision
@@ -55,26 +59,15 @@ fun PenInputSection(
         )
     }
     PenSideButtonGroup(settings, onChange)
-    TouchInputGroup(settings, onChange)
-    SettingsGroup("Touch double-tap") {
-        SettingsNote(
-            "Double-tap the canvas with a finger (any tool): left third for previous page, " +
-                "centre for Focus mode, right third for next page.",
-        )
-        OutlinedButton(
-            onClick = onOpenFocusMode,
-            shape = SettingsActionShape,
-            modifier = Modifier.settingsActionPill(top = 8.dp),
-        ) {
-            Icon(SettingsGlyph.FOCUS_MODE.imageVector(), contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Focus mode settings")
-        }
-    }
+    TouchInputGroup(settings, onChange, onOpenFocusMode)
 }
 
 @Composable
-private fun TouchInputGroup(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+private fun TouchInputGroup(
+    settings: AppSettings,
+    onChange: (AppSettings) -> Unit,
+    onOpenFocusMode: () -> Unit,
+) {
     SettingsGroup("Touch & gestures") {
         ControlHeader(
             title = "Finger touch mode",
@@ -112,6 +105,41 @@ private fun TouchInputGroup(settings: AppSettings, onChange: (AppSettings) -> Un
             selected = settings.threeFingerTapAction,
             label = { quickActionLabel(it) },
             onSelect = { onChange(settings.copy(threeFingerTapAction = it)) },
+        )
+        SettingsDivider()
+        TouchDoubleTapRow(onClick = onOpenFocusMode)
+    }
+}
+
+@Composable
+private fun TouchDoubleTapRow(onClick: () -> Unit) {
+    val reach = LocalSettingsCardInset.current
+    Row(
+        modifier = Modifier
+            .fullBleedRow(reach)
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = reach, vertical = settingsCellInset(reach)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ControlHeader(
+            title = "Touch double-tap",
+            subtitle = "Double-tap the canvas with a finger (any tool): left third for previous page, centre for Focus mode, right third for next page.",
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = "Focus mode",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+        )
+        Spacer(Modifier.width(8.dp))
+        Icon(
+            Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp),
         )
     }
 }

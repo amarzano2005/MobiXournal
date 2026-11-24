@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "focus-settings-chip-catalog-and-overflow-icon"
+title = "Redesign Focus mode settings with chip catalog, inline Touch double-tap row, and proportional menu icon"
+description = "Replaced Focus mode hamburger icon with SettingsGlyph.FOCUS_MODE at 20 dp in aligned 20 dp boxes (EditorOverflowViews.kt); moved Touch double-tap inline under Three-finger tap as a standard clickable link row (PenInputSection.kt); redesigned FocusModeSection with integrated preview removal badge, inline reorder/delete bar, and categorized visual chip catalog backed by toggleFocusBarSlot (FocusBarGeometry.kt, FocusModeSection.kt, FocusBarGeometryTest.kt). Verified with FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and signed release APK."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-24
+completed = 2026-11-24
+tags = ["ui", "android"]
+design = "material: keeps floating surface and rim on Focus bar preview and rounded chips with clip-before-click state layers; glyph: uses SettingsGlyph.FOCUS_MODE at 20 dp in EditorOverflowViews and shared ToolGlyph/ChromeGlyph icons at 16 dp in chips; states: disables inactive chips at 10-slot max and active chips at 3-slot min with distinct primaryContainer vs muted styling; copy: English labels with no Liquid Glass user copy; tests: FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "focus-mode-10-slots-and-pen-double-tap"
 title = "Expand Focus bar to 10 slots with all standard toolbar tools and add double-tap link in Pen & Input"
 description = "Added Touch double-tap group with Focus mode link in PenInputSection/SettingsScreen; raised FOCUS_BAR_MAX_SLOTS to 10; added Pages, Layers, and all Secondary Toolbar tools to FocusBarSlotKind/FocusBarSlots/FocusFloatingBar/FocusModeSection; removed parenthetical hints and user-visible Liquid Glass references. Verified with FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and signed release APK."

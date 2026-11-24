@@ -115,6 +115,19 @@ fun appendFocusBarSlot(slots: List<FocusBarSlotKind>): List<FocusBarSlotKind> {
     return slots + next
 }
 
+/** Toggle [kind] in [slots]: remove if present (respecting [FOCUS_BAR_MIN_SLOTS]), or append if absent (respecting [FOCUS_BAR_MAX_SLOTS]). */
+fun toggleFocusBarSlot(slots: List<FocusBarSlotKind>, kind: FocusBarSlotKind): List<FocusBarSlotKind> {
+    val existing = slots.indexOf(kind)
+    if (existing >= 0) {
+        return if (slots.size > FOCUS_BAR_MIN_SLOTS) {
+            slots.toMutableList().apply { removeAt(existing) }
+        } else {
+            slots
+        }
+    }
+    return if (slots.size < FOCUS_BAR_MAX_SLOTS) slots + kind else slots
+}
+
 /** Move the slot at [index] by [delta] (-1 left/up, +1 right/down) within bounds. */
 fun moveFocusBarSlot(slots: List<FocusBarSlotKind>, index: Int, delta: Int): List<FocusBarSlotKind> {
     val target = index + delta

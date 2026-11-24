@@ -24,7 +24,6 @@ import androidx.compose.material.icons.automirrored.outlined.ViewSidebar
 import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Draw
 import androidx.compose.material.icons.outlined.FileDownload
-import androidx.compose.material.icons.outlined.Fullscreen
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
@@ -48,8 +47,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.design.SettingsGlyph
 import com.mobixournal.ui.theme.DocumentRed
 import com.mobixournal.ui.theme.rememberChromeInk
 import java.util.Locale
@@ -252,13 +253,14 @@ internal fun StudioTabView(
                 )
             }
             SheetSwitchRow(
-                icon = Icons.Outlined.Fullscreen,
+                icon = SettingsGlyph.FOCUS_MODE.imageVector(),
                 label = "Focus mode",
                 subtitle = "Hide toolbars, or double-tap centre with a finger",
                 checked = fullPage,
                 ink = ink,
                 accent = accent,
                 onClick = onToggleFullPage,
+                iconSize = 20.dp,
             )
             if (settings != null) {
                 SheetValueRow(
@@ -378,6 +380,7 @@ private fun SheetSwitchRow(
     accent: Color,
     onClick: () -> Unit,
     subtitle: String? = null,
+    iconSize: Dp = 18.dp,
 ) {
     val thumbOffset by animateDpAsState(targetValue = if (checked) 16.dp else 0.dp, label = "SwitchThumb")
     val trackColor = if (checked) accent else ink.copy(alpha = 0.16f)
@@ -388,7 +391,9 @@ private fun SheetSwitchRow(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = ink.copy(alpha = 0.72f), modifier = Modifier.size(18.dp))
+        Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = ink.copy(alpha = 0.72f), modifier = Modifier.size(iconSize))
+        }
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -439,7 +444,9 @@ private fun SheetValueRow(
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = ink.copy(alpha = 0.72f), modifier = Modifier.size(18.dp))
+        Box(modifier = Modifier.size(20.dp), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = ink.copy(alpha = 0.72f), modifier = Modifier.size(18.dp))
+        }
         Spacer(Modifier.width(10.dp))
         Text(
             text = label,
