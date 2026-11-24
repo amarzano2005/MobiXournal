@@ -2,8 +2,10 @@ package com.mobixournal.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -373,7 +375,8 @@ private fun FocusModeFloatingBarCanvas(
         )
 
         FocusGlassBarCapsule(
-            slots = slots, morphProgress = morphProgress, jellyScale = motion.jelly.value, vertical = motion.dock.isVertical,
+            slots = slots, morphProgress = morphProgress, jellyScale = motion.jelly.value,
+            vertical = motion.dock.isVertical, dock = motion.dock,
             ui = ui, pane = pane, settings = settings, onSettingsChange = onSettingsChange, onCustomize = onCustomize,
             modifier = Modifier
                 .offset { computeRenderedBarOffset(slots.size, m, morphProgress, motion, containerW, containerH) }
@@ -484,6 +487,7 @@ private fun FocusGlassBarCapsule(
     morphProgress: Float,
     jellyScale: Float,
     vertical: Boolean,
+    dock: FocusBarDock,
     ui: EditorUiState,
     pane: PaneState,
     settings: AppSettings,
@@ -501,6 +505,29 @@ private fun FocusGlassBarCapsule(
     )
     val layerCallbacks = toolbarLayerCallbacks(pane.surface, pane)
     val pageCallbacks = toolbarPagesCallbacks(pane, ui, settings, onSettingsChange, pane.surface)
+    val closing = LocalFloatingSurfaceClosing.current
+    val edgeSlide = remember { Animatable(0f) }
+    LaunchedEffect(closing) {
+        edgeSlide.animateTo(
+            targetValue = if (!closing) 1f else 0f,
+            animationSpec = if (!closing) {
+                tween(220, delayMillis = 70, easing = FastOutSlowInEasing)
+            } else {
+                tween(140, easing = FastOutSlowInEasing)
+            },
+        )
+    }
+    val edgeOffsetPx = with(LocalDensity.current) { 24.dp.toPx() }
+    val slideMag = (1f - edgeSlide.value) * edgeOffsetPx
+    val enterTx = when (dock) {
+        FocusBarDock.LEFT_EDGE -> -slideMag
+        FocusBarDock.RIGHT_EDGE -> slideMag
+        FocusBarDock.FREE, FocusBarDock.BOTTOM_EDGE -> 0f
+    }
+    val enterTy = when (dock) {
+        FocusBarDock.FREE, FocusBarDock.BOTTOM_EDGE -> slideMag
+        FocusBarDock.LEFT_EDGE, FocusBarDock.RIGHT_EDGE -> 0f
+    }
     // Gentle stretch along the emerging axis during liquid morphing.
     val stretchX = 1f + (1f - jellyScale) * (if (vertical) -0.45f else 0.7f)
     val stretchY = 1f + (1f - jellyScale) * (if (vertical) 0.7f else -0.45f)
@@ -511,8 +538,12 @@ private fun FocusGlassBarCapsule(
         tonalElevation = 0.dp,
         shadowElevation = ModernTheme.capsuleShadowDp,
         modifier = modifier
+            .graphicsLayer {
+                translationX = enterTx
+                translationY = enterTy
+            }
             .liquidGlassSpringAnimation(
-                expanded = !LocalFloatingSurfaceClosing.current,
+                expanded = !closing,
                 origin = TransformOrigin(0.5f, 0.5f),
             )
             .graphicsLayer {

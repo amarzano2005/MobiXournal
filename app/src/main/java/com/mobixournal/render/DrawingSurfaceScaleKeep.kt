@@ -35,7 +35,7 @@ internal fun DrawingSurfaceView.keepScaleAcrossNextResize() {
  */
 internal fun DrawingSurfaceView.applyQueuedScaleKeep() {
     if (!viewport.keepScaleOnResize) return
-    val kept = viewport.adoptResizeZoom(width.toFloat())
+    val kept = viewport.adoptResizeZoom(viewport.usableWidthFor(width.toFloat()))
     if (!viewport.zoomTo(kept, {})) return
     onZoomChanged?.invoke(zoom)
 }

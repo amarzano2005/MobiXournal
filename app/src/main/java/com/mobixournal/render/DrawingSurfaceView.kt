@@ -83,6 +83,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var layout: StackedLayout = StackedLayout(emptyList(), 0f, 0f)
     /** The scroll/zoom offsets and their clamps ([ViewportState] owns the numbers and the maths). */
     internal val viewport = ViewportState()
+    internal var chromeAnimating = false
 
     @VisibleForTesting
     internal var scrollY: Float
@@ -1012,7 +1013,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     /** Index of the page nearest the viewport centre — the one add/remove act on. */
     internal fun currentPageIndex(): Int {
-        return layout.nearestPage(scrollX + width / 2f, scrollY + height / 2f)?.index
+        return layout.nearestPage(scrollX + viewport.usableCenterX(), scrollY + viewport.usableCenterY())?.index
             ?: (pageSource.pageCount - 1).coerceAtLeast(0)
     }
 
@@ -1077,7 +1078,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** Scroll so page [index]'s top aligns with the viewport top (used by the page navigator). */
     fun goToPage(index: Int) {
         val box = layout.boxes.getOrNull(index) ?: return
-        viewport.scrollToY(box.topPx)
+        viewport.scrollToY((box.topPx - viewport.insetTopPx).coerceAtLeast(0f))
         viewport.centerHorizontal()
         render()
     }

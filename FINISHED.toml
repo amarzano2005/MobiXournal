@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "smooth-chrome-insets-focus-and-sidebar"
+title = "Animate Focus mode and multi-page sidebar smoothly via canvas chrome insets"
+description = "Implemented Solution B: added chrome insets to PageStacker, ViewportState, DrawingSurfaceView/Resize/Paint/Input/ScaleKeep so the SurfaceView keeps a fixed size while sliding top bar, side rail, and multi-page sidebar push animated viewport insets over 240 ms with GPU stand-in blitting; added ChromeInsetsState overlay hosts, pointer blocking, jump-free FocusModeExitButton (displayCutoutPadding), and edge-aware choreographed FocusFloatingBar slide. Verified with ViewportStateTest, FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and signed release APK."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-24
+completed = 2026-11-24
+tags = ["ui", "render", "android"]
+design = "material: keeps Band glass and bandSideEdge on RailLane and DocumentNavigationLane, and floating surface/rim on FocusModeExitButton and FocusGlassBarCapsule; states: overlays slide smoothly without detaching the SurfaceView and block canvas pointers on chrome; copy: unchanged English copy; tests: ViewportStateTest, FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "focus-preview-drag-and-contextual-chips"
 title = "Redesign Focus mode settings with hold-and-drag preview, inline add slot, and contextual replace/add chips"
 description = "Increased TouchDoubleTapRow spacing to 24 dp (PenInputSection.kt); added addFocusBarSlot and reorderFocusBarSlot helpers and unit tests (FocusBarGeometry.kt, FocusBarGeometryTest.kt); redesigned FocusModeSection with hold-and-drag preview reordering, single remove badge on selected slot, inline + slot, and contextual replace/add chip catalog. Verified with FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and signed release APK."

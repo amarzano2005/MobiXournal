@@ -3,13 +3,16 @@ package com.mobixournal.ui
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.displayCutoutPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FullscreenExit
@@ -30,7 +33,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -103,16 +108,32 @@ internal fun FocusModeExitButton(
     val shape = RoundedCornerShape(18.dp)
     val glassColor = rememberGlassSurfaceColor()
     val ink = rememberChromeInk()
-    Box(modifier = modifier.statusBarsPadding().padding(12.dp)) {
+    val slideOffsetPx = with(LocalDensity.current) { 12.dp.toPx() }
+    Box(modifier = modifier.displayCutoutPadding().padding(top = 12.dp, end = 12.dp)) {
         DialogPresence(visible) {
+            val closing = LocalFloatingSurfaceClosing.current
+            val enterProgress = remember { Animatable(0f) }
+            LaunchedEffect(closing) {
+                enterProgress.animateTo(
+                    targetValue = if (!closing) 1f else 0f,
+                    animationSpec = if (!closing) {
+                        tween(220, delayMillis = 70, easing = FastOutSlowInEasing)
+                    } else {
+                        tween(140, easing = FastOutSlowInEasing)
+                    },
+                )
+            }
             Surface(
                 shape = shape,
                 color = glassColor,
                 tonalElevation = 0.dp,
                 shadowElevation = 4.dp,
                 modifier = Modifier
+                    .graphicsLayer {
+                        translationY = -(1f - enterProgress.value) * slideOffsetPx
+                    }
                     .liquidGlassSpringAnimation(
-                        expanded = !LocalFloatingSurfaceClosing.current,
+                        expanded = !closing,
                         origin = TransformOrigin(1f, 0f),
                     )
                     .floatingRim(18.dp)

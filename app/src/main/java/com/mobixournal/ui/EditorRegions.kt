@@ -1622,6 +1622,7 @@ fun EditorPaneView(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
+            val insetPadding = ApplyPaneChromeInsets(state, index)
             ScrollThumb(
                 scrollY = { state.scrollY },
                 totalHeightPx = { state.contentHeight },
@@ -1629,7 +1630,7 @@ fun EditorPaneView(
                 currentPage = { state.currentPage },
                 pageCount = { state.pageCount },
                 onScrollTo = { state.surface?.scrollToY(it) },
-                modifier = Modifier.matchParentSize(),
+                modifier = Modifier.matchParentSize().padding(insetPadding),
             )
             // The badges take the canvas edge opposite the Main Toolbar (see
             // [pageCounterAlignment]), so they never sit under the tools or the writing hand. The zoom
@@ -1639,6 +1640,7 @@ fun EditorPaneView(
                 state = state,
                 modifier = Modifier
                     .align(pageCounterAlignment(settings.toolbarPosition))
+                    .padding(insetPadding)
                     .padding(8.dp),
             )
             // The pen diagnostics panel floats over the canvas it reports on, in the corner the
@@ -1647,7 +1649,7 @@ fun EditorPaneView(
                 PenDiagnosticsPanel(
                     lines = state.penDebugLines,
                     onClear = { state.surface?.clearPenDebug() },
-                    modifier = Modifier.align(Alignment.TopStart).padding(8.dp),
+                    modifier = Modifier.align(Alignment.TopStart).padding(insetPadding).padding(8.dp),
                 )
             }
             // Both of the pane's selection bars ride with what they act on instead of sitting on the

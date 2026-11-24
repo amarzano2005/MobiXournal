@@ -2,15 +2,16 @@ package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -33,18 +33,17 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -58,7 +57,6 @@ import com.mobixournal.design.DocumentNavigationLayout
 import com.mobixournal.render.OutlineEdits
 import com.mobixournal.render.PageRanges
 import com.mobixournal.render.PdfOutlineSeeding
-import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.ui.theme.PanelEdgeAir
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberChromeInk
@@ -66,12 +64,6 @@ import com.mobixournal.ui.theme.liquidGlassFadeTransform
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 internal enum class NavigationTab(val label: String) { PAGES("Pages"), BOOKMARKS("Bookmarks") }
-
-/**
- * How long the lane takes to slide its width in or out. Long enough that the eye follows the page re-fitting
- * and no width is ever left unpainted, short enough that the tap still feels answered.
- */
-private const val LANE_SLIDE_MS = 180
 
 /** Selecting the other view opens it immediately; only selecting the already-open view closes it. */
 internal fun EditorUiState.toggleNavigation(tab: NavigationTab) {
@@ -120,7 +112,7 @@ internal fun BookmarkSegment(ui: EditorUiState) {
     }
 }
 
-/** The canvas stays composed, including on compact windows while the navigator occupies its space. */
+/** The canvas stays composed at fixed Surface size while sliding chrome pushes animated insets. */
 @Composable
 internal fun DocumentNavigationWorkspace(
     ui: EditorUiState,
@@ -128,6 +120,8 @@ internal fun DocumentNavigationWorkspace(
     railOnLeft: Boolean,
     toolbar: @Composable () -> Unit,
     canvas: @Composable (Modifier) -> Unit,
+    topInsetPx: Float = 0f,
+    topAnimating: Boolean = false,
     modifier: Modifier,
 ) {
     BoxWithConstraints(modifier) {
@@ -137,78 +131,139 @@ internal fun DocumentNavigationWorkspace(
         ).dp
         // Outside visibility: closing the navigator or changing its tab must not reset the document's list.
         val session = pane.navigationSessions.getOrPut(pane.navigationDocumentKey) { ContentsSession() }
-        // The canvas takes the lane's space back (or hands it over) with no touch of its own, and its own
-        // resize hooks can land while the surface still reports the old extent — which used to leave the
-        // page drawn for the lane's width, off to one side, until the reader tapped the sheet. One nudge
-        // after the frame that moved the pane is what recentres it; the frame it lands on is the one the
-        // new layout was committed in.
-        LaunchedEffect(ui.pageListOpen, ui.navigationTab) {
-            withFrameNanos { }
-            withFrameNanos { }
-            pane.surface?.repaintAfterResize()
-        }
         val laneOpen = ui.pageListOpen && !ui.fullPage
-        // The lane's width is **animated**, and the canvas follows it frame by frame. A lane that appeared or
-        // vanished in a single frame left the width it occupies belonging to nothing for that instant — a dark
-        // band beside the sheet, which is what the reader saw as a black strip while the canvas adapted. Over
-        // 180 ms both dispositions overlap, so the pane and the page re-fit continuously and nothing is exposed.
-        val laneWidth by animateDpAsState(
-            targetValue = if (laneOpen) width else 0.dp,
-            animationSpec = tween(LANE_SLIDE_MS),
-            label = "navigation lane width",
+        val railOpen = !ui.fullPage
+        val railProgress by animateFloatAsState(
+            targetValue = if (railOpen) 1f else 0f,
+            animationSpec = tween(CHROME_TRANSITION_MS, easing = FastOutSlowInEasing),
+            label = "RailLaneChrome",
         )
-        val navigator: @Composable () -> Unit = if (compact) {
-            // Compact windows hand the whole body to the navigator instead of sharing it, so there is no width
-            // to slide: the lane is presented at its final size and the canvas keeps its viewport behind it.
-            { DocumentNavigationLane(ui, pane, session, railOnLeft, compact, width, laneOpen) }
-        } else {
-            {
-                Box(Modifier.width(laneWidth).fillMaxHeight().clipToBounds()) {
-                    // Laid out at its **full** width and cut by the box around it, so the closing animation slides a
-                    // real lane out instead of squeezing its tabs every frame; nothing is composed at zero width.
-                    if (laneWidth > 0.dp) {
-                        Box(Modifier.requiredWidth(width).fillMaxHeight()) {
-                            DocumentNavigationLane(ui, pane, session, railOnLeft, compact, width, laneOpen)
-                        }
+        val laneProgress by animateFloatAsState(
+            targetValue = if (laneOpen) 1f else 0f,
+            animationSpec = tween(CHROME_TRANSITION_MS, easing = FastOutSlowInEasing),
+            label = "SidebarLaneChrome",
+        )
+        val density = LocalDensity.current
+        val railFullPx = with(density) { SideToolbarModernTotalWidth.toPx() }
+        val laneFullPx = with(density) { width.toPx() }
+        val railPx = railFullPx * railProgress
+        val sidebarPx = if (compact) 0f else laneFullPx * laneProgress
+        val leftPx = if (railOnLeft) railPx + sidebarPx else 0f
+        val rightPx = if (!railOnLeft) railPx + sidebarPx else 0f
+        val animating = topAnimating || railProgress in 0.001f..0.999f || laneProgress in 0.001f..0.999f
+        val topInsetDp = with(density) { topInsetPx.toDp() }
+        val railEdgeDp = with(density) { railPx.toDp() }
+
+        CompositionLocalProvider(
+            LocalCanvasChromeInsets provides CanvasChromeInsets(
+                leftPx = leftPx,
+                topPx = topInsetPx,
+                rightPx = rightPx,
+                bottomPx = 0f,
+                animating = animating,
+            ),
+        ) {
+            Box(Modifier.fillMaxSize().background(rememberChromeColor())) {
+                canvas(Modifier.fillMaxSize())
+                Box(Modifier.fillMaxSize().padding(top = topInsetDp)) {
+                    if (laneProgress > 0.001f) {
+                        OverlayNavigationSidebar(
+                            ui = ui,
+                            pane = pane,
+                            session = session,
+                            compact = compact,
+                            railOnLeft = railOnLeft,
+                            laneOpen = laneOpen,
+                            laneProgress = laneProgress,
+                            laneFullPx = laneFullPx,
+                            width = width,
+                            railEdgeDp = railEdgeDp,
+                        )
+                    }
+                    if (railProgress > 0.001f) {
+                        OverlayRailLane(
+                            railOnLeft = railOnLeft,
+                            railOpen = railOpen,
+                            railProgress = railProgress,
+                            railFullPx = railFullPx,
+                            toolbar = toolbar,
+                        )
                     }
                 }
-            }
-        }
-        // The backdrop behind the row is the **lane's own glass**, not the window's black: the lane and the
-        // canvas are placed a frame apart, and the moment between them used to show the window through the space
-        // the lane was taking (or giving back) — a black strip beside the page. With the same glass behind it
-        // there is nothing left to see that the lane would not paint anyway.
-        Box(Modifier.fillMaxSize().background(rememberGlassSurfaceColor().compositeOver(rememberChromeColor()))) {
-            Row(Modifier.fillMaxSize()) {
-                if (railOnLeft && !ui.fullPage) RailLane(toolbar, canvasOnRight = true)
-                if (compact) {
-                    CompactNavigationBody(laneOpen, canvas, navigator)
-                } else {
-                    if (railOnLeft) navigator()
-                    canvas(Modifier.weight(1f).fillMaxHeight())
-                    if (!railOnLeft) navigator()
-                }
-                if (!railOnLeft && !ui.fullPage) RailLane(toolbar, canvasOnRight = false)
             }
         }
     }
 }
 
-/** Replacement view, not a one-dp canvas: the hidden SurfaceView keeps its viewport, page and undo state. */
 @Composable
-private fun RowScope.CompactNavigationBody(
-    open: Boolean,
-    canvas: @Composable (Modifier) -> Unit,
-    navigator: @Composable () -> Unit,
+private fun BoxScope.OverlayNavigationSidebar(
+    ui: EditorUiState,
+    pane: PaneState,
+    session: ContentsSession,
+    compact: Boolean,
+    railOnLeft: Boolean,
+    laneOpen: Boolean,
+    laneProgress: Float,
+    laneFullPx: Float,
+    width: Dp,
+    railEdgeDp: Dp,
 ) {
-    Box(Modifier.weight(1f).fillMaxHeight()) {
-        canvas(Modifier.fillMaxSize().graphicsLayer { alpha = if (open) 0f else 1f }
-            .pointerInput(open) {
-                if (open) awaitPointerEventScope {
-                    while (true) awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+    if (compact) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = laneProgress.coerceIn(0f, 1f) }
+                .then(if (laneOpen) Modifier.blockCanvasPointers() else Modifier),
+        ) {
+            DocumentNavigationLane(ui, pane, session, compact = true, width = width, backEnabled = laneOpen)
+        }
+        return
+    }
+    val edgeAlign = if (railOnLeft) Alignment.CenterStart else Alignment.CenterEnd
+    val railPad = if (railOnLeft) Modifier.padding(start = railEdgeDp) else Modifier.padding(end = railEdgeDp)
+    Box(
+        Modifier
+            .align(edgeAlign)
+            .then(railPad)
+            .width(width)
+            .fillMaxHeight()
+            .clipToBounds(),
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    translationX = if (railOnLeft) -(1f - laneProgress) * laneFullPx
+                    else (1f - laneProgress) * laneFullPx
                 }
-            })
-        navigator()
+                .then(if (laneOpen) Modifier.blockCanvasPointers() else Modifier),
+        ) {
+            DocumentNavigationLane(ui, pane, session, compact = false, width = width, backEnabled = laneOpen)
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.OverlayRailLane(
+    railOnLeft: Boolean,
+    railOpen: Boolean,
+    railProgress: Float,
+    railFullPx: Float,
+    toolbar: @Composable () -> Unit,
+) {
+    val railAlign = if (railOnLeft) Alignment.CenterStart else Alignment.CenterEnd
+    Box(
+        Modifier
+            .align(railAlign)
+            .fillMaxHeight()
+            .graphicsLayer {
+                translationX = if (railOnLeft) -(1f - railProgress) * railFullPx
+                else (1f - railProgress) * railFullPx
+                alpha = railProgress.coerceIn(0f, 1f)
+            }
+            .then(if (railOpen) Modifier.blockCanvasPointers() else Modifier),
+    ) {
+        RailLane(toolbar, canvasOnRight = railOnLeft)
     }
 }
 
@@ -217,40 +272,36 @@ private fun DocumentNavigationLane(
     ui: EditorUiState,
     pane: PaneState,
     session: ContentsSession,
-    expandFromStart: Boolean,
     compact: Boolean,
     width: Dp,
-    /** Composed while the lane is visible **or still sliding out**, so the close animation has something to draw. */
-    visible: Boolean,
+    backEnabled: Boolean,
 ) {
     val close = { ui.closeNavigation() }
     val dismiss = session.editing.dismissOrCancel(close)
-    BackHandler(enabled = ui.pageListOpen && !ui.fullPage) {
+    BackHandler(enabled = backEnabled) {
         if (ui.navigationTab == NavigationTab.BOOKMARKS) dismiss() else close()
     }
-    if (visible) {
-        Surface(
-            color = rememberGlassSurfaceColor().compositeOver(rememberChromeColor()),
-            modifier = Modifier.width(width).fillMaxHeight().imePadding(),
-            tonalElevation = 0.dp,
-        ) {
-            Column(Modifier.fillMaxSize()) {
-                NavigationTabs(ui, pane, onClose = if (ui.navigationTab == NavigationTab.BOOKMARKS) dismiss else close)
-                val goToPage: (Int) -> Unit = {
-                    pane.surface?.goToPage(it)
-                    if (compact) close()
-                }
-                AnimatedContent(
-                    targetState = ui.navigationTab,
-                    transitionSpec = { liquidGlassFadeTransform() },
-                    modifier = Modifier.weight(1f),
-                    label = "NavigationTab",
-                ) { tab ->
-                    if (tab == NavigationTab.BOOKMARKS) {
-                        BookmarkNavigationBody(pane, session, goToPage, Modifier.fillMaxSize())
-                    } else {
-                        NavigationPages(ui, pane, goToPage, Modifier.fillMaxSize())
-                    }
+    Surface(
+        color = rememberGlassSurfaceColor().compositeOver(rememberChromeColor()),
+        modifier = (if (compact) Modifier.fillMaxSize() else Modifier.width(width).fillMaxHeight()).imePadding(),
+        tonalElevation = 0.dp,
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            NavigationTabs(ui, pane, onClose = if (ui.navigationTab == NavigationTab.BOOKMARKS) dismiss else close)
+            val goToPage: (Int) -> Unit = {
+                pane.surface?.goToPage(it)
+                if (compact) close()
+            }
+            AnimatedContent(
+                targetState = ui.navigationTab,
+                transitionSpec = { liquidGlassFadeTransform() },
+                modifier = Modifier.weight(1f),
+                label = "NavigationTab",
+            ) { tab ->
+                if (tab == NavigationTab.BOOKMARKS) {
+                    BookmarkNavigationBody(pane, session, goToPage, Modifier.fillMaxSize())
+                } else {
+                    NavigationPages(ui, pane, goToPage, Modifier.fillMaxSize())
                 }
             }
         }

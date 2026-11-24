@@ -242,6 +242,7 @@ internal fun DrawingSurfaceView.openBackgroundImage(reference: String): java.io.
  * that isn't cached yet is queued and arrives on a later frame.
  */
 internal fun DrawingSurfaceView.pdfTilesFor(box: PageBox): List<PdfTile> {
+    if (chromeAnimating) return emptyList()
     val bg = box.page.background as? Background.Pdf ?: return emptyList()
     val src = pdfSourceFor(bg) ?: return emptyList()
     if (box.widthPx <= 0f || box.heightPx <= 0f) return emptyList()
@@ -341,7 +342,7 @@ internal fun DrawingSurfaceView.drawPageElements(canvas: Canvas, box: PageBox) {
         drawKaraokePage(canvas, box, karaoke, hidden)
         return
     }
-    val scrolling = scroll.active || momentum.isFlinging
+    val scrolling = scroll.active || momentum.isFlinging || chromeAnimating
     if (inkCacheUsable && inkCache.draw(canvas, box, scrollX, scrollY, hidden, preferStandIn = scrolling)) return
     PageRenderer.drawElements(
         canvas, box.page, box.scale, box.leftPx - scrollX, box.topPx - scrollY,

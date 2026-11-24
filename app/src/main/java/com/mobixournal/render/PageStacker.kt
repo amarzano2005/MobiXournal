@@ -97,7 +97,14 @@ internal object PageStacker {
         viewWidthPx: Int,
         gapPx: Float,
         zoom: Float = 1f,
-    ): StackedLayout = stack(PageSource.of(pages), viewWidthPx, gapPx, zoom)
+        insetLeftPx: Float = 0f,
+        insetTopPx: Float = 0f,
+        insetRightPx: Float = 0f,
+        insetBottomPx: Float = 0f,
+    ): StackedLayout = stack(
+        PageSource.of(pages), viewWidthPx, gapPx, zoom,
+        insetLeftPx, insetTopPx, insetRightPx, insetBottomPx,
+    )
 
     /**
      * Stack every page [source] declares, reading only each page's size.
@@ -110,26 +117,32 @@ internal object PageStacker {
         viewWidthPx: Int,
         gapPx: Float,
         zoom: Float = 1f,
+        insetLeftPx: Float = 0f,
+        insetTopPx: Float = 0f,
+        insetRightPx: Float = 0f,
+        insetBottomPx: Float = 0f,
     ): StackedLayout {
         if (viewWidthPx <= 0) return StackedLayout(emptyList(), 0f, 0f)
-        // Each page's own size first: the content band is the widest page or the view, so a page wider
-        // than the view (a zoom above 100 %) anchors the band and a narrower one is centred in it.
+        val usableWidth = (viewWidthPx - insetLeftPx - insetRightPx).coerceAtLeast(1f)
+        // Each page's own size first: the content band is the widest page or the usable view, so a page
+        // wider than the usable area (a zoom above 100 %) anchors the band and a narrower one is centred in it.
         class Placed(val index: Int, val scale: Float, val width: Float, val height: Float)
         val placed = List(source.pageCount) { index ->
             val size = source.pageSize(index)
-            val scale = if (size.widthPt > 0) (viewWidthPx / size.widthPt).toFloat() * zoom else zoom
+            val scale = if (size.widthPt > 0) (usableWidth / size.widthPt).toFloat() * zoom else zoom
             Placed(index, scale, (size.widthPt * scale).toFloat(), (size.heightPt * scale).toFloat())
         }
-        val contentWidth = maxOf(viewWidthPx.toFloat(), placed.maxOfOrNull { it.width } ?: 0f)
+        val usableContentWidth = maxOf(usableWidth, placed.maxOfOrNull { it.width } ?: 0f)
+        val totalContentWidth = usableContentWidth + insetLeftPx + insetRightPx
         val boxes = ArrayList<PageBox>(placed.size)
-        // The **first** page starts at the content's own top, so it begins directly under the frame's
-        // closing edge with no strip of desk between them — `docs/chrome.md` owns the rod.
+        // The **first** page starts at [insetTopPx], directly under the live header band when shown.
         // [gapPx] therefore separates pages, it is not a margin around the document.
-        var top = 0f
+        var top = insetTopPx
         for (page in placed) {
-            boxes += PageBox(page.index, top, (contentWidth - page.width) / 2f, page.width, page.height, page.scale, source)
+            val left = insetLeftPx + (usableContentWidth - page.width) / 2f
+            boxes += PageBox(page.index, top, left, page.width, page.height, page.scale, source)
             top += page.height + gapPx
         }
-        return StackedLayout(boxes, top, contentWidth)
+        return StackedLayout(boxes, top + insetBottomPx, totalContentWidth)
     }
 }

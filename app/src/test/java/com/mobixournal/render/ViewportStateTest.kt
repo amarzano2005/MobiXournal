@@ -150,4 +150,94 @@ class ViewportStateTest {
         assertEquals(1f, v.adoptResizeZoom(100f), 0f)
         assertEquals(0.5f, v.adoptResizeZoom(200f), 1e-5f)
     }
+
+    private fun testPage(w: Double, h: Double) = com.mobixournal.format.model.Page(
+        width = w,
+        height = h,
+        background = com.mobixournal.format.model.Background.Solid(-1, "plain"),
+        layers = emptyList(),
+    )
+
+    @Test fun `PageStacker fits and centres pages within chrome insets`() {
+        val page = testPage(500.0, 800.0)
+        val stacked = PageStacker.stack(
+            pages = listOf(page),
+            viewWidthPx = 1200,
+            gapPx = 20f,
+            zoom = 1f,
+            insetLeftPx = 200f,
+            insetTopPx = 100f,
+            insetRightPx = 0f,
+            insetBottomPx = 0f,
+        )
+        assertEquals(1, stacked.boxes.size)
+        val box = stacked.boxes.first()
+        assertEquals(200f, box.leftPx, 0.01f)
+        assertEquals(100f, box.topPx, 0.01f)
+        assertEquals(1000f, box.widthPx, 0.01f)
+        assertEquals(1600f, box.heightPx, 0.01f)
+        assertEquals(1200f, stacked.contentWidthPx, 0.01f)
+        assertEquals(100f + 1600f + 20f, stacked.totalHeightPx, 0.01f)
+    }
+
+    @Test fun `updateChromeInsets keeps scrollY at 0 at top and preserves focal fraction when scrolled`() {
+        val pages = listOf(
+            testPage(500.0, 1000.0),
+            testPage(500.0, 1000.0),
+        )
+        val v = ViewportState()
+        fun doRelayout() {
+            val stacked = PageStacker.stack(
+                pages = pages,
+                viewWidthPx = 1000,
+                gapPx = 0f,
+                zoom = v.zoom,
+                insetLeftPx = v.insetLeftPx,
+                insetTopPx = v.insetTopPx,
+                insetRightPx = v.insetRightPx,
+                insetBottomPx = v.insetBottomPx,
+            )
+            v.setBounds(1000f, 1000f, stacked.contentWidthPx, stacked.totalHeightPx)
+        }
+        v.updateChromeInsets(100f, 80f, 0f, 0f, ::doRelayout)
+        assertEquals(0f, v.scrollY, 0.01f)
+        assertEquals(100f, v.insetLeftPx, 0.01f)
+        assertEquals(900f, v.usableWidth(), 0.01f)
+
+        // Scroll partway down, then remove insets: focal document fraction at usable centre stays stable.
+        v.scrollToY(500f)
+        val beforeCenterFrac = (v.scrollY + v.usableCenterY() - v.insetTopPx) / (2 * 1800f)
+        v.updateChromeInsets(0f, 0f, 0f, 0f, ::doRelayout)
+        val afterCenterFrac = (v.scrollY + v.usableCenterY() - v.insetTopPx) / (2 * 2000f)
+        assertEquals(beforeCenterFrac, afterCenterFrac, 0.01f)
+    }
+
+    @Test fun `zoomAbout pins focal pixel under non-zero chrome insets`() {
+        val page = testPage(500.0, 1000.0)
+        val v = ViewportState()
+        fun doRelayout() {
+            val stacked = PageStacker.stack(
+                pages = listOf(page),
+                viewWidthPx = 1000,
+                gapPx = 0f,
+                zoom = v.zoom,
+                insetLeftPx = v.insetLeftPx,
+                insetTopPx = v.insetTopPx,
+                insetRightPx = v.insetRightPx,
+                insetBottomPx = v.insetBottomPx,
+            )
+            v.setBounds(1000f, 800f, stacked.contentWidthPx, stacked.totalHeightPx)
+        }
+        v.updateChromeInsets(200f, 100f, 0f, 0f, ::doRelayout)
+        v.scrollToY(200f)
+        val focusVx = 600f
+        val focusVy = 450f
+        val ptXBefore = (v.scrollX + focusVx - v.insetLeftPx) / v.zoom
+        val ptYBefore = (v.scrollY + focusVy - v.insetTopPx) / v.zoom
+        assertTrue(v.zoomAbout(focusVx, focusVy, 2f, ::doRelayout))
+        val ptXAfter = (v.scrollX + focusVx - v.insetLeftPx) / v.zoom
+        val ptYAfter = (v.scrollY + focusVy - v.insetTopPx) / v.zoom
+        assertEquals(ptXBefore, ptXAfter, 0.5f)
+        assertEquals(ptYBefore, ptYAfter, 0.5f)
+    }
 }

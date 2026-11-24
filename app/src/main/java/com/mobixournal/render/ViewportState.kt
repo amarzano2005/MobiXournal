@@ -34,6 +34,16 @@ internal class ViewportState {
     /** Current content height in pixels after zoom; set via [setBounds]. */
     private var contentHeightPx = 0f
 
+    /** Animated chrome insets in pixels reserving space for overlaid bands without resizing the Surface. */
+    var insetLeftPx = 0f
+        private set
+    var insetTopPx = 0f
+        private set
+    var insetRightPx = 0f
+        private set
+    var insetBottomPx = 0f
+        private set
+
     /**
      * The pane size the **Compose box reported**, which is not always [viewWidth]: the box is placed a moment
      * before the platform view is laid out, so a resize has to be built for the extent that is *coming* rather
@@ -60,9 +70,73 @@ internal class ViewportState {
      */
     fun adoptResizeZoom(width: Float): Float {
         if (!keepScaleOnResize) return zoom
-        if (width <= 0f || width == viewWidth) return zoom
+        val prevUsable = if (viewWidth > 0f) usableWidth() else viewWidth
+        if (width <= 0f || width == prevUsable) return zoom
         keepScaleOnResize = false
-        return keptScaleZoom(zoom, viewWidth, width)
+        return keptScaleZoom(zoom, prevUsable, width)
+    }
+
+    /** Unobstructed width inside [totalWidth] after subtracting left and right chrome insets. */
+    fun usableWidthFor(totalWidth: Float): Float = (totalWidth - insetLeftPx - insetRightPx).coerceAtLeast(1f)
+
+    /** Current unobstructed viewport width in pixels. */
+    fun usableWidth(): Float = if (viewWidth > 0f) usableWidthFor(viewWidth) else 0f
+
+    /** Current unobstructed viewport height in pixels. */
+    fun usableHeight(): Float = if (viewHeight > 0f) (viewHeight - insetTopPx - insetBottomPx).coerceAtLeast(1f) else 0f
+
+    /** Horizontal centre of the unobstructed viewport in view pixels. */
+    fun usableCenterX(): Float = insetLeftPx + usableWidth() / 2f
+
+    /** Vertical centre of the unobstructed viewport in view pixels. */
+    fun usableCenterY(): Float = insetTopPx + usableHeight() / 2f
+
+    /**
+     * Update chrome insets and re-stack via [relayout], preserving the focal document point at the
+     * centre of the unobstructed viewport so sliding bars do not jump the page.
+     */
+    fun updateChromeInsets(
+        left: Float,
+        top: Float,
+        right: Float,
+        bottom: Float,
+        relayout: () -> Unit,
+    ): Boolean {
+        val l = left.coerceAtLeast(0f)
+        val t = top.coerceAtLeast(0f)
+        val r = right.coerceAtLeast(0f)
+        val b = bottom.coerceAtLeast(0f)
+        if (kotlin.math.abs(l - insetLeftPx) < 0.25f &&
+            kotlin.math.abs(t - insetTopPx) < 0.25f &&
+            kotlin.math.abs(r - insetRightPx) < 0.25f &&
+            kotlin.math.abs(b - insetBottomPx) < 0.25f
+        ) {
+            return false
+        }
+        val oldUsableContentW = (contentWidthPx - insetLeftPx - insetRightPx).coerceAtLeast(0f)
+        val oldUsableContentH = (contentHeightPx - insetTopPx - insetBottomPx).coerceAtLeast(0f)
+        val hadScrollX = maxScrollX() > 0.5f
+        val hadScrollY = scrollY > 0.5f
+        val xFrac = if (oldUsableContentW > 0f) (scrollX + usableCenterX() - insetLeftPx) / oldUsableContentW else 0.5f
+        val yFrac = if (oldUsableContentH > 0f) (scrollY + usableCenterY() - insetTopPx) / oldUsableContentH else 0f
+        insetLeftPx = l
+        insetTopPx = t
+        insetRightPx = r
+        insetBottomPx = b
+        relayout()
+        val newUsableContentW = (contentWidthPx - insetLeftPx - insetRightPx).coerceAtLeast(0f)
+        val newUsableContentH = (contentHeightPx - insetTopPx - insetBottomPx).coerceAtLeast(0f)
+        if (hadScrollX && newUsableContentW > 0f) {
+            scrollX = (xFrac * newUsableContentW + insetLeftPx - usableCenterX()).coerceIn(0f, maxScrollX())
+        } else {
+            centerHorizontal()
+        }
+        if (hadScrollY && newUsableContentH > 0f) {
+            scrollY = (yFrac * newUsableContentH + insetTopPx - usableCenterY()).coerceIn(0f, maxScrollY())
+        } else {
+            scrollY = 0f
+        }
+        return true
     }
 
     /**
@@ -137,7 +211,7 @@ internal class ViewportState {
      * @return false if zoom didn't change (already at clamp boundary).
      */
     fun zoomTo(target: Float, relayout: () -> Unit): Boolean =
-        zoomAbout(viewWidth / 2f, viewHeight / 2f, target.coerceIn(MIN_ZOOM, MAX_ZOOM) / zoom, relayout)
+        zoomAbout(usableCenterX(), usableCenterY(), target.coerceIn(MIN_ZOOM, MAX_ZOOM) / zoom, relayout)
 
     /**
      * Multiply the zoom by [factor] (clamped to [MIN_ZOOM]..[MAX_ZOOM]) while keeping the content point
@@ -151,13 +225,17 @@ internal class ViewportState {
     fun zoomAbout(focusVx: Float, focusVy: Float, factor: Float, relayout: () -> Unit): Boolean {
         val next = (zoom * factor).coerceIn(MIN_ZOOM, MAX_ZOOM)
         if (next == zoom) return false
-        // Work in zoom-invariant fractions so the anchor survives the relayout (layout px scale with zoom).
-        val xFrac = if (contentWidthPx > 0f) (scrollX + focusVx) / contentWidthPx else 0f
-        val yFrac = if (contentHeightPx > 0f) (scrollY + focusVy) / contentHeightPx else 0f
+        // Work in zoom-invariant fractions relative to the usable content span so the anchor survives relayout.
+        val oldUsableContentW = (contentWidthPx - insetLeftPx - insetRightPx).coerceAtLeast(0f)
+        val oldUsableContentH = (contentHeightPx - insetTopPx - insetBottomPx).coerceAtLeast(0f)
+        val xFrac = if (oldUsableContentW > 0f) (scrollX + focusVx - insetLeftPx) / oldUsableContentW else 0f
+        val yFrac = if (oldUsableContentH > 0f) (scrollY + focusVy - insetTopPx) / oldUsableContentH else 0f
         zoom = next
         relayout()
-        scrollX = (xFrac * contentWidthPx - focusVx).coerceIn(0f, maxScrollX())
-        scrollY = (yFrac * contentHeightPx - focusVy).coerceIn(0f, maxScrollY())
+        val newUsableContentW = (contentWidthPx - insetLeftPx - insetRightPx).coerceAtLeast(0f)
+        val newUsableContentH = (contentHeightPx - insetTopPx - insetBottomPx).coerceAtLeast(0f)
+        scrollX = (xFrac * newUsableContentW + insetLeftPx - focusVx).coerceIn(0f, maxScrollX())
+        scrollY = (yFrac * newUsableContentH + insetTopPx - focusVy).coerceIn(0f, maxScrollY())
         return true
     }
 

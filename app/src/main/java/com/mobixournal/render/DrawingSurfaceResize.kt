@@ -80,8 +80,31 @@ internal fun DrawingSurfaceView.repaintForExtent(widthPx: Int, heightPx: Int) {
  */
 internal fun DrawingSurfaceView.relayoutFor(widthPx: Int, heightPx: Int) {
     applyQueuedScaleKeep()
-    layout = PageStacker.stack(pageSource, widthPx, DrawingSurfaceDefaults.GAP_PX, zoom)
+    layout = PageStacker.stack(
+        pageSource, widthPx, DrawingSurfaceDefaults.GAP_PX, zoom,
+        viewport.insetLeftPx, viewport.insetTopPx, viewport.insetRightPx, viewport.insetBottomPx,
+    )
     viewport.setBounds(widthPx.toFloat(), heightPx.toFloat(), layout.contentWidthPx, layout.totalHeightPx)
+}
+
+/** Update animated chrome insets without resizing the native Surface; triggers crisp repaint once settled. */
+internal fun DrawingSurfaceView.setChromeInsets(
+    leftPx: Float,
+    topPx: Float,
+    rightPx: Float,
+    bottomPx: Float,
+    animating: Boolean,
+) {
+    val wasAnimating = chromeAnimating
+    chromeAnimating = animating
+    val changed = if (width > 0 && height > 0) {
+        viewport.updateChromeInsets(leftPx, topPx, rightPx, bottomPx) { relayoutFor(width, height) }
+    } else {
+        false
+    }
+    if (changed || (wasAnimating && !animating)) {
+        render()
+    }
 }
 
 /**

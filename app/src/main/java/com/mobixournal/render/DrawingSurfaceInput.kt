@@ -532,10 +532,13 @@ internal fun DrawingSurfaceView.handleHandTapUp() {
 
 /** Route a Hand-tool double-tap by horizontal zone: left third → prev page, right third → next, centre → toggle full-page. */
 internal fun DrawingSurfaceView.onHandDoubleTap(x: Float) {
-    val edge = width / 3f
+    val usableStart = viewport.insetLeftPx
+    val usableW = viewport.usableWidth().takeIf { it > 0f } ?: width.toFloat()
+    val edge = usableW / 3f
+    val localX = x - usableStart
     when {
-        x < edge -> goToPage(currentPageIndex() - 1)
-        x > width - edge -> goToPage(currentPageIndex() + 1)
+        localX < edge -> goToPage(currentPageIndex() - 1)
+        localX > usableW - edge -> goToPage(currentPageIndex() + 1)
         else -> onToggleFullPage?.invoke()
     }
 }
