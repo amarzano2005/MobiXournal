@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "make-documentarea-home-to-editor-transition-snappier"
+title = "Make DocumentArea Home-to-Editor transition snappier"
+description = "Replaced chromeSlideSpring() in DocumentArea.kt with EntryExitSpring (dampingRatio 1.0f, stiffness 1400f) and EntryEnterSpring (1.0f, 1100f), quadratic exit fade (p * p), and 0.02f overlay unmount threshold for snappy ~135-160 ms Home-Editor transitions at 144Hz; updated docs/chrome.md; verified DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: entry overlay and steady DrawingSurfaceView unchanged; tokens: critically-damped 1400f/1100f springs tuned for 144Hz responsiveness with zero bounce; states: faster exit fade removes lingering Home ghosting over the canvas; docs: docs/chrome.md updated in same commit; tests: DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, and FocusBarGeometryTest pass."
+
+[[task]]
 id = "compact-focusbarcustomizedialog-footer-and-smooth-documentarea-home-to-editor-transition"
 title = "Compact FocusBarCustomizeDialog footer and smooth DocumentArea Home-to-Editor transition"
 description = "Replaced FloatingDialog AlertDialog wrapper in FocusBarCustomizeDialog.kt with a Liquid Glass Dialog + Surface (matching 24.dp shape, glassSurface, floatingRim, liquidGlassSpringAnimation, and compact policy width) and tight 34.dp min-height FocusBarCustomizeFooter buttons; rewrote DocumentArea.kt to keep editor() steady at full scale and animate only the pure-Compose entry overlay with chromeSlideSpring() and 2.5% lift/settle; updated docs/chrome.md; verified FocusBarGeometryTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, ShapeFeedbackTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."
