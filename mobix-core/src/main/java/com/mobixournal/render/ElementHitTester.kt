@@ -73,9 +73,62 @@ object ElementHitTester {
             is Stroke -> FigurePins.isFigureOf(element, kind)
             is ParametricShapeElement -> {
                 val expected = ParametricShapes.shapeNameForTool(kind)
-                expected != null && element.shape == expected
+                expected != null && (element.shape == expected || element.extraAttrs[FigurePins.SHAPE_ATTR] == kind.name)
             }
             else -> false
+        }
+    }
+
+    /** Stem anchor ([footX], [footY]) on the figure's outline and rotate handle ([knobX], [knobY]) [gapPt] away. */
+    data class RotateStem(val footX: Double, val footY: Double, val knobX: Double, val knobY: Double)
+
+    /** Right-side rotate stem (Android): starts on [element]'s rightmost outline near mid-height. */
+    fun rotateStemRight(element: Element?, bounds: Bounds, gapPt: Double): RotateStem {
+        val midY = (bounds.top + bounds.bottom) / 2.0
+        val (fx, fy) = nearestOutlinePoint(element, bounds.right, midY)
+        return RotateStem(fx, fy, fx + gapPt, fy)
+    }
+
+    /** Top-side rotate stem (Desktop): starts on [element]'s top outline near mid-width. */
+    fun rotateStemTop(element: Element?, bounds: Bounds, gapPt: Double): RotateStem {
+        val midX = (bounds.left + bounds.right) / 2.0
+        val (fx, fy) = nearestOutlinePoint(element, midX, bounds.top)
+        return RotateStem(fx, fy, fx, fy - gapPt)
+    }
+
+    private fun nearestOutlinePoint(element: Element?, targetX: Double, targetY: Double): Pair<Double, Double> {
+        return when (element) {
+            is ParametricShapeElement -> {
+                val verts = element.vertices
+                if (verts.isEmpty()) return targetX to targetY
+                if (verts.size == 1) return verts[0].x to verts[0].y
+                var bestX = verts[0].x
+                var bestY = verts[0].y
+                var bestDist = Double.MAX_VALUE
+                var j = verts.size - 1
+                for (i in verts.indices) {
+                    val (px, py) = closestPointOnSegment(targetX, targetY, verts[j].x, verts[j].y, verts[i].x, verts[i].y)
+                    val d = hypot(targetX - px, targetY - py)
+                    if (d < bestDist) { bestDist = d; bestX = px; bestY = py }
+                    j = i
+                }
+                bestX to bestY
+            }
+            is Stroke -> {
+                val pts = element.points
+                if (pts.isEmpty()) return targetX to targetY
+                if (pts.size == 1) return pts[0].x to pts[0].y
+                var bestX = pts[0].x
+                var bestY = pts[0].y
+                var bestDist = Double.MAX_VALUE
+                for (i in 0 until pts.size - 1) {
+                    val (px, py) = closestPointOnSegment(targetX, targetY, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y)
+                    val d = hypot(targetX - px, targetY - py)
+                    if (d < bestDist) { bestDist = d; bestX = px; bestY = py }
+                }
+                bestX to bestY
+            }
+            else -> targetX to targetY
         }
     }
 
@@ -140,12 +193,22 @@ object ElementHitTester {
     }
 
     private fun distToSegment(x: Double, y: Double, a: Vec2, b: Vec2): Double {
-        val dx = b.x - a.x
-        val dy = b.y - a.y
-        val len2 = dx * dx + dy * dy
-        val t = if (len2 == 0.0) 0.0 else (((x - a.x) * dx + (y - a.y) * dy) / len2).coerceIn(0.0, 1.0)
-        val px = a.x + t * dx
-        val py = a.y + t * dy
+        val (px, py) = closestPointOnSegment(x, y, a.x, a.y, b.x, b.y)
         return hypot(x - px, y - py)
+    }
+
+    private fun closestPointOnSegment(
+        x: Double,
+        y: Double,
+        ax: Double,
+        ay: Double,
+        bx: Double,
+        by: Double,
+    ): Pair<Double, Double> {
+        val dx = bx - ax
+        val dy = by - ay
+        val len2 = dx * dx + dy * dy
+        val t = if (len2 == 0.0) 0.0 else (((x - ax) * dx + (y - ay) * dy) / len2).coerceIn(0.0, 1.0)
+        return (ax + t * dx) to (ay + t * dy)
     }
 }

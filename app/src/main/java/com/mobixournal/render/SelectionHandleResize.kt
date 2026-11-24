@@ -1,6 +1,7 @@
 package com.mobixournal.render
 
 import android.view.MotionEvent
+import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import kotlin.math.abs
@@ -152,14 +153,20 @@ internal fun turnKnob(
     box: PageBox,
     viewport: ViewportState,
     shaft: SelectionShaft?,
+    singleElement: Element? = null,
 ): TurnKnob? {
-    val turn = shaft?.let {
-        shaftTurn(it, (DrawingSurfaceDefaults.ROTATE_ARM_PX / box.scale).toDouble())
-    }
+    val gapPt = (DrawingSurfaceDefaults.ROTATE_ARM_PX / box.scale).toDouble()
+    val turn = shaft?.let { shaftTurn(it, gapPt) }
+    val stem = if (turn == null && singleElement != null) {
+        val padPt = if (singleElement is ParametricShapeElement) 0.0 else (DrawingSurfaceDefaults.SELECT_PAD_PX / box.scale).toDouble()
+        ElementHitTester.rotateStemRight(singleElement, b, gapPt + padPt)
+    } else null
     val knobX = turn?.let { box.toViewX(it.ringX, viewport.scrollX) }
+        ?: stem?.let { box.toViewX(it.knobX, viewport.scrollX) }
         ?: ((b.right * box.scale + box.leftPx - viewport.scrollX).toFloat() +
             DrawingSurfaceDefaults.SELECT_PAD_PX + DrawingSurfaceDefaults.ROTATE_ARM_PX)
     val knobY = turn?.let { box.toViewY(it.ringY, viewport.scrollY) }
+        ?: stem?.let { box.toViewY(it.knobY, viewport.scrollY) }
         ?: ((b.top + b.bottom) / 2 * box.scale + box.topPx - viewport.scrollY).toFloat()
     if (hypot(event.x - knobX, event.y - knobY) > DrawingSurfaceDefaults.HANDLE_HIT_PX) return null
     return TurnKnob(

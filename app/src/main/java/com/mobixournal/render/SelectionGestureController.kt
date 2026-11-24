@@ -247,7 +247,8 @@ internal class SelectionGestureController(
 
         // Rotate knob, offered only when every element is a stroke (`turnKnob` places it).
         if (isAllStrokes(sel)) {
-            val knob = turnKnob(event, b, box, viewport, shaftOfSelection(sel))
+            val singleEl = sel.refs.singleOrNull()?.let { r -> page.layers.getOrNull(r.layerIndex)?.elements?.getOrNull(r.elementIndex) }
+            val knob = turnKnob(event, b, box, viewport, shaftOfSelection(sel), singleEl)
             if (knob != null) {
                 beginRotate(event, box, knob.pivotX, knob.pivotY)
                 return true

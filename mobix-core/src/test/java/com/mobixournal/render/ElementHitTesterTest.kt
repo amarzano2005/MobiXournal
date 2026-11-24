@@ -5,6 +5,7 @@ import com.mobixournal.format.model.ShapeVertex
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.Tool
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -62,5 +63,34 @@ class ElementHitTesterTest {
         val living = ParametricShapes.elementForShapeTool(ShapeKind.RECTANGLE, pts, 0xFF000000.toInt(), 2.0)!!
         assertTrue(ElementHitTester.matchesFigureTool(living, ShapeKind.RECTANGLE))
         assertFalse(ElementHitTester.matchesFigureTool(living, ShapeKind.TRIANGLE))
+        // Deforming a corner turns shape into POLYGON, yet the Rectangle tool still claims it.
+        val deformed = ParametricShapes.moveVertex(living, 1, 95.0, 12.0)
+        assertTrue(ElementHitTester.matchesFigureTool(deformed, ShapeKind.RECTANGLE))
+    }
+
+    @Test
+    fun rotateStemAnchorsToTriangleOutlineInsteadOfFloatingInBoxSpace() {
+        val tri = ParametricShapeElement(
+            shape = ParametricShapes.TRIANGLE,
+            vertices = listOf(
+                ShapeVertex(100.0, 200.0),
+                ShapeVertex(200.0, 200.0),
+                ShapeVertex(150.0, 100.0),
+            ),
+            strokeColor = 0xFF000000.toInt(),
+            strokeWidth = 2.0,
+        )
+        val bounds = ElementBounds.of(tri)
+        val rightStem = ElementHitTester.rotateStemRight(tri, bounds, 20.0)
+        assertTrue(
+            "right stem foot must sit on triangle outline, not at empty box.right",
+            ElementHitTester.nearEdge(tri.vertices.map { Vec2(it.x, it.y) }, rightStem.footX, rightStem.footY, 1e-6),
+        )
+        assertEquals(rightStem.footX + 20.0, rightStem.knobX, 1e-6)
+
+        val topStem = ElementHitTester.rotateStemTop(tri, bounds, 20.0)
+        assertEquals(150.0, topStem.footX, 1e-6)
+        assertEquals(100.0, topStem.footY, 1e-6)
+        assertEquals(80.0, topStem.knobY, 1e-6)
     }
 }

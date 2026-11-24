@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "anchor-rotate-stem-to-figure-outline-and-preserve-origin-tool"
+title = "Anchor rotate stem to figure outline and preserve origin tool"
+description = "Preserved FigurePins.SHAPE_ATTR in ParametricShapes.elementForShapeTool so deformed rectangles remain selectable by the Rectangle tool via ElementHitTester.matchesFigureTool; added rotateStemRight and rotateStemTop in ElementHitTester and wired them into Android (SelectionHandlesPaint, SelectionHandleResize, SelectionGestureController) and Desktop (SelectionOverlay, DesktopSelection, SelectionGesture) so the rotate stem never floats off the figure outline. Added regression tests in ElementHitTesterTest."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: rotate handle stem anchored on element outline in SelectionHandlesPaint and SelectionOverlay; states: consistent knob hit-test and rendering across single shapes, strokes, and group selections; parity: right-side stem on Android and top-side stem on Desktop both anchor via shared ElementHitTester"
+
+[[task]]
 id = "unify-element-hit-testing-and-polygonal-selection-outline"
 title = "Unify element hit-testing and polygonal selection outline"
 description = "Implemented ElementHitTester in mobix-core (true interior + boundary hit-testing for closed figures including ParametricShapeElement and closed ellipse/circle strokes, stroke-only for open strokes), unified PlacementPick.claims and pickFigureElement via ElementHitTester.matchesFigureTool across Android and Desktop, and replaced the rectangular bounding box/edge handles with a polygon-hugging selection outline + vertex handles + rotate knob for single ParametricShapeElement on Android and Desktop. Added ElementHitTesterTest and updated PlacementPickTest and docs."

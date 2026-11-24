@@ -51,6 +51,7 @@ internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, l
         isImage = living is ImageElement,
         shaft = shaft,
         includeBoxResize = singleShape == null,
+        living = living,
     )
     // The element's own grips, inside the box: a figure's corners and a table's dividers. They are round
     // where the box's handles are square, so the two never read as the same thing.
@@ -120,6 +121,7 @@ private fun DrawScope.drawHandles(
     isImage: Boolean = false,
     shaft: SelectionShaft? = null,
     includeBoxResize: Boolean = true,
+    living: Element? = null,
 ) {
     val box = selection.bounds
     fun off(x: Double, y: Double) = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
@@ -171,11 +173,10 @@ private fun DrawScope.drawHandles(
         drawCircle(color = DesktopTheme.accent, radius = HANDLE_SIZE * 0.55f, center = ring)
         drawCircle(color = Color.Black.copy(alpha = 0.35f), radius = HANDLE_SIZE * 0.28f, center = ring)
     } else if (!isImage) {
-        // The stem and the ring: the one handle that is not a corner, so it cannot be mistaken for a resize.
-        val (rotateX, rotateY) = rotateHandleOf(box, gapPt)
-        val rotate = off(rotateX, rotateY)
-        val topMiddle = off((box.left + box.right) / 2.0, box.top)
-        drawLine(DesktopTheme.accent, topMiddle, rotate, strokeWidth = 1f)
+        // The stem anchors to the figure's top outline so it never floats in empty space.
+        val stem = com.mobixournal.render.ElementHitTester.rotateStemTop(living, box, gapPt)
+        val rotate = off(stem.knobX, stem.knobY)
+        drawLine(DesktopTheme.accent, off(stem.footX, stem.footY), rotate, strokeWidth = 1f)
         drawCircle(color = DesktopTheme.accent, radius = HANDLE_SIZE * 0.55f, center = rotate)
         drawCircle(color = Color.Black.copy(alpha = 0.35f), radius = HANDLE_SIZE * 0.28f, center = rotate)
     }

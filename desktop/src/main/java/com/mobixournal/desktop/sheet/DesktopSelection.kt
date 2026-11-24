@@ -143,6 +143,8 @@ fun selectionHandleAt(
     includeBoxResize: Boolean = true,
     /** Optional true-shape body hit test overriding the rectangular [selection.region]. */
     bodyHit: (() -> Boolean)? = null,
+    /** Optional single element whose top outline anchors the rotate stem. */
+    singleElement: Element? = null,
 ): SelectionHandle {
     val box = selection.bounds
     val (reachX, reachY) = handleReach(box, tolPt)
@@ -166,8 +168,8 @@ fun selectionHandleAt(
         return SelectionHandle.NONE
     }
     if (includeRotate) {
-        val (rotateX, rotateY) = rotateHandleOf(box, rotateGapPt)
-        if (near(x, y, rotateX, rotateY, reachX, reachY)) return SelectionHandle.ROTATE
+        val stem = com.mobixournal.render.ElementHitTester.rotateStemTop(singleElement, box, rotateGapPt)
+        if (near(x, y, stem.knobX, stem.knobY, reachX, reachY)) return SelectionHandle.ROTATE
     }
     if (includeBoxResize && !box.isFlatX && !box.isFlatY) {
         val corners = listOf(

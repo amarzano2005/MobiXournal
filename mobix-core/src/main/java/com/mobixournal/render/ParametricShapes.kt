@@ -136,6 +136,7 @@ object ParametricShapes {
             vertices = vertices,
             strokeColor = strokeColor,
             strokeWidth = strokeWidth,
+            extraAttrs = mapOf(FigurePins.SHAPE_ATTR to kind.name),
             id = ElementId.mint(ElementId.SHAPE),
             lineStyle = lineStyle,
         )

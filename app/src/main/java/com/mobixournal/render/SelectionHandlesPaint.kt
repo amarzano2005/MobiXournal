@@ -9,6 +9,8 @@
 package com.mobixournal.render
 
 import android.graphics.Canvas
+import com.mobixournal.format.model.Element
+import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.render.CanvasChrome.Companion.HANDLE_DRAW_PX
 
 /**
@@ -66,12 +68,10 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
         canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
         canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
     }
-    // Rotate knob (strokes only): midway from the right edge, or — for a line or an arrow, which has no box
-    // — hung off the middle of its own ink, so the arm starts **on** the shaft and the turn never floats.
+    // Rotate knob: on a shaft it hangs from its ink; on a single figure/stroke it anchors to the figure's rightmost outline.
     if (gestures.isAllStrokes(sel)) {
-        val turn = shaft?.let {
-            shaftTurn(it, (DrawingSurfaceDefaults.ROTATE_ARM_PX / box.scale).toDouble())
-        }
+        val gapPt = (DrawingSurfaceDefaults.ROTATE_ARM_PX / box.scale).toDouble()
+        val turn = shaft?.let { shaftTurn(it, gapPt) }
         if (turn != null) {
             val pivotX = box.toViewX(turn.pivotX, viewport.scrollX)
             val pivotY = box.toViewY(turn.pivotY, viewport.scrollY)
@@ -80,9 +80,26 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
             canvas.drawLine(pivotX, pivotY, knobX, knobY, chrome.handleArm)
             canvas.drawCircle(knobX, knobY, HANDLE_DRAW_PX, chrome.handle)
         } else {
-            val knobX = r + DrawingSurfaceDefaults.ROTATE_ARM_PX
-            canvas.drawLine(r, midY, knobX, midY, chrome.handleArm)
-            canvas.drawCircle(knobX, midY, HANDLE_DRAW_PX, chrome.handle)
+            val page = pageAt(sel.pageIndex)
+            val singleEl: Element? = if (sel.refs.size == 1 && page != null) {
+                val ref = sel.refs.first()
+                page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+            } else null
+            val b = page?.let { SelectionTester.boundsOf(it, sel.refs) }
+            if (singleEl != null && b != null) {
+                val padPt = if (singleEl is ParametricShapeElement) 0.0 else (DrawingSurfaceDefaults.SELECT_PAD_PX / box.scale).toDouble()
+                val stem = ElementHitTester.rotateStemRight(singleEl, b, gapPt + padPt)
+                val fx = box.toViewX(stem.footX, viewport.scrollX)
+                val fy = box.toViewY(stem.footY, viewport.scrollY)
+                val kx = box.toViewX(stem.knobX, viewport.scrollX)
+                val ky = box.toViewY(stem.knobY, viewport.scrollY)
+                canvas.drawLine(fx, fy, kx, ky, chrome.handleArm)
+                canvas.drawCircle(kx, ky, HANDLE_DRAW_PX, chrome.handle)
+            } else {
+                val knobX = r + DrawingSurfaceDefaults.ROTATE_ARM_PX
+                canvas.drawLine(r, midY, knobX, midY, chrome.handleArm)
+                canvas.drawCircle(knobX, midY, HANDLE_DRAW_PX, chrome.handle)
+            }
         }
     }
     // A single selected shape: a dot on each corner, the handles the vertex drag grabs.
