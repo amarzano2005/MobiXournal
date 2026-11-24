@@ -170,8 +170,13 @@ fun SplitLayout(
         }
     }
 
-    val showSecond by remember {
+    val showOverlay by remember {
         derivedStateOf { splitProgress.value > 0.005f || latestSplitView }
+    }
+    // Mount Pane 1's SurfaceView only once the slide settles so the open/close transition is 100%
+    // pure Compose GPU translation (zero SurfaceView inflation stall and zero SurfaceFlinger lag).
+    val mountSecond by remember {
+        derivedStateOf { latestSplitView && splitProgress.value >= 0.995f }
     }
     val chromeColor = rememberChromeColor()
 
@@ -184,7 +189,7 @@ fun SplitLayout(
             .clipToBounds(),
     ) {
         first(Modifier.fillMaxSize())
-        if (showSecond) {
+        if (showOverlay) {
             Row(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
@@ -206,7 +211,9 @@ fun SplitLayout(
                     onFraction = { latestOnFraction.value(it) },
                 )
                 Box(modifier = Modifier.fillMaxHeight().width(secondDp)) {
-                    second(Modifier.fillMaxSize())
+                    if (mountSecond) {
+                        second(Modifier.fillMaxSize())
+                    }
                 }
             }
         }

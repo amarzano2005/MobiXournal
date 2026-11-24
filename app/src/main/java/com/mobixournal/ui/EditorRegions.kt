@@ -344,12 +344,9 @@ fun EditorTopBar(
                     SplitTabRow(
                         tabs = paneTabs,
                         fraction = ui.splitFraction,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                start = if (railOnLeft) SideToolbarModernTotalWidth else 0.dp,
-                                end = if (railOnLeft) 0.dp else SideToolbarModernTotalWidth,
-                            ),
+                        modifier = Modifier.fillMaxWidth(),
+                        startInset = if (railOnLeft) SideToolbarModernTotalWidth else 0.dp,
+                        endInset = if (railOnLeft) 0.dp else SideToolbarModernTotalWidth,
                     )
                 } else {
                     TabStrip(

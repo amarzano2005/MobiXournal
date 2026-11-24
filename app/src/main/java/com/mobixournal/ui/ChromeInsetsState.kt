@@ -118,13 +118,15 @@ internal fun CanvasChromeInsets.forPane(paneIndex: Int, splitView: Boolean): Can
 }
 
 /**
- * Consume unconsumed pointer events on chrome surfaces so empty areas of an overlaid bar or rail
- * never pass taps or stylus strokes through to the [DrawingSurfaceView] underneath.
+ * Intercept pointer hit-testing on chrome surfaces so empty areas of an overlaid bar or rail never
+ * pass taps or stylus strokes through to the [DrawingSurfaceView] underneath, without consuming
+ * events that child buttons/tabs still inspect in `PointerEventPass.Final` (crucial for high-rate
+ * stylus taps).
  */
 internal fun Modifier.blockCanvasPointers(): Modifier = pointerInput(Unit) {
     awaitPointerEventScope {
         while (true) {
-            awaitPointerEvent(PointerEventPass.Main).changes.forEach { it.consume() }
+            awaitPointerEvent(PointerEventPass.Main)
         }
     }
 }

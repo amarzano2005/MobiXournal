@@ -156,8 +156,8 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
         scroll.animateScrollTo(target.toInt().coerceIn(0, scroll.maxValue))
     }
     val isDark = chromeIsDark()
-    // In split view the "+" stays pinned outside the scrolling chips so it is always one tap away
-    // in narrow lanes; in standard single-pane mode, the "+" sits right next to the last opened tab.
+    // Keep "+" immediately after the last chip when the lane has room (weight fill = false), while
+    // pinning it at the lane's right edge once tabs overflow horizontally.
     val transferLabels = tabTransferLabels(state.paneIndex, state.paneCount)
     Row(
         modifier = modifier
@@ -178,7 +178,7 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
         }
         Row(
             modifier = Modifier
-                .weight(1f)
+                .weight(1f, fill = false)
                 .fillMaxHeight()
                 .onSizeChanged { viewportWidth = it.width.toFloat() }
                 .horizontalScroll(scroll),
@@ -219,13 +219,8 @@ fun TabStrip(state: TabsUiState, modifier: Modifier = Modifier) {
                     onBounds = { left, width -> activeBounds = left to width },
                 )
             }
-            if (state.paneCount <= 1) {
-                AddTabButton(isDark = isDark, onNew = state.onNew)
-            }
         }
-        if (state.paneCount > 1) {
-            AddTabButton(isDark = isDark, onNew = state.onNew)
-        }
+        AddTabButton(isDark = isDark, onNew = state.onNew)
     }
 }
 

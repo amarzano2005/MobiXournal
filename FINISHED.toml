@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "fix-stylus-taps-on-chrome-align-split-tabs-and-defer-split-surfaceview-mount"
+title = "Fix stylus taps on chrome, align split tabs, and defer split SurfaceView mount"
+description = "Removed consume() from blockCanvasPointers in ChromeInsetsState.kt so child clickable/IconButton Final passes receive stylus taps cleanly while still blocking hit-testing to the underlying SurfaceView; changed TabStrip.kt chips Row to weight(1f, fill = false) so AddTabButton stays right next to the last tab (and pinned on overflow); updated SplitTabRow.kt and EditorRegions.kt so SplitTabRow spans full viewport width with startInset/endInset on the outer edges aligning Pane 1 tabs with SplitDividerBox; deferred Pane 1 SurfaceView mount in SplitLayout.kt until splitProgress settles so open/close slides run purely on Compose GPU translation at 144Hz; updated docs/chrome.md; verified targeted unit/guard tests, :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: SplitLayout opaque rememberChromeColor overlay and chrome bands unchanged; tokens: chromeSlideSpring, SPLIT_HANDLE_WIDTH, TAB_STRIP_LEAD_IN, and SideToolbarModernTotalWidth unchanged; states: stylus/touch taps on chrome buttons no longer canceled in PointerEventPass.Final, TabStrip '+' hugs last tab and stays pinned on overflow, SplitLayout defers Pane 1 mount until settled; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, and ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "fix-squashed-editortopbar-and-upgrade-splitlayout-to-144hz-slide"
 title = "Fix squashed EditorTopBar and upgrade SplitLayout to 144Hz slide"
 description = "Consumed WindowInsets.statusBars in stableStatusBarsPadding (ChromeInsetsState.kt) so TopAppBar keeps full 52.dp height without double top padding; replaced animated Row weights in SplitLayout.kt with full-width Pane 0 + translationX overlay for Divider and Pane 1 over rememberChromeColor, wired splitRightInsetPx/settledSplitRightPx through ChromeInsetController, applied insetPadding to Pane 1 emptyEntry and setZOrderMediaOverlay(true) on Pane 1 DrawingSurfaceView (EditorRegions.kt); updated docs/chrome.md; verified ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."
