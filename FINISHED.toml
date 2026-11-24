@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "move-top-bar-into-editor-slot-and-offscreen-layer-home-overlay-during-exit"
+title = "Move top bar into editor slot and offscreen-layer Home overlay during exit"
+description = "Moved AnimatedEditorTopBarHost inside DocumentArea's editor slot in EditorScreen.kt so entering from Home starts with the top bar settled (zero per-frame topInsetPx SurfaceView repaints while Home fades, while Focus mode still animates identically), froze recents in frozenRecents while Home fades out so entry cards never recompose mid-fade, and enabled CompositingStrategy.Offscreen on DocumentArea's entry graphicsLayer during transitions; updated docs/chrome.md; verified DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: offscreen GPU compositing of Home overlay over already-settled editor chrome removes micro-stutters; tokens: chromeSlideSpring unchanged; states: Home cards stay visually frozen while fading out and Focus mode top bar slide remains intact; docs: docs/chrome.md updated in same commit; tests: DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, and ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "eliminate-home-to-editor-frame-0-micro-stutters-while-keeping-chromeslidespring-pace"
 title = "Eliminate Home-to-Editor frame-0 micro-stutters while keeping chromeSlideSpring pace"
 description = "Restored chromeSlideSpring() pace in DocumentArea.kt using Animatable with two withFrameNanos yields before animating Home out so EditorBody and DrawingSurfaceView finish mounting and first paint under the opaque entry overlay; added deferPersist option to newTab in MainActivityTabs.kt and deferred disk persist/rememberSplitLeft by 380ms in startFreshSession and adoptOfferedRight (RememberRecentNotebook.kt); updated docs/chrome.md; verified DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, :desktop:createDistributable, and release-apk.sh."

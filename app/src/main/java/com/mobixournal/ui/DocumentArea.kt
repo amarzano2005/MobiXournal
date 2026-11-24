@@ -13,6 +13,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 
 /** Subtle scale lift on the pure-Compose entry layer; the SurfaceView editor never scales. */
@@ -70,6 +71,11 @@ internal fun DocumentArea(
                     .fillMaxSize()
                     .graphicsLayer {
                         val p = entryProgress.value.coerceIn(0f, 1f)
+                        compositingStrategy = if (p < 0.999f || !latestEmpty) {
+                            CompositingStrategy.Offscreen
+                        } else {
+                            CompositingStrategy.Auto
+                        }
                         alpha = p
                         val s = if (latestEmpty) {
                             1f - ENTRY_OVERLAY_SCALE_DELTA * (1f - p)

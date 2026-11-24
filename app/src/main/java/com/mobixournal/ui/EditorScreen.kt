@@ -379,24 +379,26 @@ fun EditorScreen(
             // per-frame recomposition of the editor body.
             val insetController = remember { ChromeInsetController() }
             CompositionLocalProvider(LocalChromeInsetController provides insetController) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
-                    val nothingOpen = windowIsEmpty(tabs, splitView)
+                val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
+                val nothingOpen = windowIsEmpty(tabs, splitView)
+                var frozenRecents by remember { mutableStateOf(recents) }
+                if (nothingOpen) frozenRecents = recents
 
-                    DocumentArea(
-                        empty = nothingOpen,
-                        modifier = Modifier.fillMaxSize(),
-                        entry = {
-                            NotebookEntryScreen(
-                                recents = recents,
-                                onNew = onNewDocument,
-                                onOpen = onOpen,
-                                onOpenRecent = onOpenRecent,
-                                onRemoveRecent = onRemoveRecent,
-                                onRestoreSession = onRestoreSession,
-                            )
-                        },
-                    ) {
+                DocumentArea(
+                    empty = nothingOpen,
+                    modifier = Modifier.fillMaxSize(),
+                    entry = {
+                        NotebookEntryScreen(
+                            recents = frozenRecents,
+                            onNew = onNewDocument,
+                            onOpen = onOpen,
+                            onOpenRecent = onOpenRecent,
+                            onRemoveRecent = onRemoveRecent,
+                            onRestoreSession = onRestoreSession,
+                        )
+                    },
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                         EditorBody(
                             ui = ui,
                             pane = pane,
@@ -417,36 +419,35 @@ fun EditorScreen(
                             paneChrome = paneChrome,
                             modifier = Modifier.fillMaxSize(),
                         )
-                    }
-
-                    AnimatedEditorTopBarHost(
-                        visible = !ui.fullPage && !nothingOpen,
-                        controller = insetController,
-                        modifier = Modifier.align(Alignment.TopStart),
-                    ) {
-                        if (topBar != null) {
-                            topBar(ui, pane, activeTabs)
-                        } else {
-                            EditorTopBarAudioHost(
-                                ui = ui,
-                                pane = pane,
-                                activeTabs = activeTabs,
-                                paneTabs = tabs,
-                                settings = settings,
-                                onSettingsChange = onSettingsChange,
-                                onOpen = onOpen,
-                                onNewTab = { activeTabs.onNew() },
-                                onSave = onSave,
-                                onImportPdf = onImportPdf,
-                                onExportPagePng = onExportPagePng,
-                                onExportPageSvg = onExportPageSvg,
-                                onSavePortableCopy = onSavePortableCopy,
-                                onShare = onShare,
-                                onSaveAsFormat = { format -> onSaveAs(currentSaveName(), format) },
-                                splitView = splitView,
-                                onToggleSplitView = onToggleSplitView,
-                                audioProvider = audioProvider,
-                            )
+                        AnimatedEditorTopBarHost(
+                            visible = !ui.fullPage,
+                            controller = insetController,
+                            modifier = Modifier.align(Alignment.TopStart),
+                        ) {
+                            if (topBar != null) {
+                                topBar(ui, pane, activeTabs)
+                            } else {
+                                EditorTopBarAudioHost(
+                                    ui = ui,
+                                    pane = pane,
+                                    activeTabs = activeTabs,
+                                    paneTabs = tabs,
+                                    settings = settings,
+                                    onSettingsChange = onSettingsChange,
+                                    onOpen = onOpen,
+                                    onNewTab = { activeTabs.onNew() },
+                                    onSave = onSave,
+                                    onImportPdf = onImportPdf,
+                                    onExportPagePng = onExportPagePng,
+                                    onExportPageSvg = onExportPageSvg,
+                                    onSavePortableCopy = onSavePortableCopy,
+                                    onShare = onShare,
+                                    onSaveAsFormat = { format -> onSaveAs(currentSaveName(), format) },
+                                    splitView = splitView,
+                                    onToggleSplitView = onToggleSplitView,
+                                    audioProvider = audioProvider,
+                                )
+                            }
                         }
                     }
                 }
