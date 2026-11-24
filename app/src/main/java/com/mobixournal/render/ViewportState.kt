@@ -91,6 +91,14 @@ internal class ViewportState {
     /** Vertical centre of the unobstructed viewport in view pixels. */
     fun usableCenterY(): Float = insetTopPx + usableHeight() / 2f
 
+    /** Record chrome insets before first layout so the very first [relayoutFor] starts aligned. */
+    fun seedChromeInsets(left: Float, top: Float, right: Float, bottom: Float) {
+        insetLeftPx = left.coerceAtLeast(0f)
+        insetTopPx = top.coerceAtLeast(0f)
+        insetRightPx = right.coerceAtLeast(0f)
+        insetBottomPx = bottom.coerceAtLeast(0f)
+    }
+
     /**
      * Update chrome insets and re-stack via [relayout], preserving the focal document point at the
      * centre of the unobstructed viewport so sliding bars do not jump the page.

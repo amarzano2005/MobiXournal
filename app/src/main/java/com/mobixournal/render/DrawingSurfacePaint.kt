@@ -79,7 +79,7 @@ internal fun DrawingSurfaceView.lockCanvasForFrame(): Canvas? =
     } ?: holder.lockCanvas()
 
 internal fun DrawingSurfaceView.paint() {
-    paintPosted = false
+    if (paintPosted) { choreographer.removeFrameCallback(paintCallback); paintPosted = false }
     if (!holder.surface.isValid) return
     val canvas = lockCanvasForFrame() ?: return
     val frameStarted = System.nanoTime()
@@ -140,7 +140,7 @@ internal fun DrawingSurfaceView.paint() {
         drawRadialHud(canvas)
     } finally {
         holder.unlockCanvasAndPost(canvas)
-        if (!firstFrameNotified) { firstFrameNotified = true; onFirstFrameDrawn?.invoke() }
+        if (!firstFrameNotified && layout.boxes.isNotEmpty()) { firstFrameNotified = true; onFirstFrameDrawn?.invoke() }
         reportFrame(System.nanoTime() - frameStarted)
     }
     // A frame drawn into a buffer the surface is about to outgrow must not be the last one: once the
@@ -346,7 +346,7 @@ internal fun DrawingSurfaceView.drawPageElements(canvas: Canvas, box: PageBox) {
         return
     }
     val scrolling = scroll.active || momentum.isFlinging || chromeAnimating
-    if (inkCacheUsable && inkCache.draw(canvas, box, scrollX, scrollY, hidden, preferStandIn = scrolling)) return
+    if (inkCacheUsable && inkCache.draw(canvas, box, scrollX, scrollY, hidden, preferStandIn = scrolling, skipRasterize = chromeAnimating)) return
     PageRenderer.drawElements(
         canvas, box.page, box.scale, box.leftPx - scrollX, box.topPx - scrollY,
         strokePainter, elementRenderer, hidden, visibleBounds(box),

@@ -7,11 +7,13 @@ import com.mobixournal.panes.EditorPane
 import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.blankDocument
-import com.mobixournal.render.repaintAfterResize
+import com.mobixournal.render.captureStandInBitmap
 import com.mobixournal.render.setBackgroundResolver
 import com.mobixournal.tabs.DocColors
 import com.mobixournal.tabs.OpenTab
 import com.mobixournal.tabs.TabStore
+import com.mobixournal.ui.SplitStandInBus
+import com.mobixournal.ui.SplitStandInState
 import com.mobixournal.ui.TabsUiState
 import java.io.File
 
@@ -426,27 +428,46 @@ internal fun MainActivity.prunePdfCache() {
  * cannot survive the toggle. The zoom level is preserved as the user set it, ensuring switching
  * between single view and split view remains completely stable.
  */
+private var pendingSplitPersist: Runnable? = null
+
 internal fun MainActivity.toggleSplitView() {
     val on = !splitView.value
-    // What the next launch finds on disk, so a run closed in split view can be offered as one card: the
-    // left half names the workspace that split was.
-    entryRecents.rememberSplitLeft(if (on) panes.firstOrNull()?.tabs?.active?.id else null)
+    pendingSplitPersist?.let { window.decorView.removeCallbacks(it) }
+    val right = panes.getOrNull(1)
     if (on) {
         // The new half opens **on a sheet of its own**: turning the split on is a request to work on two
         // documents, and a half holding nothing is a placeholder nobody asked for.
-        panes.getOrNull(1)?.let { right ->
-            if (right.tabs.isEmpty) {
-                right.tabs.open(blankTab(right))
-                right.persist()
-                tabsTick.value++
-            }
+        if (right != null && right.tabs.isEmpty) {
+            right.tabs.open(blankTab(right))
+            tabsTick.value++
         }
+        val activeRight = right?.tabs?.active
+        val reuseSnap = SplitStandInBus.state.takeIf {
+            it.tabId != null && it.tabId == activeRight?.id && it.snapshot?.isRecycled == false
+        }?.snapshot
+        val page = activeRight?.document?.pages?.getOrNull(activeRight.page)
+            ?: activeRight?.document?.pages?.firstOrNull()
+        SplitStandInBus.pane1Ready = false
+        SplitStandInBus.state = SplitStandInState(page = page, snapshot = reuseSnap, tabId = activeRight?.id)
     } else {
-        panes.forEach { snapshotActiveTab(it); it.persist() }
+        val activeRight = right?.tabs?.active
+        val snap = right?.surface?.captureStandInBitmap()
+        val page = activeRight?.document?.pages?.getOrNull(activeRight.page)
+            ?: activeRight?.document?.pages?.firstOrNull()
+        SplitStandInBus.pane1Ready = false
+        SplitStandInBus.state = SplitStandInState(page = page, snapshot = snap, tabId = activeRight?.id)
+        panes.forEach { snapshotActiveTab(it) }
         activePane.value = 0
     }
     splitView.value = on
-    panes.forEach { pane -> pane.surface?.post { pane.surface?.repaintAfterResize() } }
+    // Defer disk persistence past the ~230 ms 144 Hz spring so frame 0 has zero I/O stalls.
+    val persist = Runnable {
+        pendingSplitPersist = null
+        entryRecents.rememberSplitLeft(if (splitView.value) panes.firstOrNull()?.tabs?.active?.id else null)
+        if (splitView.value) right?.persist() else panes.forEach { it.persist() }
+    }
+    pendingSplitPersist = persist
+    window.decorView.postDelayed(persist, 420L)
 }
 
 /** The file name behind a `content://` URI, for the tab's label. Falls back to `UNTITLED`. */

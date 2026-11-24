@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "live-splitpanestandin-sheet-preview-and-zero-stall-144hz-split-toggle"
+title = "Live SplitPaneStandIn sheet preview and zero-stall 144Hz split toggle"
+description = "Added SplitStandInCapture.kt and SplitPaneStandIn.kt to draw Pane 1's actual page (matching PageStacker/BackgroundRenderer geometry) or closing snapshot inside SplitLayout's Compose GPU slide and keep it over Pane 1 until DrawingSurfaceView posts a non-empty page frame; deferred disk persistence and removed repaintAfterResize in MainActivityTabs.toggleSplitView; added InkCache.draw skipRasterize during chromeAnimating so closing/opening never falls back to CPU strokes or spams worker rasters; cancelled duplicate Choreographer paintCallback in DrawingSurfacePaint; seeded initial chrome insets in ViewportState/DrawingSurfaceResize/EditorRegions before first surfaceChanged; changed chromeSlideSpring to critically damped (1.0f/560f), made splitRightInsetPx/splitAnimating non-Compose fields on ChromeInsetController, and replaced BoxWithConstraints in SplitTabRow with onSizeChanged; updated docs/chrome.md; verified ViewportStateTest, InkCacheTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: SplitPaneStandIn renders live sheet paper/ruling/outline over canvas chrome backdrop so no black hole appears during slide or handoff; tokens: critically-damped chromeSlideSpring (1.0f, 560f) and canvas chrome tokens preserve visual hierarchy; states: opening, closing, emptyEntry, and settled split states synchronize Pane 0 and Pane 1 pixel-for-pixel without frame-0 I/O or subcomposition stalls; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, InkCacheTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, and ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "eliminate-surfaceview-black-flash-and-sync-split-animation-on-same-frame"
 title = "Eliminate SurfaceView black flash and sync split animation on same frame"
 description = "Added synchronous paint() in DrawingSurfaceView.surfaceCreated/surfaceChanged and onFirstFrameDrawn callback after unlockCanvasAndPost in DrawingSurfacePaint.kt, paired with a chrome.backdrop veil in EditorRegions.kt until first frame is posted to eliminate SurfaceView black holes; skipped cache retention/prefetch during chromeAnimating; replaced double-hop snapshotFlow in SplitLayout.kt with Animatable + synchronous ChromeInsetController.updateSplit live listeners in ChromeInsetsState.kt (without restarting ApplyPaneChromeInsets on splitView toggle) and matched overlay backdrop to rememberCanvasChromeColors().backdrop; updated docs/chrome.md; verified 71 targeted unit/guard tests, :desktop:createDistributable, and scripts/release-apk.sh."

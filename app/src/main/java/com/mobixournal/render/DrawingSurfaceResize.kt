@@ -100,6 +100,7 @@ internal fun DrawingSurfaceView.setChromeInsets(
     val changed = if (width > 0 && height > 0) {
         viewport.updateChromeInsets(leftPx, topPx, rightPx, bottomPx) { relayoutFor(width, height) }
     } else {
+        viewport.seedChromeInsets(leftPx, topPx, rightPx, bottomPx)
         false
     }
     if (changed) {

@@ -35,10 +35,10 @@ import com.mobixournal.render.setChromeInsets
 import com.mobixournal.ui.theme.rememberChromeColor
 import kotlinx.coroutines.flow.collectLatest
 
-/** Physics-based spring tuned for 120–144 Hz sliding chrome bands and split transitions. */
+/** Critically-damped physics spring tuned for 120–144 Hz sliding chrome bands and split transitions. */
 internal fun chromeSlideSpring() = spring<Float>(
-    dampingRatio = 0.92f,
-    stiffness = 520f,
+    dampingRatio = 1.0f,
+    stiffness = 560f,
     visibilityThreshold = 0.001f,
 )
 
@@ -72,8 +72,8 @@ internal class ChromeInsetController {
     var settledLeftPx by mutableFloatStateOf(0f)
     var settledRightPx by mutableFloatStateOf(0f)
 
-    var splitAnimating by mutableStateOf(false)
-    var splitRightInsetPx by mutableFloatStateOf(0f)
+    var splitAnimating: Boolean = false
+    var splitRightInsetPx: Float = 0f
     var settledSplitRightPx by mutableFloatStateOf(0f)
     private val liveListeners = LinkedHashMap<Int, () -> Unit>()
 
@@ -87,8 +87,10 @@ internal class ChromeInsetController {
 
     fun updateSplit(insetPx: Float, settledPx: Float, animating: Boolean) {
         splitRightInsetPx = insetPx
-        settledSplitRightPx = settledPx
         splitAnimating = animating
+        if (!animating && settledSplitRightPx != settledPx) {
+            settledSplitRightPx = settledPx
+        }
         liveListeners.values.forEach { it() }
     }
 

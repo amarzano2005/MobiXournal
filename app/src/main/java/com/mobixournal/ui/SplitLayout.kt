@@ -144,16 +144,17 @@ fun SplitLayout(
     val secondDp = with(density) { secondPx.toDp() }
     val overlaySpanDp = SPLIT_HANDLE_WIDTH + secondDp
 
-    val splitAnim = rememberSplitProgress(splitView, overlaySpanPx, LocalChromeInsetController.current)
+    val controller = LocalChromeInsetController.current
+    val splitAnim = rememberSplitProgress(splitView, overlaySpanPx, controller)
     val latestSplitView by rememberUpdatedState(splitView)
 
     val showOverlay by remember {
         derivedStateOf { splitAnim.value > 0.005f || latestSplitView }
     }
-    // Mount Pane 1's SurfaceView only once the slide settles so the open/close transition is 100%
-    // pure Compose GPU translation (zero SurfaceView inflation stall and zero SurfaceFlinger lag).
+    // Mount Pane 1's SurfaceView only once the slide stops at translationX == 0 while keeping
+    // [SplitPaneStandIn] on top until Pane 1 posts its first live page frame — zero lag, zero black hole.
     val mountSecond by remember {
-        derivedStateOf { latestSplitView && splitAnim.value >= 0.995f }
+        derivedStateOf { latestSplitView && !splitAnim.isRunning && splitAnim.value >= 0.99f }
     }
     val deskColor = Color(rememberCanvasChromeColors().backdrop)
 
@@ -190,6 +191,14 @@ fun SplitLayout(
                 Box(modifier = Modifier.fillMaxHeight().width(secondDp)) {
                     if (mountSecond) {
                         second(Modifier.fillMaxSize())
+                    }
+                    if (!mountSecond || !SplitStandInBus.pane1Ready) {
+                        SplitPaneStandIn(
+                            standIn = SplitStandInBus.state,
+                            topInsetPxProvider = { controller.topInsetPx },
+                            rightInsetPxProvider = { controller.rightInsetPx },
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
                 }
             }

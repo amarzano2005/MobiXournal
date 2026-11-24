@@ -57,6 +57,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,6 +105,7 @@ import com.mobixournal.render.replaceMathBlock
 import com.mobixournal.render.replaceShapeElement
 import com.mobixournal.render.repaintAfterResize
 import com.mobixournal.render.repaintForExtent
+import com.mobixournal.render.setChromeInsets
 import com.mobixournal.render.resetZoom
 import com.mobixournal.render.zoomIn
 import com.mobixournal.render.zoomOut
@@ -1563,9 +1565,9 @@ fun EditorPaneView(
         }
     }
     val insetPadding = ApplyPaneChromeInsets(state, index)
+    if (index == 1) DisposableEffect(Unit) { onDispose { SplitStandInBus.pane1Ready = false } }
     if (emptyEntry != null) {
-        // No document, no canvas: the half **is** its own entry screen, instead of a surface still painting
-        // the tab that was just closed and taking no document back.
+        if (index == 1) SplitStandInBus.pane1Ready = true
         Box(modifier = modifier.then(paneFocus)) { emptyEntry(Modifier.fillMaxSize().padding(insetPadding)) }
         return
     }
@@ -1591,11 +1593,13 @@ fun EditorPaneView(
             },
         ) {
             var surfaceReady by remember(index) { mutableStateOf(false) }
+            val initChrome = LocalChromeInsetController.current.snapshotForPane(index, LocalSplitView.current)
             AndroidView(
                 factory = { ctx ->
                     DrawingSurfaceView(ctx).also {
                         if (index == 1) it.setZOrderMediaOverlay(true)
-                        it.onFirstFrameDrawn = { surfaceReady = true }
+                        it.setChromeInsets(initChrome.leftPx, initChrome.topPx, initChrome.rightPx, initChrome.bottomPx, false)
+                        it.onFirstFrameDrawn = { surfaceReady = true; if (index == 1) SplitStandInBus.pane1Ready = true }
                         it.applyInitialStyle(ui, settings)
                         it.bindTo(state)
                         it.bindEditorActions(
