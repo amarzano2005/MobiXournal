@@ -140,53 +140,13 @@ object SelectionTester {
      * containment rule shared by every lasso test.
      */
     private fun contains(poly: List<Vec2>, x: Double, y: Double): Boolean =
-        strictlyInside(poly, x, y) || nearEdge(poly, x, y, TAP_PAD)
-
-    /** Even-odd ray-cast point-in-polygon test (pt space). */
-    private fun strictlyInside(poly: List<Vec2>, x: Double, y: Double): Boolean {
-        var inside = false
-        var j = poly.size - 1
-        for (i in poly.indices) {
-            val a = poly[i]; val b = poly[j]
-            if ((a.y > y) != (b.y > y)) {
-                val xCross = a.x + (y - a.y) / (b.y - a.y) * (b.x - a.x)
-                if (x < xCross) inside = !inside
-            }
-            j = i
-        }
-        return inside
-    }
-
-    /** True when (x, y) lies within [pad] pt of any edge of [poly]. */
-    private fun nearEdge(poly: List<Vec2>, x: Double, y: Double, pad: Double): Boolean {
-        var j = poly.size - 1
-        for (i in poly.indices) {
-            if (distToSegment(x, y, poly[j], poly[i]) <= pad) return true
-            j = i
-        }
-        return false
-    }
-
-    /** Distance from (x, y) to the segment a–b (pt space). */
-    private fun distToSegment(x: Double, y: Double, a: Vec2, b: Vec2): Double {
-        val dx = b.x - a.x
-        val dy = b.y - a.y
-        val len2 = dx * dx + dy * dy
-        val t = if (len2 == 0.0) 0.0 else (((x - a.x) * dx + (y - a.y) * dy) / len2).coerceIn(0.0, 1.0)
-        val px = a.x + t * dx
-        val py = a.y + t * dy
-        return kotlin.math.hypot(x - px, y - py)
-    }
+        ElementHitTester.containsInPolygon(poly, x, y, TAP_PAD)
 
     /**
      * The topmost (last-drawn) element the point ([x], [y]) lands **on**, or null.
      *
-     * A **stroke** is hit where its ink is, not where its bounding box is: the box of a diagonal line, an
-     * arc or a sparse signature covers a large area of empty paper, and reading the box as the element made
-     * a press in that emptiness select the stroke (`StrokeHitTester.hits`, the eraser's own reach). Every
-     * other family is a rectangle of its own — a picture, a text box, a table, a plot's frame, a symbol — so
-     * its box is what the user sees and sees hit. The box test still runs **first** for a stroke, as a cheap
-     * rejection before its segments are walked.
+     * Delegates geometry hit-testing to [ElementHitTester]: closed figures hit from their boundary
+     * through their true interior area, while open strokes hit along their stroke segments.
      */
     fun pickTopmost(page: Page, x: Double, y: Double): ElementRef? = pickTopmost(page, x, y) { true }
 
@@ -209,9 +169,7 @@ object SelectionTester {
             for (ei in elements.indices.reversed()) {
                 val el = elements[ei]
                 if (!matches(el)) continue
-                if (!ElementBounds.isHitTestable(el)) continue
-                if (!ElementBounds.of(el).expand(TAP_PAD).contains(x, y)) continue
-                if (el is Stroke && !StrokeHitTester.hits(el, x, y, TAP_PAD)) continue
+                if (!ElementHitTester.hits(el, x, y, TAP_PAD)) continue
                 return ElementRef(li, ei)
             }
         }

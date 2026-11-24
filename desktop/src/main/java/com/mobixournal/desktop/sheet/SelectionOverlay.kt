@@ -34,15 +34,23 @@ import com.mobixournal.render.shaftTurn
  */
 internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, living: Element? = null) {
     val shaft = shaftOf(living)
-    // A line or an arrow shows **no outline**: two end squares and the turn ring are the whole of its
-    // selection, because the box round a shaft would promise corners the ink does not have.
-    if (shaft == null) drawRegion(selection.region, pxPerPt, dashed = true)
+    val singleShape = living as? ParametricShapeElement
+    // Lines/arrows show no box; a single parametric polygon hugs its own vertices instead of a rectangle.
+    if (singleShape != null && singleShape.vertices.size >= 3) {
+        drawRegion(
+            SelectionRegion.Polygon(singleShape.vertices.map { com.mobixournal.render.Vec2(it.x, it.y) }),
+            pxPerPt,
+            dashed = true,
+        )
+    } else if (shaft == null) {
+        drawRegion(selection.region, pxPerPt, dashed = true)
+    }
     drawHandles(
         selection,
         pxPerPt,
         isImage = living is ImageElement,
         shaft = shaft,
-        includeCorners = living !is ParametricShapeElement,
+        includeBoxResize = singleShape == null,
     )
     // The element's own grips, inside the box: a figure's corners and a table's dividers. They are round
     // where the box's handles are square, so the two never read as the same thing.
@@ -111,7 +119,7 @@ private fun DrawScope.drawHandles(
     pxPerPt: Float,
     isImage: Boolean = false,
     shaft: SelectionShaft? = null,
-    includeCorners: Boolean = true,
+    includeBoxResize: Boolean = true,
 ) {
     val box = selection.bounds
     fun off(x: Double, y: Double) = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
@@ -127,8 +135,8 @@ private fun DrawScope.drawHandles(
         // places where anything may change.
         square(off(shaft.tailX, shaft.tailY))
         square(off(shaft.tipX, shaft.tipY))
-    } else {
-        if (includeCorners && !box.isFlatX && !box.isFlatY) {
+    } else if (includeBoxResize) {
+        if (!box.isFlatX && !box.isFlatY) {
             for (corner in listOf(
                 off(box.left, box.top), off(box.right, box.top),
                 off(box.right, box.bottom), off(box.left, box.bottom),

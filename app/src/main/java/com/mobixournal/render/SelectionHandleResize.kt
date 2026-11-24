@@ -59,11 +59,13 @@ internal fun handleResizeStart(
         return ResizeStart(axis, anchorX, anchorY, startPtX, startPtY, dist)
     }
 
-    // The corner handles: skipped for a single living parametric shape whose own vertex handles own corners.
-    val singleShape = selection?.refs?.singleOrNull()?.let { ref ->
+    // A single living parametric shape uses its vertex handles and rotation, never a rectangular box.
+    val isSingleShape = selection?.refs?.singleOrNull()?.let { ref ->
         page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? ParametricShapeElement
     } != null
-    if (!flatX && !flatY && !singleShape) {
+    if (isSingleShape) return null
+    // The corner handles: the anchor is the diagonally-opposite corner.
+    if (!flatX && !flatY) {
         val cornersPt = arrayOf(b.left to b.top, b.right to b.top, b.right to b.bottom, b.left to b.bottom)
         for (i in 0..3) {
             val padX = if (cornersPt[i].first == b.left) -pad else pad

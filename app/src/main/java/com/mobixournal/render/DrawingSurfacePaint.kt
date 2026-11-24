@@ -460,9 +460,11 @@ internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSele
     val t = (b.top * box.scale + box.topPx - scrollY).toFloat() - DrawingSurfaceDefaults.SELECT_PAD_PX
     val r = (b.right * box.scale + box.leftPx - scrollX).toFloat() + DrawingSurfaceDefaults.SELECT_PAD_PX
     val bot = (b.bottom * box.scale + box.topPx - scrollY).toFloat() + DrawingSurfaceDefaults.SELECT_PAD_PX
-    // A line or an arrow shows **no box**: its two end dots and the turn knob are the whole of its
-    // selection, because a rectangle round a shaft promises eight handles the ink does not have.
-    if (gestures.shaftOfSelection(sel) == null) {
+    // A line/arrow shows no box; a single parametric polygon hugs its own vertices instead of a rectangle.
+    val singleShape = singleSelectedShape()
+    if (singleShape != null && drawShapePolygonOutline(canvas, box, singleShape)) {
+        // Outline drawn along polygon vertices.
+    } else if (gestures.shaftOfSelection(sel) == null) {
         canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionFill)
         canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionStroke)
     }

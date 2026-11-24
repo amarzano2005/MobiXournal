@@ -95,14 +95,9 @@ internal fun pickPlotRef(page: Page, xPt: Double, yPt: Double): ElementRef? =
  * the model gives the parts no identity to be gathered by, so selecting one half would select half an
  * object. The tool goes on drawing there, as it did before the rule.
  */
-internal fun pickFigureElement(page: Page, xPt: Double, yPt: Double, kind: ShapeKind): ElementRef? {
-    if (ShapeBuilder.isMultiStroke(kind)) return null
-    val shapeName = ParametricShapes.shapeNameForTool(kind)
-    return SelectionTester.pickTopmost(page, xPt, yPt) {
-        (it is Stroke && FigurePins.isFigureOf(it, kind)) ||
-            (shapeName != null && it is ParametricShapeElement && it.shape == shapeName)
-    }
-}
+internal fun pickFigureElement(page: Page, xPt: Double, yPt: Double, kind: ShapeKind): ElementRef? =
+    if (ShapeBuilder.isMultiStroke(kind)) null
+    else SelectionTester.pickTopmost(page, xPt, yPt) { ElementHitTester.matchesFigureTool(it, kind) }
 
 /**
  * The **pin** a press at ([xPt], [yPt]) is aimed at, or null: the first of the pins this gesture would be
@@ -202,8 +197,7 @@ private fun DrawingSurfaceView.claims(sel: ActiveSelection, kind: ShapeKind): Bo
     if (ShapeBuilder.isMultiStroke(kind)) return false
     val page = pageAt(sel.pageIndex) ?: return false
     val elements = sel.refs.mapNotNull { page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex) }
-    val only = elements.singleOrNull() as? Stroke ?: return false
-    return FigurePins.isFigureOf(only, kind)
+    return elements.singleOrNull()?.let { ElementHitTester.matchesFigureTool(it, kind) } == true
 }
 
 /** Whether [sel] holds exactly the elements of [family] — a fresh insertion holds one. */

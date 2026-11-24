@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "unify-element-hit-testing-and-polygonal-selection-outline"
+title = "Unify element hit-testing and polygonal selection outline"
+description = "Implemented ElementHitTester in mobix-core (true interior + boundary hit-testing for closed figures including ParametricShapeElement and closed ellipse/circle strokes, stroke-only for open strokes), unified PlacementPick.claims and pickFigureElement via ElementHitTester.matchesFigureTool across Android and Desktop, and replaced the rectangular bounding box/edge handles with a polygon-hugging selection outline + vertex handles + rotate knob for single ParametricShapeElement on Android and Desktop. Added ElementHitTesterTest and updated PlacementPickTest and docs."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: polygon-hugging dashed selection path and translucent fill in DrawingSurfaceFigures and SelectionOverlay; states: single parametric shape shows vertices + rotate knob while multi-selection keeps group box; parity: identical hit-testing, PlacementPick matching, and polygon outline across Android and Desktop"
+
+[[task]]
 id = "unify-living-parametric-shapes-table-dividers-and-eraser-semantics"
 title = "Unify living parametric shapes, table dividers, and eraser semantics"
 description = "Closed living-element ambiguities across mobix-core, Android, and Desktop: added lineStyle to ParametricShapeElement, MobixShapeCodec, ShapeInk, and schema; converted polygon shape tools (RECTANGLE, SQUARE, TRIANGLE, TRAPEZOID, POLYGON) to ParametricShapeElement in both shells with PlacementPick matching; added setSideLength, setInteriorAngle, dual-anchor snappedVertex, RECTANGLE/SQUARE->POLYGON reclassification, and ParametricShapeElement rotation in ParametricShapes/SelectionOps; wired Option A vertex snap on Android (snapToGrid || snapRotation || DrawingGuide.Ruling), distinct haloed vertex handles without overlapping box corners in both shells, numeric side/angle/outline/fill editors in ShapeEditorDialog.kt and desktop/ShapeInspector.kt; unified desktop table divider resizing in LivingGrips.kt to match Android; restricted PageEraser on living entities to WHOLE_STROKE mode and excluded shape measurement labels; updated tests and architecture docs."

@@ -34,6 +34,19 @@ internal fun DrawingSurfaceView.recogniseStroke(raw: List<StrokePoint>): Recogni
     return ShapeRecognizer.classify(raw, raw.map { it.width }.average())
 }
 
+internal fun DrawingSurfaceView.drawShapePolygonOutline(canvas: Canvas, box: PageBox, shape: ParametricShapeElement): Boolean {
+    if (shape.vertices.size < 3) return false
+    chrome.lassoPath.reset()
+    chrome.lassoPath.moveTo(box.toViewX(shape.vertices[0].x, scrollX), box.toViewY(shape.vertices[0].y, scrollY))
+    for (i in 1 until shape.vertices.size) {
+        chrome.lassoPath.lineTo(box.toViewX(shape.vertices[i].x, scrollX), box.toViewY(shape.vertices[i].y, scrollY))
+    }
+    chrome.lassoPath.close()
+    canvas.drawPath(chrome.lassoPath, chrome.selectionFill)
+    canvas.drawPath(chrome.lassoPath, chrome.selectionStroke)
+    return true
+}
+
 /**
  * Draw a haloed dot on each corner of the selected figure — distinct from box edge handles and
  * drawn exactly where [SelectionGestureController] hit-tests them.

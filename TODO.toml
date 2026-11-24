@@ -41,6 +41,51 @@ rebuild = false
 emulator_debug = false
 
 [[task]]
+id = "add-and-remove-polygon-vertices-and-convert-living-shapes-to-strokes"
+title = "Add and remove polygon vertices and convert living shapes to strokes"
+description = "Add vertex insertion/removal on ParametricShapeElement (split edge at midpoint; remove vertex down to 3 corners) in ParametricShapes.kt, plus a Convert to ink action in ShapeEditorDialog.kt (Android) and ShapeInspector.kt (Desktop) that turns the living shape into a Stroke preserving color, width, and lineStyle. Update docs/mobix-living-entities.md and verify with ./gradlew :mobix-core:test --tests *ParametricShapesTest*."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 11
+created = 2026-11-24
+tags = []
+targets = ["mobix-core/src/main/java/com/mobixournal/render/ParametricShapes.kt", "app/src/main/java/com/mobixournal/ui/ShapeEditorDialog.kt", "desktop/src/main/java/com/mobixournal/desktop/tools/ShapeInspector.kt"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "optional-symmetry-constraint-lock-for-parametric-shape-vertex-drags"
+title = "Optional symmetry constraint lock for parametric shape vertex drags"
+description = "Add an optional lockedConstraints boolean (default false) to ParametricShapeElement and MobixShapeCodec so dragging a corner of a RECTANGLE, SQUARE, or regular POLYGON can optionally move coupled vertices to preserve right angles/symmetry instead of downgrading to a free POLYGON. Expose the toggle in ShapeEditorDialog.kt and ShapeInspector.kt, update spec/schema/elements/parametricShape.schema.json and docs/mobix-living-entities.md, and verify with ./gradlew :mobix-core:test --tests *ParametricShapesTest* --tests *MobixSchemaGuardTest*."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 12
+created = 2026-11-24
+tags = []
+targets = ["mobix-core/src/main/java/com/mobixournal/format/model/Living.kt", "mobix-core/src/main/java/com/mobixournal/render/ParametricShapes.kt", "app/src/main/java/com/mobixournal/ui/ShapeEditorDialog.kt", "desktop/src/main/java/com/mobixournal/desktop/tools/ShapeInspector.kt"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "promote-circles-and-ellipses-to-living-parametric-figures"
+title = "Promote circles and ellipses to living parametric figures"
+description = "Extend the living figure model to support circles and ellipses (centre + rx/ry + rotation) in mobix-core, exposing cardinal N/S/E/W resize grips in SelectionGestureController.kt and LivingGrips.kt, numerical radius/diameter fields in ShapeEditorDialog.kt and ShapeInspector.kt, and anchor pins in FigurePins.kt. Update docs/mobix-living-entities.md and docs/mobix-element-fields.md, and verify with ./gradlew :mobix-core:test :desktop:test :app:testDebugUnitTest."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 13
+created = 2026-11-24
+tags = []
+targets = ["mobix-core/src/main/java/com/mobixournal/format/model/Living.kt", "mobix-core/src/main/java/com/mobixournal/render/ParametricShapes.kt", "mobix-core/src/main/java/com/mobixournal/render/ShapeInk.kt", "app/src/main/java/com/mobixournal/render/DrawingSurfaceFigures.kt"]
+rebuild = true
+emulator_debug = false
+
+[[task]]
 id = "mobix-stem-semantic-core"
 title = "Epic: one semantic core for STEM objects, shared by both shells"
 description = """

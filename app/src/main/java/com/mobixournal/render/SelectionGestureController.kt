@@ -211,7 +211,7 @@ internal class SelectionGestureController(
         val page = pageAt(sel.pageIndex) ?: return false
         val b = SelectionTester.boundsOf(page, sel.refs) ?: return false
 
-        // Interactive parameter sliders for a single selected plot
+        // Pick/resize/move handles for a single plot, table, or parametric shape.
         if (sel.refs.size == 1) {
             val ref = sel.refs.first()
             val plot = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? PlotElement
@@ -231,9 +231,6 @@ internal class SelectionGestureController(
                     return true
                 }
             }
-            // A living shape's corners are dragged by their own handles. Tested **before** the box's
-            // corner handles: on a triangle the box corner is not a vertex, and on a rectangle the two
-            // nearly coincide — the vertex is the finer control and the one the user is aiming at.
             val shape = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
                 as? ParametricShapeElement
             if (shape != null) {
@@ -256,10 +253,7 @@ internal class SelectionGestureController(
                 return true
             }
         }
-        // Four corner resize handles and the four edge midpoints, asked by one helper: which of them a
-        // touch is on, and with what anchor and axis, is `beginHandleResize`. A press in the box's
-        // **body** skips them ([insideSelectionBody]): the handles answer from the border band, so a
-        // drag that lands on the element itself is carried, never read as a resize of its edge.
+        // Handle resize (skipped for a single parametric shape whose vertices own corners).
         val inBody = insideSelectionBody(
             event.x, event.y,
             box.toViewX(b.left, viewport.scrollX), box.toViewY(b.top, viewport.scrollY),
@@ -267,11 +261,17 @@ internal class SelectionGestureController(
             box.scale,
         )
         if (!inBody && beginHandleResize(event, box, b, page)) return true
-        // Inside the outline: move.
-        if (b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY))) {
-            beginMove(event, box)
-            return true
+        val ptX = box.toPtX(event.x, viewport.scrollX)
+        val ptY = box.toPtY(event.y, viewport.scrollY)
+        val singleShape = sel.refs.singleOrNull()?.let { ref ->
+            page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? ParametricShapeElement
         }
+        val hitsBody = if (singleShape != null) {
+            ElementHitTester.hits(singleShape, ptX, ptY, DrawingSurfaceDefaults.MOVE_GRAB_PAD)
+        } else {
+            b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(ptX, ptY)
+        }
+        if (hitsBody) { beginMove(event, box); return true }
         return false
     }
 

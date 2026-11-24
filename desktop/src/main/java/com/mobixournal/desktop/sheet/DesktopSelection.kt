@@ -139,8 +139,10 @@ fun selectionHandleAt(
     includeRotate: Boolean = true,
     /** The shaft when the selection is a single line or arrow; null for every other selection. */
     shaft: SelectionShaft? = null,
-    /** False when a single parametric shape's own vertex grips own the corners. */
-    includeCorners: Boolean = true,
+    /** False when a single parametric shape uses vertex grips instead of rectangular box handles. */
+    includeBoxResize: Boolean = true,
+    /** Optional true-shape body hit test overriding the rectangular [selection.region]. */
+    bodyHit: (() -> Boolean)? = null,
 ): SelectionHandle {
     val box = selection.bounds
     val (reachX, reachY) = handleReach(box, tolPt)
@@ -167,7 +169,7 @@ fun selectionHandleAt(
         val (rotateX, rotateY) = rotateHandleOf(box, rotateGapPt)
         if (near(x, y, rotateX, rotateY, reachX, reachY)) return SelectionHandle.ROTATE
     }
-    if (includeCorners && !box.isFlatX && !box.isFlatY) {
+    if (includeBoxResize && !box.isFlatX && !box.isFlatY) {
         val corners = listOf(
             SelectionHandle.TOP_LEFT to (box.left to box.top),
             SelectionHandle.TOP_RIGHT to (box.right to box.top),
@@ -178,7 +180,7 @@ fun selectionHandleAt(
             if (near(x, y, at.first, at.second, reachX, reachY)) return handle
         }
     }
-    if (includeEdges) {
+    if (includeBoxResize && includeEdges) {
         val midX = (box.left + box.right) / 2.0
         val midY = (box.top + box.bottom) / 2.0
         val edges = listOf(
@@ -192,7 +194,7 @@ fun selectionHandleAt(
             if (near(x, y, at.first, at.second, reachX, reachY)) return handle
         }
     }
-    if (selection.region.inside(x, y)) return SelectionHandle.BODY
+    if (bodyHit?.invoke() ?: selection.region.inside(x, y)) return SelectionHandle.BODY
     // A flat box's own band is its body: a press just above or below a line is still the line being held, and
     // that is exactly where the edge handle that could only multiply by one used to sit and do nothing.
     if ((box.isFlatX || box.isFlatY) &&

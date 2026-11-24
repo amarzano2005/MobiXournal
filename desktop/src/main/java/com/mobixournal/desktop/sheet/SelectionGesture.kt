@@ -168,8 +168,9 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     // A line or an arrow is a shaft, not a figure: its two ends are its only handles (`SelectionShaft`).
     val shaft = live?.let { sel -> page?.let { shaftOf(singleElementOf(it, sel)) } }
     val handle = if (live == null) SelectionHandle.NONE else selectionHandleAt(
-        live, x0, y0, tol, rotateGapPt = gap, includeRotate = !isLiveImage,
-        shaft = shaft, includeCorners = living !is ParametricShapeElement,
+        live, x0, y0, tol, rotateGapPt = gap, includeRotate = !isLiveImage, shaft = shaft,
+        includeBoxResize = living !is ParametricShapeElement,
+        bodyHit = (living as? ParametricShapeElement)?.let { shape -> { com.mobixournal.render.ElementHitTester.hits(shape, x0, y0, tol) } },
     )
     // The ink's picker first, then the **pins**: a part is grabbed by its end as readily as by its middle,
     // which is where the hand aims when two parts have to be joined (`PinPress`).

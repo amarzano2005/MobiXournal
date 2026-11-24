@@ -208,16 +208,28 @@ class PlacementPickTest {
     }
 
     @Test
-    fun aPressOffTheInkFindsNoFigure() {
-        val page = pageOf(figure(ShapeKind.RECTANGLE))
-        assertNull(
-            "the middle of a rectangle is empty paper, not the rectangle",
-            pickFigureElement(page, 150.0, 130.0, ShapeKind.RECTANGLE),
+    fun aPressInsideAClosedFigureOrOnItsOutlinePicksItWhileEmptyCornersMiss() {
+        val rectPage = pageOf(figure(ShapeKind.RECTANGLE))
+        assertEquals(
+            "a closed figure hits from its border through its interior",
+            ElementRef(0, 0),
+            pickFigureElement(rectPage, 150.0, 130.0, ShapeKind.RECTANGLE),
         )
         assertEquals(
-            "its own outline is where the press lands on it",
             ElementRef(0, 0),
-            pickFigureElement(page, 150.0, 100.0, ShapeKind.RECTANGLE),
+            pickFigureElement(rectPage, 150.0, 100.0, ShapeKind.RECTANGLE),
+        )
+        val triPts = ShapeBuilder.build(ShapeKind.TRIANGLE, 100.0, 100.0, 200.0, 200.0, 2.0)
+        val livingTri = ParametricShapes.elementForShapeTool(ShapeKind.TRIANGLE, triPts, 0xFF000000.toInt(), 2.0)!!
+        val triPage = pageOf(livingTri)
+        assertEquals(
+            "the triangle tool picks a living ParametricShapeElement inside its area",
+            ElementRef(0, 0),
+            pickFigureElement(triPage, 150.0, 170.0, ShapeKind.TRIANGLE),
+        )
+        assertNull(
+            "the empty corner of a triangle's bounding box does not select it",
+            pickFigureElement(triPage, 105.0, 105.0, ShapeKind.TRIANGLE),
         )
     }
 

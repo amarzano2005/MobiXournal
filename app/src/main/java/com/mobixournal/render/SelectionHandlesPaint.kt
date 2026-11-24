@@ -48,7 +48,7 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
             )
         }
     }
-    // Corner resize handles: skipped for a single living parametric shape whose vertices own corners.
+    // Corner & edge resize handles: skipped for a single living parametric shape whose vertices own corners.
     val isSingleShape = singleSelectedShape() != null
     if (shaft == null && !flatX && !flatY && !isSingleShape) {
         for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bottom)) {
@@ -58,11 +58,11 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
     // Edge-midpoint handles: one axis each, the out-of-proportion resize.
     val midX = (l + r) / 2f
     val midY = (t + bottom) / 2f
-    if (shaft == null && !flatY) {
+    if (shaft == null && !flatY && !isSingleShape) {
         canvas.drawCircle(midX, t, HANDLE_DRAW_PX, chrome.handle)
         canvas.drawCircle(midX, bottom, HANDLE_DRAW_PX, chrome.handle)
     }
-    if (shaft == null && !flatX) {
+    if (shaft == null && !flatX && !isSingleShape) {
         canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
         canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
     }

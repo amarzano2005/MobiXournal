@@ -101,14 +101,9 @@ internal fun placementPick(
 }
 
 /** The figure [kind]'s own stroke or living polygon under the press, or null — and never half of a multi-stroke figure. */
-private fun figurePick(page: Page, kind: ShapeKind, xPt: Double, yPt: Double): ElementRef? {
-    if (ShapeBuilder.isMultiStroke(kind)) return null
-    val shapeName = ParametricShapes.shapeNameForTool(kind)
-    return SelectionTester.pickTopmost(page, xPt, yPt) {
-        (it is Stroke && FigurePins.isFigureOf(it, kind)) ||
-            (shapeName != null && it is ParametricShapeElement && it.shape == shapeName)
-    }
-}
+private fun figurePick(page: Page, kind: ShapeKind, xPt: Double, yPt: Double): ElementRef? =
+    if (ShapeBuilder.isMultiStroke(kind)) null
+    else SelectionTester.pickTopmost(page, xPt, yPt) { com.mobixournal.render.ElementHitTester.matchesFigureTool(it, kind) }
 
 /**
  * The kind whose pins this placement's gesture anchors to, or null when there is nothing to aim at.
