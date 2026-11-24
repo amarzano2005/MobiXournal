@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "compact-focusbarcustomizedialog-footer-and-smooth-documentarea-home-to-editor-transition"
+title = "Compact FocusBarCustomizeDialog footer and smooth DocumentArea Home-to-Editor transition"
+description = "Replaced FloatingDialog AlertDialog wrapper in FocusBarCustomizeDialog.kt with a Liquid Glass Dialog + Surface (matching 24.dp shape, glassSurface, floatingRim, liquidGlassSpringAnimation, and compact policy width) and tight 34.dp min-height FocusBarCustomizeFooter buttons; rewrote DocumentArea.kt to keep editor() steady at full scale and animate only the pure-Compose entry overlay with chromeSlideSpring() and 2.5% lift/settle; updated docs/chrome.md; verified FocusBarGeometryTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, ShapeFeedbackTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: FocusBarCustomizeDialog preserves 24.dp Liquid Glass Surface, floatingRim, and liquidGlassSpringAnimation while reducing footer height; tokens: no hardcoded Color(0x...), compact padding and chromeSlideSpring reused across Home-Editor transition; states: DocumentArea keeps DrawingSurfaceView steady at scale 1f during entry fade-out and closes back to Home without bounce or frame-0 flash; docs: docs/chrome.md updated in same commit; tests: FocusBarGeometryTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, ShapeFeedbackTest, and ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "add-focus-mode-first-launch-guide-popup-and-category-filtered-quick-bar-editor"
 title = "Add Focus mode first-launch guide popup and category-filtered quick bar editor"
 description = "Created FocusModeGuideDialog.kt with SharedPreferences one-shot tracking (FocusModeGuidePrefs), two concise rows for bar drag/edge docking and long-press customization, and Got it / Customize bar actions wired in FocusFloatingBar.kt after slide-in; added FocusBarCategoryFilter and filterFocusBarSlots in FocusBarGeometry.kt; exposed FocusBarToolChip in FocusModeSection.kt and reorganized FocusBarCustomizeDialog.kt with fixed preview strip (drag-reorder, remove badge, inline add), status/reorder controls, category filter row (All/Default/Extra/Panels/STEM), scrollable icon+label catalog, and help icon to reopen the guide; added JVM coverage in FocusBarGeometryTest.kt and updated docs/chrome.md; verified unit/guard tests, :desktop:createDistributable, and release-apk.sh."

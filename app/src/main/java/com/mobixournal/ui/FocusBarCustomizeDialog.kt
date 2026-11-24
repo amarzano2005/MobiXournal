@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -24,10 +26,14 @@ import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,10 +41,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.unit.dp
-import com.mobixournal.ui.theme.FloatingDialog
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.mobixournal.design.DesignTokens
+import com.mobixournal.ui.theme.LocalChromeLayoutPolicy
+import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import com.mobixournal.ui.theme.rememberChromeInk
 
 /**
@@ -60,67 +73,118 @@ internal fun FocusBarCustomizeDialog(
     val isAdding = adding && slots.size < FOCUS_BAR_MAX_SLOTS
     val index = picked.coerceIn(0, (slots.size - 1).coerceAtLeast(0))
 
-    FloatingDialog(
+    val shape = RoundedCornerShape(24.dp)
+    val glassSurface = ModernTheme.glassSurface(chromeIsDark()).copy(alpha = 0.90f)
+    val policy = LocalChromeLayoutPolicy.current
+    val widthModifier = if (policy.isCompact) {
+        Modifier.fillMaxWidth(policy.dialogWidthFraction).widthIn(max = policy.dialogMaxWidthDp.dp)
+    } else {
+        Modifier.widthIn(min = 280.dp, max = 520.dp)
+    }
+    val hasCustomizations = settings.focusBarSlots.isNotEmpty() || settings.focusBarAnchor.isNotEmpty()
+
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { FocusBarCustomizeTitle(onShowGuide = onShowGuide) },
-        text = {
-            FocusBarCustomizeBody(
-                slots = slots,
-                index = index,
-                isAdding = isAdding,
-                selectedFilter = selectedFilter,
-                onSelectFilter = { selectedFilter = it },
-                onSelectSlot = { picked = it; adding = false },
-                onSelectAdd = { adding = true },
-                onMoveSlot = { delta ->
-                    val moved = moveFocusBarSlot(slots, index, delta)
-                    onSettingsChange(settings.copy(focusBarSlots = moved.map { it.id }))
-                    picked = (index + delta).coerceIn(0, moved.lastIndex)
-                },
-                onReorderSlot = { from, to ->
-                    val moved = reorderFocusBarSlot(slots, from, to)
-                    onSettingsChange(settings.copy(focusBarSlots = moved.map { it.id }))
-                    picked = to.coerceIn(0, moved.lastIndex)
-                    adding = false
-                },
-                onRemoveSlot = { removeIdx ->
-                    val next = updateFocusBarSlotList(slots, removeIdx, null)
-                    onSettingsChange(settings.copy(focusBarSlots = next.map { it.id }))
-                    picked = removeIdx.coerceAtMost(next.lastIndex)
-                    adding = false
-                },
-                onPickTool = { kind ->
-                    if (isAdding) {
-                        val next = addFocusBarSlot(slots, kind)
-                        if (next != slots) {
-                            onSettingsChange(settings.copy(focusBarSlots = next.map { it.id }))
-                            picked = next.lastIndex
+        properties = DialogProperties(usePlatformDefaultWidth = !policy.isCompact),
+    ) {
+        Surface(
+            shape = shape,
+            color = glassSurface,
+            tonalElevation = 0.dp,
+            modifier = widthModifier
+                .liquidGlassSpringAnimation(
+                    expanded = !LocalFloatingSurfaceClosing.current,
+                    origin = TransformOrigin(0.5f, 0.5f),
+                    role = DesignTokens.GlassMotion.SurfaceRole.DIALOG,
+                )
+                .floatingRim(24.dp),
+        ) {
+            Column(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 10.dp)) {
+                FocusBarCustomizeTitle(onShowGuide = onShowGuide)
+                Box(modifier = Modifier.padding(top = 10.dp)) {
+                    FocusBarCustomizeBody(
+                        slots = slots,
+                        index = index,
+                        isAdding = isAdding,
+                        selectedFilter = selectedFilter,
+                        onSelectFilter = { selectedFilter = it },
+                        onSelectSlot = { picked = it; adding = false },
+                        onSelectAdd = { adding = true },
+                        onMoveSlot = { delta ->
+                            val moved = moveFocusBarSlot(slots, index, delta)
+                            onSettingsChange(settings.copy(focusBarSlots = moved.map { it.id }))
+                            picked = (index + delta).coerceIn(0, moved.lastIndex)
+                        },
+                        onReorderSlot = { from, to ->
+                            val moved = reorderFocusBarSlot(slots, from, to)
+                            onSettingsChange(settings.copy(focusBarSlots = moved.map { it.id }))
+                            picked = to.coerceIn(0, moved.lastIndex)
                             adding = false
-                        }
-                    } else {
-                        val next = updateFocusBarSlotList(slots, index, kind)
-                        onSettingsChange(settings.copy(focusBarSlots = next.map { it.id }))
-                    }
-                },
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Done") }
-        },
-        dismissButton = {
-            if (settings.focusBarSlots.isNotEmpty() || settings.focusBarAnchor.isNotEmpty()) {
-                TextButton(
-                    onClick = {
+                        },
+                        onRemoveSlot = { removeIdx ->
+                            val next = updateFocusBarSlotList(slots, removeIdx, null)
+                            onSettingsChange(settings.copy(focusBarSlots = next.map { it.id }))
+                            picked = removeIdx.coerceAtMost(next.lastIndex)
+                            adding = false
+                        },
+                        onPickTool = { kind ->
+                            if (isAdding) {
+                                val next = addFocusBarSlot(slots, kind)
+                                if (next != slots) {
+                                    onSettingsChange(settings.copy(focusBarSlots = next.map { it.id }))
+                                    picked = next.lastIndex
+                                    adding = false
+                                }
+                            } else {
+                                val next = updateFocusBarSlotList(slots, index, kind)
+                                onSettingsChange(settings.copy(focusBarSlots = next.map { it.id }))
+                            }
+                        },
+                    )
+                }
+                FocusBarCustomizeFooter(
+                    showReset = hasCustomizations,
+                    onReset = {
                         onSettingsChange(settings.copy(focusBarSlots = emptyList(), focusBarAnchor = ""))
                         picked = 0
                         adding = false
                     },
-                ) {
-                    Text("Reset to defaults")
-                }
+                    onDismiss = onDismiss,
+                )
             }
-        },
-    )
+        }
+    }
+}
+
+@Composable
+private fun FocusBarCustomizeFooter(
+    showReset: Boolean,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val buttonPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (showReset) {
+            TextButton(
+                onClick = onReset,
+                contentPadding = buttonPadding,
+                modifier = Modifier.heightIn(min = 34.dp),
+            ) {
+                Text("Reset to defaults")
+            }
+        }
+        TextButton(
+            onClick = onDismiss,
+            contentPadding = buttonPadding,
+            modifier = Modifier.heightIn(min = 34.dp),
+        ) {
+            Text("Done")
+        }
+    }
 }
 
 @Composable
@@ -130,7 +194,11 @@ private fun FocusBarCustomizeTitle(onShowGuide: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text("Focus floating bar", modifier = Modifier.weight(1f))
+        CompositionLocalProvider(LocalContentColor provides rememberChromeInk()) {
+            ProvideTextStyle(MaterialTheme.typography.headlineSmall) {
+                Text("Focus floating bar", modifier = Modifier.weight(1f))
+            }
+        }
         IconButton(onClick = onShowGuide, modifier = Modifier.size(32.dp)) {
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.HelpOutline,
