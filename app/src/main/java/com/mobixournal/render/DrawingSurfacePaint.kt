@@ -115,9 +115,9 @@ internal fun DrawingSurfaceView.paint() {
             drawPageOutline(canvas, box)
             drawBookmarkFlag(canvas, box)
         }
-        inkCache.retain(retainedAround(visible, layout.boxes.size))
-        retainPdfPins(visible)
-        prefetchAround(visible)
+        if (!chromeAnimating) {
+            inkCache.retain(retainedAround(visible, layout.boxes.size)); retainPdfPins(visible); prefetchAround(visible)
+        }
         drawSearchHighlights(canvas)
         drawCurrent(canvas)
         // The pins a shape gesture has caught, lit like a live move's target: what the wire or the placed
@@ -140,6 +140,7 @@ internal fun DrawingSurfaceView.paint() {
         drawRadialHud(canvas)
     } finally {
         holder.unlockCanvasAndPost(canvas)
+        if (!firstFrameNotified) { firstFrameNotified = true; onFirstFrameDrawn?.invoke() }
         reportFrame(System.nanoTime() - frameStarted)
     }
     // A frame drawn into a buffer the surface is about to outgrow must not be the last one: once the

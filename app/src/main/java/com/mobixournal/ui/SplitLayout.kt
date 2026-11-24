@@ -1,5 +1,6 @@
 package com.mobixournal.ui
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -47,7 +48,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.mobixournal.ui.theme.rememberChromeColor
+import com.mobixournal.ui.theme.rememberCanvasChromeColors
 import kotlinx.coroutines.flow.collectLatest
 
 /** How narrow either half may be dragged, as a fraction of the whole width. */
@@ -143,42 +144,18 @@ fun SplitLayout(
     val secondDp = with(density) { secondPx.toDp() }
     val overlaySpanDp = SPLIT_HANDLE_WIDTH + secondDp
 
-    val splitProgress = animateFloatAsState(
-        targetValue = if (splitView) 1f else 0f,
-        animationSpec = chromeSlideSpring(),
-        label = "SplitView",
-    )
-    val latestOverlaySpanPx by rememberUpdatedState(overlaySpanPx)
+    val splitAnim = rememberSplitProgress(splitView, overlaySpanPx, LocalChromeInsetController.current)
     val latestSplitView by rememberUpdatedState(splitView)
-    val controller = LocalChromeInsetController.current
-    LaunchedEffect(controller) {
-        snapshotFlow {
-            val p = splitProgress.value.coerceIn(0f, 1f)
-            val span = latestOverlaySpanPx
-            Triple(p in 0.001f..0.999f, span * p, if (latestSplitView) span else 0f)
-        }.collectLatest { (animating, liveInsetPx, settledInsetPx) ->
-            controller.splitAnimating = animating
-            controller.splitRightInsetPx = liveInsetPx
-            controller.settledSplitRightPx = settledInsetPx
-        }
-    }
-    DisposableEffect(controller) {
-        onDispose {
-            controller.splitAnimating = false
-            controller.splitRightInsetPx = 0f
-            controller.settledSplitRightPx = 0f
-        }
-    }
 
     val showOverlay by remember {
-        derivedStateOf { splitProgress.value > 0.005f || latestSplitView }
+        derivedStateOf { splitAnim.value > 0.005f || latestSplitView }
     }
     // Mount Pane 1's SurfaceView only once the slide settles so the open/close transition is 100%
     // pure Compose GPU translation (zero SurfaceView inflation stall and zero SurfaceFlinger lag).
     val mountSecond by remember {
-        derivedStateOf { latestSplitView && splitProgress.value >= 0.995f }
+        derivedStateOf { latestSplitView && splitAnim.value >= 0.995f }
     }
-    val chromeColor = rememberChromeColor()
+    val deskColor = Color(rememberCanvasChromeColors().backdrop)
 
     Box(
         modifier = modifier
@@ -196,10 +173,10 @@ fun SplitLayout(
                     .width(overlaySpanDp)
                     .fillMaxHeight()
                     .graphicsLayer {
-                        val p = splitProgress.value.coerceIn(0f, 1f)
+                        val p = splitAnim.value.coerceIn(0f, 1f)
                         translationX = (1f - p) * overlaySpanPx
                     }
-                    .background(chromeColor)
+                    .background(deskColor)
                     .blockCanvasPointers(),
             ) {
                 SplitDividerBox(
@@ -218,6 +195,43 @@ fun SplitLayout(
             }
         }
     }
+}
+
+@Composable
+private fun rememberSplitProgress(
+    splitView: Boolean,
+    overlaySpanPx: Float,
+    controller: ChromeInsetController,
+): Animatable<Float, *> {
+    val splitAnim = remember { Animatable(if (splitView) 1f else 0f) }
+    val latestOverlaySpanPx by rememberUpdatedState(overlaySpanPx)
+    val latestSplitView by rememberUpdatedState(splitView)
+    LaunchedEffect(splitView) {
+        splitAnim.animateTo(
+            targetValue = if (splitView) 1f else 0f,
+            animationSpec = chromeSlideSpring(),
+        ) {
+            val p = value.coerceIn(0f, 1f)
+            val span = latestOverlaySpanPx
+            controller.updateSplit(
+                insetPx = span * p,
+                settledPx = if (latestSplitView) span else 0f,
+                animating = p in 0.001f..0.999f,
+            )
+        }
+        val span = if (splitView) latestOverlaySpanPx else 0f
+        controller.updateSplit(insetPx = span, settledPx = span, animating = false)
+    }
+    LaunchedEffect(overlaySpanPx) {
+        if (!splitAnim.isRunning) {
+            val span = if (latestSplitView) overlaySpanPx else 0f
+            controller.updateSplit(insetPx = span, settledPx = span, animating = false)
+        }
+    }
+    DisposableEffect(controller) {
+        onDispose { controller.updateSplit(insetPx = 0f, settledPx = 0f, animating = false) }
+    }
+    return splitAnim
 }
 
 @Composable

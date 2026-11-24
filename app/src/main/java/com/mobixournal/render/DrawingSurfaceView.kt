@@ -84,6 +84,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     /** The scroll/zoom offsets and their clamps ([ViewportState] owns the numbers and the maths). */
     internal val viewport = ViewportState()
     internal var chromeAnimating = false
+    internal var firstFrameNotified = false
+    internal var onFirstFrameDrawn: (() -> Unit)? = null
 
     @VisibleForTesting
     internal var scrollY: Float
@@ -1323,15 +1325,18 @@ class DrawingSurfaceView @JvmOverloads constructor(
 
     // --- surface + rendering -------------------------------------------------------------------
 
-    override fun surfaceCreated(holder: SurfaceHolder) = render()
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        if (width > 0 && height > 0) paint() else render()
+    }
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, w: Int, h: Int) {
         relayoutForResize()
-        // A guide restored from settings before the first layout had no viewport to centre on; now
-        // there is one, so place it for real rather than leaving it wherever the fallback guessed.
         pendingGuide?.let { pendingGuide = null; placeGuide(it) }
-        render()
+        paint()
     }
-    override fun surfaceDestroyed(holder: SurfaceHolder) = momentum.stop()
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        firstFrameNotified = false
+        momentum.stop()
+    }
 
     override fun onDetachedFromWindow() {
         search.cancel()

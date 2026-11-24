@@ -20,6 +20,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -74,6 +75,22 @@ internal class ChromeInsetController {
     var splitAnimating by mutableStateOf(false)
     var splitRightInsetPx by mutableFloatStateOf(0f)
     var settledSplitRightPx by mutableFloatStateOf(0f)
+    private val liveListeners = LinkedHashMap<Int, () -> Unit>()
+
+    fun registerLiveListener(paneIndex: Int, listener: () -> Unit) {
+        liveListeners[paneIndex] = listener
+    }
+
+    fun unregisterLiveListener(paneIndex: Int) {
+        liveListeners.remove(paneIndex)
+    }
+
+    fun updateSplit(insetPx: Float, settledPx: Float, animating: Boolean) {
+        splitRightInsetPx = insetPx
+        settledSplitRightPx = settledPx
+        splitAnimating = animating
+        liveListeners.values.forEach { it() }
+    }
 
     fun snapshot(): CanvasChromeInsets = CanvasChromeInsets(
         leftPx = leftInsetPx,
@@ -174,9 +191,24 @@ internal fun ApplyPaneChromeInsets(
 ): PaddingValues {
     val controller = LocalChromeInsetController.current
     val splitView = LocalSplitView.current
+    val latestSplitView by rememberUpdatedState(splitView)
     val surface = state.surface
-    LaunchedEffect(controller, surface, paneIndex, splitView) {
-        snapshotFlow { controller.snapshotForPane(paneIndex, splitView) }.collectLatest { paneInsets ->
+    DisposableEffect(controller, surface, paneIndex) {
+        val pushLive: () -> Unit = {
+            val paneInsets = controller.snapshotForPane(paneIndex, latestSplitView)
+            surface?.setChromeInsets(
+                leftPx = paneInsets.leftPx,
+                topPx = paneInsets.topPx,
+                rightPx = paneInsets.rightPx,
+                bottomPx = paneInsets.bottomPx,
+                animating = paneInsets.animating,
+            )
+        }
+        controller.registerLiveListener(paneIndex, pushLive)
+        onDispose { controller.unregisterLiveListener(paneIndex) }
+    }
+    LaunchedEffect(controller, surface, paneIndex) {
+        snapshotFlow { controller.snapshotForPane(paneIndex, latestSplitView) }.collectLatest { paneInsets ->
             surface?.setChromeInsets(
                 leftPx = paneInsets.leftPx,
                 topPx = paneInsets.topPx,

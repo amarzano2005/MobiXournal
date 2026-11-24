@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "eliminate-surfaceview-black-flash-and-sync-split-animation-on-same-frame"
+title = "Eliminate SurfaceView black flash and sync split animation on same frame"
+description = "Added synchronous paint() in DrawingSurfaceView.surfaceCreated/surfaceChanged and onFirstFrameDrawn callback after unlockCanvasAndPost in DrawingSurfacePaint.kt, paired with a chrome.backdrop veil in EditorRegions.kt until first frame is posted to eliminate SurfaceView black holes; skipped cache retention/prefetch during chromeAnimating; replaced double-hop snapshotFlow in SplitLayout.kt with Animatable + synchronous ChromeInsetController.updateSplit live listeners in ChromeInsetsState.kt (without restarting ApplyPaneChromeInsets on splitView toggle) and matched overlay backdrop to rememberCanvasChromeColors().backdrop; updated docs/chrome.md; verified 71 targeted unit/guard tests, :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: SplitLayout overlay and SurfaceView first-frame veil both use rememberCanvasChromeColors().backdrop so desk color matches seamlessly with zero black flash; tokens: chromeSlideSpring and canvas chrome tokens unchanged; states: opening/closing split view syncs Pane 0 insets on the same Choreographer frame and masks Pane 1 SurfaceView creation until first frame; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, and ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "fix-stylus-taps-on-chrome-align-split-tabs-and-defer-split-surfaceview-mount"
 title = "Fix stylus taps on chrome, align split tabs, and defer split SurfaceView mount"
 description = "Removed consume() from blockCanvasPointers in ChromeInsetsState.kt so child clickable/IconButton Final passes receive stylus taps cleanly while still blocking hit-testing to the underlying SurfaceView; changed TabStrip.kt chips Row to weight(1f, fill = false) so AddTabButton stays right next to the last tab (and pinned on overflow); updated SplitTabRow.kt and EditorRegions.kt so SplitTabRow spans full viewport width with startInset/endInset on the outer edges aligning Pane 1 tabs with SplitDividerBox; deferred Pane 1 SurfaceView mount in SplitLayout.kt until splitProgress settles so open/close slides run purely on Compose GPU translation at 144Hz; updated docs/chrome.md; verified targeted unit/guard tests, :desktop:createDistributable, and scripts/release-apk.sh."

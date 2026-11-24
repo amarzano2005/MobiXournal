@@ -1590,10 +1590,12 @@ fun EditorPaneView(
                 state.surface?.repaintForExtent(size.width, size.height)
             },
         ) {
+            var surfaceReady by remember(index) { mutableStateOf(false) }
             AndroidView(
                 factory = { ctx ->
                     DrawingSurfaceView(ctx).also {
                         if (index == 1) it.setZOrderMediaOverlay(true)
+                        it.onFirstFrameDrawn = { surfaceReady = true }
                         it.applyInitialStyle(ui, settings)
                         it.bindTo(state)
                         it.bindEditorActions(
@@ -1620,6 +1622,9 @@ fun EditorPaneView(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
+            if (!surfaceReady) {
+                Box(modifier = Modifier.fillMaxSize().background(Color(chrome.backdrop)))
+            }
             ScrollThumb(
                 scrollY = { state.scrollY },
                 totalHeightPx = { state.contentHeight },
