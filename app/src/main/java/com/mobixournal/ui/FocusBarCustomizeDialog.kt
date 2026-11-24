@@ -21,8 +21,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -110,11 +108,6 @@ internal fun FocusBarCustomizeDialog(
                         onSelectFilter = { selectedFilter = it },
                         onSelectSlot = { picked = it; adding = false },
                         onSelectAdd = { adding = true },
-                        onMoveSlot = { delta ->
-                            val moved = moveFocusBarSlot(slots, index, delta)
-                            onSettingsChange(settings.copy(focusBarSlots = moved.map { it.id }))
-                            picked = (index + delta).coerceIn(0, moved.lastIndex)
-                        },
                         onReorderSlot = { from, to ->
                             val moved = reorderFocusBarSlot(slots, from, to)
                             onSettingsChange(settings.copy(focusBarSlots = moved.map { it.id }))
@@ -219,7 +212,6 @@ private fun FocusBarCustomizeBody(
     onSelectFilter: (FocusBarCategoryFilter) -> Unit,
     onSelectSlot: (Int) -> Unit,
     onSelectAdd: () -> Unit,
-    onMoveSlot: (Int) -> Unit,
     onReorderSlot: (from: Int, to: Int) -> Unit,
     onRemoveSlot: (Int) -> Unit,
     onPickTool: (FocusBarSlotKind) -> Unit,
@@ -241,7 +233,6 @@ private fun FocusBarCustomizeBody(
             total = slots.size,
             selected = slots[index],
             isAdding = isAdding,
-            onMove = onMoveSlot,
         )
         FocusBarCategoryFilterRow(
             selected = selectedFilter,
@@ -264,39 +255,22 @@ private fun FocusBarSlotStatusRow(
     total: Int,
     selected: FocusBarSlotKind,
     isAdding: Boolean,
-    onMove: (Int) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(
-                text = if (isAdding) "Add a tool" else "Slot ${index + 1} · ${selected.label}",
-                style = MaterialTheme.typography.labelLarge,
-                color = rememberChromeInk(),
-            )
-            Text(
-                text = if (isAdding) {
-                    "Tap an unused tool below · $total / $FOCUS_BAR_MAX_SLOTS slots"
-                } else {
-                    "$total / $FOCUS_BAR_MAX_SLOTS slots · Hold & drag to reorder"
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (!isAdding) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(enabled = index > 0, onClick = { onMove(-1) }, modifier = Modifier.size(34.dp)) {
-                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowLeft, contentDescription = "Move left")
-                }
-                IconButton(enabled = index < total - 1, onClick = { onMove(+1) }, modifier = Modifier.size(34.dp)) {
-                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, contentDescription = "Move right")
-                }
-            }
-        }
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(
+            text = if (isAdding) "Add a tool" else "Slot ${index + 1} · ${selected.label}",
+            style = MaterialTheme.typography.labelLarge,
+            color = rememberChromeInk(),
+        )
+        Text(
+            text = if (isAdding) {
+                "Tap an unused tool below · $total / $FOCUS_BAR_MAX_SLOTS slots"
+            } else {
+                "$total / $FOCUS_BAR_MAX_SLOTS slots · Hold & drag to reorder"
+            },
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

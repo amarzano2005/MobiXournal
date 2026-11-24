@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "remove-reorder-arrow-buttons-from-focusbarcustomizedialog"
+title = "Remove reorder arrow buttons from FocusBarCustomizeDialog"
+description = "Removed KeyboardArrowLeft/Right reorder buttons and onMoveSlot plumbing from FocusBarCustomizeDialog.kt so FocusBarSlotStatusRow stays clean and reordering uses hold-and-drag on FocusBarSlotPreviewStrip; verified FocusBarGeometryTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, ShapeFeedbackTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-24
+completed = 2026-11-24
+tags = []
+design = "material: Liquid Glass dialog and preview strip unchanged; tokens: unused arrow icons removed cleanly; states: FocusBarSlotStatusRow renders slot label and count without clutter; docs: no behavioral doc claim changed; tests: FocusBarGeometryTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, ShapeFeedbackTest, and ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "veil-sheet-behind-theme-backdrop-during-editor-to-home-return-transition"
 title = "Veil sheet behind theme backdrop during Editor-to-Home return transition"
 description = "Added a MaterialTheme.colorScheme.background veil in DocumentArea.kt driven by editorVeilAlpha(p) = (p / 0.46f) alongside editorChromeReveal(p) and backed the root Box with the same theme background so the sheet fades out cleanly with the rails on return to Home and unveils together with them on entry (zero sheet/Home double-exposure); updated docs/chrome.md; verified DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, ToolbarMenuGuardTest, :desktop:createDistributable, and release-apk.sh."
