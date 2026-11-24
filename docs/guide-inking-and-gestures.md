@@ -47,8 +47,8 @@ On Android, a single-finger touch double-tap works with any active tool and acts
 the left third turns to the previous page, the right third turns to the next page, and the centre
 toggles **Focus mode** (hiding the toolbars and system bars). Stylus taps never trigger this gesture.
 You can also toggle Focus mode from **☰ → Pen & View**, with the **`F`** key, or via the pen's barrel
-button in Settings. While Focus mode is active, a draggable Liquid Glass floating bar gives quick access
-to your core tools (Pen with second-tap stroke menu, Highlighter, Quick colours, Eraser, Hand, and
+button in Settings (and jump straight to its settings from the **Touch double-tap** row in **Settings → Pen & Input**). While Focus mode is active, a draggable floating bar gives quick access
+to up to 10 tools from the standard toolbars (Pen with second-tap stroke menu, Highlighter, Quick colours, Eraser, Hand, and
 Selection by default) and morphs smoothly into a vertical edge bar when dragged to either side;
 customize its slots in **Settings → Focus mode** or by long-pressing the bar's handle.
 

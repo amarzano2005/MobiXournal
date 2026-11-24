@@ -13,6 +13,7 @@ SOURCE_PREFIXES = (
 )
 WATCHED_PREFIXES = (
     "app/src/main/java/com/mobixournal/ui/",
+    "app/src/main/java/com/mobixournal/render/",
     "desktop/src/main/java/com/mobixournal/desktop/shell/",
     "desktop/src/main/java/com/mobixournal/desktop/tools/",
     "desktop/src/main/java/com/mobixournal/desktop/settings/",
@@ -21,11 +22,12 @@ WATCHED_PREFIXES = (
     "mobix-core/src/main/java/com/mobixournal/design/",
 )
 DOC_PREFIXES = ("docs/", "AGENTS.md", "README.md")
+MAX_SKIP_WATCHED_FILES = 2
 
 
-def staged_files() -> list[str]:
+def staged_files(diff_filter: str = "ACM") -> list[str]:
     proc = subprocess.run(
-        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+        ["git", "diff", "--cached", "--name-only", f"--diff-filter={diff_filter}"],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -35,8 +37,6 @@ def staged_files() -> list[str]:
 
 
 def main() -> int:
-    if os.environ.get("MOBIX_SKIP_DOC_CHECK") == "1":
-        return 0
     files = staged_files()
     if any(f.startswith(SOURCE_PREFIXES) for f in files) and "FINISHED.toml" not in files:
         print(
@@ -50,6 +50,15 @@ def main() -> int:
     has_docs = any(f.startswith(DOC_PREFIXES) for f in files)
     if has_docs:
         return 0
+
+    if os.environ.get("MOBIX_SKIP_DOC_CHECK") == "1":
+        added_watched = [f for f in staged_files("A") if f.startswith(WATCHED_PREFIXES)]
+        if not added_watched and len(watched) <= MAX_SKIP_WATCHED_FILES:
+            return 0
+        print(
+            "check-doc-sync: MOBIX_SKIP_DOC_CHECK=1 is only allowed for small (<= 2 files, no new files) internal fixes.",
+            file=sys.stderr,
+        )
 
     print("check-doc-sync: UI/design source files are staged without a documentation update:", file=sys.stderr)
     for path in watched:

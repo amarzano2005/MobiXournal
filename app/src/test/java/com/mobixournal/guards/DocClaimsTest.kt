@@ -441,6 +441,35 @@ class DocClaimsTest {
             .toList()
     }
 
+    /**
+     * Focus mode and overlay chrome docs stay pinned to the live constants and never leak internal
+     * "Liquid Glass" terminology into user-facing guides.
+     */
+    @Test
+    fun focusModeAndChromeDocsMatchLiveConstantsAndUserVocabulary() {
+        val minSlots = com.mobixournal.ui.FOCUS_BAR_MIN_SLOTS
+        val maxSlots = com.mobixournal.ui.FOCUS_BAR_MAX_SLOTS
+        val chromeSettings = File(repoRoot(), "docs/chrome-settings.md").readText()
+        assertTrue(
+            "docs/chrome-settings.md must match FOCUS_BAR_MIN_SLOTS..FOCUS_BAR_MAX_SLOTS ($minSlots–$maxSlots slots)",
+            "$minSlots–$maxSlots slots" in chromeSettings,
+        )
+        assertTrue(
+            "docs/chrome-settings.md must not expose internal 'Liquid Glass' term in user-facing Focus mode copy",
+            "Liquid Glass" !in chromeSettings,
+        )
+        val guideGestures = File(repoRoot(), "docs/guide-inking-and-gestures.md").readText()
+        assertTrue(
+            "docs/guide-inking-and-gestures.md must not expose internal 'Liquid Glass' term to users",
+            "Liquid Glass" !in guideGestures,
+        )
+        val chromeDoc = File(repoRoot(), "docs/chrome.md").readText()
+        assertTrue(
+            "docs/chrome.md must describe the ChromeInsetsState.kt / setChromeInsets overlay mechanism",
+            "ChromeInsetsState.kt" in chromeDoc && "setChromeInsets" in chromeDoc,
+        )
+    }
+
     /** The docs under the claim rules: every `.md` in `docs/` (releases frozen), plus the front doors. */
     private fun prose(): List<File> {
         val docs = File(repoRoot(), "docs").listFiles { f: File -> f.isFile && f.extension == "md" }!!

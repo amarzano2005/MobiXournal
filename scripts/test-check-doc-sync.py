@@ -65,11 +65,26 @@ class CheckDocSyncTest(unittest.TestCase):
         with mock.patch.object(self.mod, "staged_files", return_value=staged):
             self.assertEqual(self.mod.main(), 0)
 
-    def test_skip_env_bypasses_doc_check(self):
+    def test_skip_env_bypasses_small_internal_fix(self):
         staged = ["app/src/main/java/com/mobixournal/ui/EditorTopBar.kt"]
-        with mock.patch.object(self.mod, "staged_files", return_value=staged):
+        with mock.patch.object(self.mod, "staged_files", side_effect=lambda diff_filter="ACM": [] if diff_filter == "A" else staged):
             with mock.patch.dict(os.environ, {"MOBIX_SKIP_DOC_CHECK": "1"}):
                 self.assertEqual(self.mod.main(), 0)
+
+    def test_skip_env_refused_for_new_or_multi_file_watched_changes(self):
+        many = [
+            "app/src/main/java/com/mobixournal/ui/A.kt",
+            "app/src/main/java/com/mobixournal/ui/B.kt",
+            "app/src/main/java/com/mobixournal/render/C.kt",
+        ]
+        with mock.patch.object(self.mod, "staged_files", side_effect=lambda diff_filter="ACM": [] if diff_filter == "A" else many):
+            with mock.patch.dict(os.environ, {"MOBIX_SKIP_DOC_CHECK": "1"}):
+                self.assertEqual(self.mod.main(), 1)
+
+        added = ["app/src/main/java/com/mobixournal/ui/NewPanel.kt"]
+        with mock.patch.object(self.mod, "staged_files", return_value=added):
+            with mock.patch.dict(os.environ, {"MOBIX_SKIP_DOC_CHECK": "1"}):
+                self.assertEqual(self.mod.main(), 1)
 
 
 if __name__ == "__main__":

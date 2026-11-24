@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "align-focus-chrome-docs-and-mechanical-guards"
+title = "Align Focus mode and overlay chrome docs and tighten mechanical doc-sync guards"
+description = "Updated docs/chrome.md, docs/chrome-settings.md, and docs/guide-inking-and-gestures.md to match Focus mode (3-10 slots, chip catalog, Pen & Input double-tap link, no user-facing Liquid Glass terms) and Solution B overlay chrome insets (ChromeInsetsState.kt, setChromeInsets); added mechanical drift checks in DocClaimsTest.kt and tightened scripts/check-doc-sync.py + test-check-doc-sync.py to watch render/ and reject MOBIX_SKIP_DOC_CHECK=1 on new files or >2 watched files. Verified with DocClaimsTest, SourceStructureTest, test-check-doc-sync.py, and :desktop:createDistributable."
+status = "finished"
+level = "task"
+category = "docs"
+created = 2026-11-24
+completed = 2026-11-24
+tags = ["docs", "guards"]
+design = "docs: aligned docs/chrome.md, docs/chrome-settings.md, and docs/guide-inking-and-gestures.md within 300-line budgets; tests: DocClaimsTest, SourceStructureTest, and test-check-doc-sync.py pass."
+
+[[task]]
 id = "smooth-chrome-insets-focus-and-sidebar"
 title = "Animate Focus mode and multi-page sidebar smoothly via canvas chrome insets"
 description = "Implemented Solution B: added chrome insets to PageStacker, ViewportState, DrawingSurfaceView/Resize/Paint/Input/ScaleKeep so the SurfaceView keeps a fixed size while sliding top bar, side rail, and multi-page sidebar push animated viewport insets over 240 ms with GPU stand-in blitting; added ChromeInsetsState overlay hosts, pointer blocking, jump-free FocusModeExitButton (displayCutoutPadding), and edge-aware choreographed FocusFloatingBar slide. Verified with ViewportStateTest, FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and signed release APK."
