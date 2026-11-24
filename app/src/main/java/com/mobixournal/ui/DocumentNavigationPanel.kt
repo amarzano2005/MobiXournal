@@ -33,10 +33,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
+import kotlinx.coroutines.flow.collectLatest
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -120,8 +121,6 @@ internal fun DocumentNavigationWorkspace(
     railOnLeft: Boolean,
     toolbar: @Composable () -> Unit,
     canvas: @Composable (Modifier) -> Unit,
-    topInsetPx: Float = 0f,
-    topAnimating: Boolean = false,
     modifier: Modifier,
 ) {
     BoxWithConstraints(modifier) {
@@ -133,62 +132,60 @@ internal fun DocumentNavigationWorkspace(
         val session = pane.navigationSessions.getOrPut(pane.navigationDocumentKey) { ContentsSession() }
         val laneOpen = ui.pageListOpen && !ui.fullPage
         val railOpen = !ui.fullPage
-        val railProgress by animateFloatAsState(
+        val railProgress = animateFloatAsState(
             targetValue = if (railOpen) 1f else 0f,
-            animationSpec = tween(CHROME_TRANSITION_MS, easing = FastOutSlowInEasing),
+            animationSpec = chromeSlideSpring(),
             label = "RailLaneChrome",
         )
-        val laneProgress by animateFloatAsState(
+        val laneProgress = animateFloatAsState(
             targetValue = if (laneOpen) 1f else 0f,
-            animationSpec = tween(CHROME_TRANSITION_MS, easing = FastOutSlowInEasing),
+            animationSpec = chromeSlideSpring(),
             label = "SidebarLaneChrome",
         )
         val density = LocalDensity.current
         val railFullPx = with(density) { SideToolbarModernTotalWidth.toPx() }
         val laneFullPx = with(density) { width.toPx() }
-        val railPx = railFullPx * railProgress
-        val sidebarPx = if (compact) 0f else laneFullPx * laneProgress
-        val leftPx = if (railOnLeft) railPx + sidebarPx else 0f
-        val rightPx = if (!railOnLeft) railPx + sidebarPx else 0f
-        val animating = topAnimating || railProgress in 0.001f..0.999f || laneProgress in 0.001f..0.999f
-        val topInsetDp = with(density) { topInsetPx.toDp() }
-        val railEdgeDp = with(density) { railPx.toDp() }
+        val controller = LocalChromeInsetController.current
+        LaunchedEffect(controller, railOnLeft, compact, railFullPx, laneFullPx, railOpen, laneOpen) {
+            snapshotFlow { railProgress.value to laneProgress.value }.collectLatest { (rp, lp) ->
+                val railPx = railFullPx * rp
+                val sidebarPx = if (compact) 0f else laneFullPx * lp
+                controller.leftInsetPx = if (railOnLeft) railPx + sidebarPx else 0f
+                controller.rightInsetPx = if (!railOnLeft) railPx + sidebarPx else 0f
+                controller.sideAnimating = rp in 0.001f..0.999f || lp in 0.001f..0.999f
+                val settledTotal = (if (railOpen) railFullPx else 0f) + (if (!compact && laneOpen) laneFullPx else 0f)
+                controller.settledLeftPx = if (railOnLeft) settledTotal else 0f
+                controller.settledRightPx = if (!railOnLeft) settledTotal else 0f
+            }
+        }
+        val topInsetDp = with(density) { controller.topInsetPx.toDp() }
+        val railEdgeDp = with(density) { (railFullPx * railProgress.value).toDp() }
 
-        CompositionLocalProvider(
-            LocalCanvasChromeInsets provides CanvasChromeInsets(
-                leftPx = leftPx,
-                topPx = topInsetPx,
-                rightPx = rightPx,
-                bottomPx = 0f,
-                animating = animating,
-            ),
-        ) {
-            Box(Modifier.fillMaxSize().background(rememberChromeColor())) {
-                canvas(Modifier.fillMaxSize())
-                Box(Modifier.fillMaxSize().padding(top = topInsetDp)) {
-                    if (laneProgress > 0.001f) {
-                        OverlayNavigationSidebar(
-                            ui = ui,
-                            pane = pane,
-                            session = session,
-                            compact = compact,
-                            railOnLeft = railOnLeft,
-                            laneOpen = laneOpen,
-                            laneProgress = laneProgress,
-                            laneFullPx = laneFullPx,
-                            width = width,
-                            railEdgeDp = railEdgeDp,
-                        )
-                    }
-                    if (railProgress > 0.001f) {
-                        OverlayRailLane(
-                            railOnLeft = railOnLeft,
-                            railOpen = railOpen,
-                            railProgress = railProgress,
-                            railFullPx = railFullPx,
-                            toolbar = toolbar,
-                        )
-                    }
+        Box(Modifier.fillMaxSize().background(rememberChromeColor())) {
+            canvas(Modifier.fillMaxSize())
+            Box(Modifier.fillMaxSize().padding(top = topInsetDp)) {
+                if (laneProgress.value > 0.001f || laneOpen) {
+                    OverlayNavigationSidebar(
+                        ui = ui,
+                        pane = pane,
+                        session = session,
+                        compact = compact,
+                        railOnLeft = railOnLeft,
+                        laneOpen = laneOpen,
+                        laneProgress = laneProgress.value,
+                        laneFullPx = laneFullPx,
+                        width = width,
+                        railEdgeDp = railEdgeDp,
+                    )
+                }
+                if (railProgress.value > 0.001f || railOpen) {
+                    OverlayRailLane(
+                        railOnLeft = railOnLeft,
+                        railOpen = railOpen,
+                        railProgress = railProgress.value,
+                        railFullPx = railFullPx,
+                        toolbar = toolbar,
+                    )
                 }
             }
         }
@@ -259,7 +256,6 @@ private fun BoxScope.OverlayRailLane(
             .graphicsLayer {
                 translationX = if (railOnLeft) -(1f - railProgress) * railFullPx
                 else (1f - railProgress) * railFullPx
-                alpha = railProgress.coerceIn(0f, 1f)
             }
             .then(if (railOpen) Modifier.blockCanvasPointers() else Modifier),
     ) {

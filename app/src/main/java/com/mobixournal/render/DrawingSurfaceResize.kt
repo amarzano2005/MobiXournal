@@ -102,7 +102,9 @@ internal fun DrawingSurfaceView.setChromeInsets(
     } else {
         false
     }
-    if (changed || (wasAnimating && !animating)) {
+    if (changed) {
+        if (animating && !momentum.isFlinging && holder.surface.isValid) paint() else render()
+    } else if (wasAnimating && !animating) {
         render()
     }
 }

@@ -145,10 +145,12 @@ internal fun DrawingSurfaceView.paint() {
     // A frame drawn into a buffer the surface is about to outgrow must not be the last one: once the
     // platform has resized the surface, paint again for the settled size.
     if (provisional) repaintWhenSurfaceSettles()
-    reportCurrentPage()
-    reportScroll()
-    reportSelectionRect()
-    reportTextSelectionRect()
+    if (!chromeAnimating) {
+        reportCurrentPage()
+        reportScroll()
+        reportSelectionRect()
+        reportTextSelectionRect()
+    }
     reportMissingBackgrounds()
 }
 

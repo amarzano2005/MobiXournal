@@ -1,34 +1,44 @@
 package com.mobixournal.ui
 
-import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.dp
 import com.mobixournal.render.setChromeInsets
+import com.mobixournal.ui.theme.rememberChromeColor
+import kotlinx.coroutines.flow.collectLatest
 
-/** Shared duration (ms) for sliding chrome bands (top bar, side rail, multi-page sidebar). */
-internal const val CHROME_TRANSITION_MS = 240
+/** Physics-based spring tuned for 120–144 Hz sliding chrome bands (top bar, side rail, sidebar). */
+internal fun chromeSlideSpring() = spring<Float>(
+    dampingRatio = 0.92f,
+    stiffness = 520f,
+    visibilityThreshold = 0.001f,
+)
 
 /**
  * Live pixel insets occupied by overlaid editor chrome (top bar, side rail, multi-page sidebar)
  * so [com.mobixournal.render.DrawingSurfaceView] can re-centre and re-fit pages smoothly at
- * 60–120 fps without resizing its native `Surface` on every animation frame.
+ * 120–144 Hz without resizing its native `Surface` on every animation frame.
  */
 internal data class CanvasChromeInsets(
     val leftPx: Float = 0f,
@@ -38,7 +48,41 @@ internal data class CanvasChromeInsets(
     val animating: Boolean = false,
 )
 
-internal val LocalCanvasChromeInsets = compositionLocalOf { CanvasChromeInsets() }
+/**
+ * Stable observable holder for animated and settled chrome insets. Passing this single instance
+ * via [LocalChromeInsetController] avoids recomposing `EditorScreen`, `EditorBody`, and
+ * `EditorPaneView` on every animation frame.
+ */
+@Stable
+internal class ChromeInsetController {
+    var topInsetPx by mutableFloatStateOf(0f)
+    var topAnimating by mutableStateOf(false)
+    var settledTopPx by mutableFloatStateOf(0f)
+
+    var leftInsetPx by mutableFloatStateOf(0f)
+    var rightInsetPx by mutableFloatStateOf(0f)
+    var sideAnimating by mutableStateOf(false)
+    var settledLeftPx by mutableFloatStateOf(0f)
+    var settledRightPx by mutableFloatStateOf(0f)
+
+    fun snapshot(): CanvasChromeInsets = CanvasChromeInsets(
+        leftPx = leftInsetPx,
+        topPx = topInsetPx,
+        rightPx = rightInsetPx,
+        bottomPx = 0f,
+        animating = topAnimating || sideAnimating,
+    )
+
+    fun settledSnapshot(): CanvasChromeInsets = CanvasChromeInsets(
+        leftPx = settledLeftPx,
+        topPx = settledTopPx,
+        rightPx = settledRightPx,
+        bottomPx = 0f,
+        animating = false,
+    )
+}
+
+internal val LocalChromeInsetController = compositionLocalOf { ChromeInsetController() }
 
 internal val LocalSplitView = compositionLocalOf { false }
 
@@ -64,66 +108,79 @@ internal fun Modifier.blockCanvasPointers(): Modifier = pointerInput(Unit) {
 }
 
 /**
- * Push live chrome insets to [state]'s `DrawingSurfaceView` and return the matching Compose
- * [PaddingValues] so viewport badges, scroll thumb, and diagnostics stay clear of overlaid bars.
+ * Push live chrome insets to [state]'s `DrawingSurfaceView` via [snapshotFlow] (zero per-frame
+ * recomposition of `EditorPaneView`) and return settled [PaddingValues] for viewport badges,
+ * scroll thumb, and diagnostics.
  */
 @Composable
 internal fun ApplyPaneChromeInsets(
     state: PaneState,
     paneIndex: Int,
 ): PaddingValues {
-    val paneInsets = LocalCanvasChromeInsets.current.forPane(paneIndex, LocalSplitView.current)
-    SideEffect {
-        state.surface?.setChromeInsets(
-            leftPx = paneInsets.leftPx,
-            topPx = paneInsets.topPx,
-            rightPx = paneInsets.rightPx,
-            bottomPx = paneInsets.bottomPx,
-            animating = paneInsets.animating,
-        )
+    val controller = LocalChromeInsetController.current
+    val splitView = LocalSplitView.current
+    val surface = state.surface
+    LaunchedEffect(controller, surface, paneIndex, splitView) {
+        snapshotFlow { controller.snapshot().forPane(paneIndex, splitView) }.collectLatest { paneInsets ->
+            surface?.setChromeInsets(
+                leftPx = paneInsets.leftPx,
+                topPx = paneInsets.topPx,
+                rightPx = paneInsets.rightPx,
+                bottomPx = paneInsets.bottomPx,
+                animating = paneInsets.animating,
+            )
+        }
     }
+    val settled = controller.settledSnapshot().forPane(paneIndex, splitView)
     val density = LocalDensity.current
     return with(density) {
         PaddingValues(
-            start = paneInsets.leftPx.toDp(),
-            top = paneInsets.topPx.toDp(),
-            end = paneInsets.rightPx.toDp(),
-            bottom = paneInsets.bottomPx.toDp(),
+            start = settled.leftPx.toDp(),
+            top = settled.topPx.toDp(),
+            end = settled.rightPx.toDp(),
+            bottom = settled.bottomPx.toDp(),
         )
     }
 }
 
 /**
- * Animated overlay host for the editor top bar: slides cleanly up/down while reporting its live
- * unobstructed height inset to the workspace below so pages glide smoothly in sync.
+ * Animated opaque overlay host for the editor top bar: composites over [rememberChromeColor] so
+ * the header stays opaque over inked pages (matching `RailLane`) and slides cleanly with a spring
+ * while pushing live top insets into [controller] without recomposing sibling subtrees.
  */
 @Composable
 internal fun AnimatedEditorTopBarHost(
     visible: Boolean,
-    onTopInset: (Float, Boolean) -> Unit,
+    controller: ChromeInsetController,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    var measuredHeightPx by remember { mutableStateOf(0) }
-    val progress by animateFloatAsState(
+    var measuredHeightPx by remember { mutableIntStateOf(0) }
+    val progress = animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
-        animationSpec = tween(CHROME_TRANSITION_MS, easing = FastOutSlowInEasing),
+        animationSpec = chromeSlideSpring(),
         label = "TopBarChrome",
     )
-    val animating = progress in 0.001f..0.999f
-    val insetPx = if (measuredHeightPx > 0) measuredHeightPx * progress else 0f
-    SideEffect {
-        onTopInset(insetPx, animating)
+    LaunchedEffect(controller, visible) {
+        snapshotFlow {
+            val p = progress.value
+            val h = measuredHeightPx
+            Triple(p, h, visible)
+        }.collectLatest { (p, h, vis) ->
+            controller.topInsetPx = if (h > 0) h * p else 0f
+            controller.topAnimating = p in 0.001f..0.999f
+            controller.settledTopPx = if (vis && h > 0) h.toFloat() else 0f
+        }
     }
-    if (progress > 0.001f || visible) {
+    if (progress.value > 0.001f || visible) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
                 .onSizeChanged { if (it.height > 0) measuredHeightPx = it.height }
                 .graphicsLayer {
-                    translationY = -(1f - progress) * measuredHeightPx
-                    alpha = progress.coerceIn(0f, 1f)
+                    translationY = -(1f - progress.value) * measuredHeightPx
                 }
+                .background(rememberChromeColor())
                 .then(if (visible) Modifier.blockCanvasPointers() else Modifier),
         ) {
             content()

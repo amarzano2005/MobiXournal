@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "opaque-topbar-and-144hz-chrome-transitions"
+title = "Make overlaid top bar opaque and optimize chrome inset animations for 120-144 Hz"
+description = "Composited AnimatedEditorTopBarHost over rememberChromeColor and removed alpha fade on top bar and RailLane so chrome bands stay 100% opaque over pages; introduced stable ChromeInsetController + snapshotFlow (zero per-frame recomposition of EditorScreen/EditorBody/EditorPaneView), suspended reportScroll/reportCurrentPage while chromeAnimating in DrawingSurfacePaint, painted on the same vsync in setChromeInsets, switched to chromeSlideSpring(), and updated docs/chrome.md. Verified with ViewportStateTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest, :desktop:createDistributable, and signed release APK."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-24
+completed = 2026-11-24
+tags = ["ui", "render", "android"]
+design = "material: AnimatedEditorTopBarHost composites over rememberChromeColor matching RailLane opacity with no bleed-through; states: spring-driven zero-recomposition transitions with same-vsync SurfaceView paint; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest pass."
+
+[[task]]
 id = "align-focus-chrome-docs-and-mechanical-guards"
 title = "Align Focus mode and overlay chrome docs and tighten mechanical doc-sync guards"
 description = "Updated docs/chrome.md, docs/chrome-settings.md, and docs/guide-inking-and-gestures.md to match Focus mode (3-10 slots, chip catalog, Pen & Input double-tap link, no user-facing Liquid Glass terms) and Solution B overlay chrome insets (ChromeInsetsState.kt, setChromeInsets); added mechanical drift checks in DocClaimsTest.kt and tightened scripts/check-doc-sync.py + test-check-doc-sync.py to watch render/ and reject MOBIX_SKIP_DOC_CHECK=1 on new files or >2 watched files. Verified with DocClaimsTest, SourceStructureTest, test-check-doc-sync.py, and :desktop:createDistributable."

@@ -375,82 +375,79 @@ fun EditorScreen(
             contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         ) { _ ->
             // Canvas fills the whole screen and stays a fixed Surface size; the header overlays the
-            // top edge and reports its live animated height so pages glide cleanly beneath it.
-            Box(modifier = Modifier.fillMaxSize()) {
-                val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
-                val nothingOpen = windowIsEmpty(tabs, splitView)
-                var topInsetPx by remember { mutableStateOf(0f) }
-                var topAnimating by remember { mutableStateOf(false) }
+            // top edge and pushes live spring insets through [ChromeInsetController] with zero
+            // per-frame recomposition of the editor body.
+            val insetController = remember { ChromeInsetController() }
+            CompositionLocalProvider(LocalChromeInsetController provides insetController) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    val activeTabs = tabs[activePane.coerceIn(tabs.indices)]
+                    val nothingOpen = windowIsEmpty(tabs, splitView)
 
-                DocumentArea(
-                    empty = nothingOpen,
-                    modifier = Modifier.fillMaxSize(),
-                    entry = {
-                        NotebookEntryScreen(
-                            recents = recents,
-                            onNew = onNewDocument,
-                            onOpen = onOpen,
-                            onOpenRecent = onOpenRecent,
-                            onRemoveRecent = onRemoveRecent,
-                            onRestoreSession = onRestoreSession,
-                        )
-                    },
-                ) {
-                    EditorBody(
-                        ui = ui,
-                        pane = pane,
-                        settings = settings,
-                        onSettingsChange = onSettingsChange,
-                        audioProvider = audioProvider,
-                        splitView = splitView,
-                        onActivePane = onActivePane,
-                        onSurfaceCreated = onSurfaceCreated,
-                        onPickImage = onPickImage,
-                        tabCounts = tabs.map { it.titles.size },
-                        paneEntry = { paneModifier ->
-                            PaneEntry(
-                                recents, onNewDocument, onOpen, onOpenRecent, onRemoveRecent,
-                                onRestoreSession, paneModifier,
+                    DocumentArea(
+                        empty = nothingOpen,
+                        modifier = Modifier.fillMaxSize(),
+                        entry = {
+                            NotebookEntryScreen(
+                                recents = recents,
+                                onNew = onNewDocument,
+                                onOpen = onOpen,
+                                onOpenRecent = onOpenRecent,
+                                onRemoveRecent = onRemoveRecent,
+                                onRestoreSession = onRestoreSession,
                             )
                         },
-                        paneChrome = paneChrome,
-                        topInsetPx = if (nothingOpen) 0f else topInsetPx,
-                        topAnimating = if (nothingOpen) false else topAnimating,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
-
-                AnimatedEditorTopBarHost(
-                    visible = !ui.fullPage && !nothingOpen,
-                    onTopInset = { px, anim ->
-                        topInsetPx = px
-                        topAnimating = anim
-                    },
-                    modifier = Modifier.align(Alignment.TopStart),
-                ) {
-                    if (topBar != null) {
-                        topBar(ui, pane, activeTabs)
-                    } else {
-                        EditorTopBarAudioHost(
+                    ) {
+                        EditorBody(
                             ui = ui,
                             pane = pane,
-                            activeTabs = activeTabs,
-                            paneTabs = tabs,
                             settings = settings,
                             onSettingsChange = onSettingsChange,
-                            onOpen = onOpen,
-                            onNewTab = { activeTabs.onNew() },
-                            onSave = onSave,
-                            onImportPdf = onImportPdf,
-                            onExportPagePng = onExportPagePng,
-                            onExportPageSvg = onExportPageSvg,
-                            onSavePortableCopy = onSavePortableCopy,
-                            onShare = onShare,
-                            onSaveAsFormat = { format -> onSaveAs(currentSaveName(), format) },
-                            splitView = splitView,
-                            onToggleSplitView = onToggleSplitView,
                             audioProvider = audioProvider,
+                            splitView = splitView,
+                            onActivePane = onActivePane,
+                            onSurfaceCreated = onSurfaceCreated,
+                            onPickImage = onPickImage,
+                            tabCounts = tabs.map { it.titles.size },
+                            paneEntry = { paneModifier ->
+                                PaneEntry(
+                                    recents, onNewDocument, onOpen, onOpenRecent, onRemoveRecent,
+                                    onRestoreSession, paneModifier,
+                                )
+                            },
+                            paneChrome = paneChrome,
+                            modifier = Modifier.fillMaxSize(),
                         )
+                    }
+
+                    AnimatedEditorTopBarHost(
+                        visible = !ui.fullPage && !nothingOpen,
+                        controller = insetController,
+                        modifier = Modifier.align(Alignment.TopStart),
+                    ) {
+                        if (topBar != null) {
+                            topBar(ui, pane, activeTabs)
+                        } else {
+                            EditorTopBarAudioHost(
+                                ui = ui,
+                                pane = pane,
+                                activeTabs = activeTabs,
+                                paneTabs = tabs,
+                                settings = settings,
+                                onSettingsChange = onSettingsChange,
+                                onOpen = onOpen,
+                                onNewTab = { activeTabs.onNew() },
+                                onSave = onSave,
+                                onImportPdf = onImportPdf,
+                                onExportPagePng = onExportPagePng,
+                                onExportPageSvg = onExportPageSvg,
+                                onSavePortableCopy = onSavePortableCopy,
+                                onShare = onShare,
+                                onSaveAsFormat = { format -> onSaveAs(currentSaveName(), format) },
+                                splitView = splitView,
+                                onToggleSplitView = onToggleSplitView,
+                                audioProvider = audioProvider,
+                            )
+                        }
                     }
                 }
             }
@@ -598,8 +595,6 @@ private fun EditorBody(
     /** The entry screen a pane with no document draws in its own half. */
     paneEntry: @Composable (Modifier) -> Unit,
     paneChrome: @Composable (EditorUiState, PaneState, AppSettings, (AppSettings) -> Unit, AudioUiState) -> Unit,
-    topInsetPx: Float = 0f,
-    topAnimating: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val toolbar: @Composable () -> Unit = {
@@ -653,8 +648,6 @@ private fun EditorBody(
             railOnLeft = settings.toolbarPosition != ToolbarPosition.RIGHT,
             toolbar = toolbar,
             canvas = canvas,
-            topInsetPx = topInsetPx,
-            topAnimating = topAnimating,
             modifier = modifier,
         )
     }
