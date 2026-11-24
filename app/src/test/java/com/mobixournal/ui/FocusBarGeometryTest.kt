@@ -24,7 +24,10 @@ class FocusBarGeometryTest {
     @Test
     fun `resolveFocusBarSlots filters unknown and duplicate ids and caps at max`() {
         val resolved = resolveFocusBarSlots(
-            listOf("pen", "unknown", "pen", "undo", "redo", "hand", "select", "eraser", "image"),
+            listOf(
+                "pen", "unknown", "pen", "undo", "redo", "hand",
+                "select", "eraser", "image", "text", "pages", "layers", "line",
+            ),
         )
         assertEquals(FOCUS_BAR_MAX_SLOTS, resolved.size)
         assertEquals(
@@ -35,6 +38,10 @@ class FocusBarGeometryTest {
                 FocusBarSlotKind.HAND,
                 FocusBarSlotKind.SELECT,
                 FocusBarSlotKind.ERASER,
+                FocusBarSlotKind.IMAGE,
+                FocusBarSlotKind.TEXT,
+                FocusBarSlotKind.PAGES,
+                FocusBarSlotKind.LAYERS,
             ),
             resolved,
         )

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "focus-mode-10-slots-and-pen-double-tap"
+title = "Expand Focus bar to 10 slots with all standard toolbar tools and add double-tap link in Pen & Input"
+description = "Added Touch double-tap group with Focus mode link in PenInputSection/SettingsScreen; raised FOCUS_BAR_MAX_SLOTS to 10; added Pages, Layers, and all Secondary Toolbar tools to FocusBarSlotKind/FocusBarSlots/FocusFloatingBar/FocusModeSection; removed parenthetical hints and user-visible Liquid Glass references. Verified with FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and signed release APK."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-24
+completed = 2026-11-24
+tags = ["ui", "android"]
+design = "material: keeps floating surface and rim on Focus bar and SettingsActionShape OutlinedButton in PenInputSection; glyph: uses shared ToolGlyph and ChromeGlyph icons for all new Focus bar slots and SettingsGlyph.FOCUS_MODE on the link button; copy: English labels without parenthetical hints or internal Liquid Glass terminology; tests: FocusBarGeometryTest, SourceStructureTest, and ColorContractGuardTest pass."
+
+[[task]]
 id = "fix-focus-mode-toggle-spacing"
 title = "Add spacing between Focus mode subtitle and toggle in overflow menu"
 description = "Added a 12 dp Spacer between the text Column and switch track in SheetSwitchRow (app/src/main/java/com/mobixournal/ui/EditorOverflowViews.kt) so the Focus mode subtitle no longer touches the toggle. Verified with DocsGuardTest, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and signed release APK."

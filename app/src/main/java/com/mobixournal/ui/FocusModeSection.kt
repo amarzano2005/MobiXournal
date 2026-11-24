@@ -3,6 +3,7 @@ package com.mobixournal.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.render.GuideKind
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
@@ -57,8 +60,8 @@ fun FocusModeSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
 
     SettingsGroup("Floating bar") {
         SettingsNote(
-            "Liquid Glass floating bar shown during Focus mode. Drag it to the left or right " +
-                "edge to morph between horizontal and vertical. Tap a slot below to customize it.",
+            "Floating bar shown during Focus mode. Drag it to the left or right " +
+                "edge to switch between horizontal and vertical. Tap a slot below to customize it.",
         )
         Box(
             modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
@@ -168,7 +171,9 @@ internal fun FocusBarSlotPreviewStrip(
         modifier = Modifier.floatingRim(ModernTheme.panelCornerRadiusDp),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -206,6 +211,22 @@ private fun FocusPreviewSlotGlyph(kind: FocusBarSlotKind, tint: Color) {
         FocusBarSlotKind.TEXT -> Icon(EditorTool.TEXT.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         FocusBarSlotKind.IMAGE -> Icon(EditorTool.IMAGE.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         FocusBarSlotKind.VSPACE -> Icon(EditorTool.VERTICAL_SPACE.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.PAGES -> Icon(ChromeGlyph.DESCRIPTION.imageVector(), contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.LAYERS -> Icon(ChromeGlyph.LAYERS.imageVector(), contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.LINE -> Icon(EditorTool.LINE.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.RECTANGLE -> Icon(EditorTool.RECTANGLE.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.ELLIPSE -> Icon(EditorTool.ELLIPSE.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.TRIANGLE -> Icon(EditorTool.TRIANGLE.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.TRAPEZOID -> Icon(EditorTool.TRAPEZOID.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.POLYGON -> Icon(EditorTool.POLYGON.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.ARROW -> Icon(EditorTool.ARROW.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.AXIS -> Icon(EditorTool.COORDINATE_AXIS.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.GRAPH -> Icon(EditorTool.PLOT.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.TABLE -> Icon(EditorTool.TABLE.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.CIRCUIT -> Icon(EditorTool.RESISTOR.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.CIRCUIT_ACTIVE -> Icon(EditorTool.DIODE.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.LOGIC -> Icon(EditorTool.AND_GATE.icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        FocusBarSlotKind.GUIDES -> Icon(guideButtonIcon(GuideKind.NONE), contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
         FocusBarSlotKind.COLORS -> {
             val hairline = ModernTheme.hairlineBorder(chromeIsDark())
             Column(verticalArrangement = Arrangement.spacedBy(2.dp), horizontalAlignment = Alignment.CenterHorizontally) {

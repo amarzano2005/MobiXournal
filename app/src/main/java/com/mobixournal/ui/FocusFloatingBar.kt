@@ -499,6 +499,8 @@ private fun FocusGlassBarCapsule(
         onPick = { colorOwner, color -> pickFavoriteColor(pane.surface, ui, settings, onSettingsChange, colorOwner, color) },
         onAssign = { colorOwner, idx, color -> onSettingsChange(assignFavorite(settings, colorOwner, idx, color)) },
     )
+    val layerCallbacks = toolbarLayerCallbacks(pane.surface, pane)
+    val pageCallbacks = toolbarPagesCallbacks(pane, ui, settings, onSettingsChange, pane.surface)
     // Gentle stretch along the emerging axis during liquid morphing.
     val stretchX = 1f + (1f - jellyScale) * (if (vertical) -0.45f else 0.7f)
     val stretchY = 1f + (1f - jellyScale) * (if (vertical) 0.7f else -0.45f)
@@ -536,6 +538,8 @@ private fun FocusGlassBarCapsule(
                             onSettingsChange = onSettingsChange,
                             style = style,
                             favorites = favorites,
+                            layerCallbacks = layerCallbacks,
+                            pageCallbacks = pageCallbacks,
                         )
                     }
                 }

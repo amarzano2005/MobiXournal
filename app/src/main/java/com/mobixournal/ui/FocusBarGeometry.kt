@@ -8,7 +8,7 @@ import kotlin.math.roundToInt
  * can be verified directly on the JVM (`FocusBarGeometryTest`).
  */
 const val FOCUS_BAR_MIN_SLOTS = 3
-const val FOCUS_BAR_MAX_SLOTS = 6
+const val FOCUS_BAR_MAX_SLOTS = 10
 
 /** Tools and quick controls that can occupy a slot in the Focus mode floating bar. */
 enum class FocusBarSlotKind(
@@ -16,17 +16,33 @@ enum class FocusBarSlotKind(
     val label: String,
     val category: String,
 ) {
-    PEN("pen", "Pen (tap again for stroke)", "Default tools"),
-    HIGHLIGHTER("highlighter", "Highlighter (tap again for stroke)", "Default tools"),
+    PEN("pen", "Pen", "Default tools"),
+    HIGHLIGHTER("highlighter", "Highlighter", "Default tools"),
     COLORS("colors", "Quick colours", "Default tools"),
-    ERASER("eraser", "Eraser (whole / standard)", "Default tools"),
-    HAND("hand", "Hand (pan)", "Default tools"),
-    SELECT("select", "Selection (box / lasso)", "Default tools"),
+    ERASER("eraser", "Eraser", "Default tools"),
+    HAND("hand", "Hand", "Default tools"),
+    SELECT("select", "Selection", "Default tools"),
     UNDO("undo", "Undo", "Extra tools"),
     REDO("redo", "Redo", "Extra tools"),
     TEXT("text", "Text & LaTeX", "Extra tools"),
     IMAGE("image", "Insert image", "Extra tools"),
     VSPACE("vspace", "Vertical space", "Extra tools"),
+    PAGES("pages", "Pages", "Panels"),
+    LAYERS("layers", "Layers", "Panels"),
+    LINE("line", "Line", "Shapes & STEM"),
+    RECTANGLE("rectangle", "Rectangle", "Shapes & STEM"),
+    ELLIPSE("ellipse", "Circle / Ellipse", "Shapes & STEM"),
+    TRIANGLE("triangle", "Triangle", "Shapes & STEM"),
+    TRAPEZOID("trapezoid", "Trapezoid", "Shapes & STEM"),
+    POLYGON("polygons", "Polygons", "Shapes & STEM"),
+    ARROW("arrow", "Arrows", "Shapes & STEM"),
+    AXIS("axis", "Coordinate axis", "Shapes & STEM"),
+    GRAPH("graph", "Function graph", "Shapes & STEM"),
+    TABLE("table", "Table", "Shapes & STEM"),
+    CIRCUIT("circuit", "Passive circuits", "Shapes & STEM"),
+    CIRCUIT_ACTIVE("circuit_active", "Active circuits", "Shapes & STEM"),
+    LOGIC("logic", "Logic gates", "Shapes & STEM"),
+    GUIDES("guides", "Drawing guides", "Shapes & STEM"),
     ;
 
     companion object {

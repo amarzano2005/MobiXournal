@@ -8,8 +8,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -19,6 +24,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.SettingsGlyph
 import com.mobixournal.render.BarrelAction
 import com.mobixournal.render.QuickAction
 import com.mobixournal.render.StrokePrecision
@@ -32,7 +38,11 @@ import kotlin.math.max
  * and finger tap gestures.
  */
 @Composable
-fun PenInputSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
+fun PenInputSection(
+    settings: AppSettings,
+    onChange: (AppSettings) -> Unit,
+    onOpenFocusMode: () -> Unit = {},
+) {
     PressureGroup(settings, onChange)
     SettingsGroup("Ink") {
         OptionGroup(
@@ -46,6 +56,21 @@ fun PenInputSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     }
     PenSideButtonGroup(settings, onChange)
     TouchInputGroup(settings, onChange)
+    SettingsGroup("Touch double-tap") {
+        SettingsNote(
+            "Double-tap the canvas with a finger (any tool): left third for previous page, " +
+                "centre for Focus mode, right third for next page.",
+        )
+        OutlinedButton(
+            onClick = onOpenFocusMode,
+            shape = SettingsActionShape,
+            modifier = Modifier.settingsActionPill(top = 8.dp),
+        ) {
+            Icon(SettingsGlyph.FOCUS_MODE.imageVector(), contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Focus mode settings")
+        }
+    }
 }
 
 @Composable

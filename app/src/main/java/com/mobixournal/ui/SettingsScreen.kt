@@ -219,11 +219,11 @@ enum class SettingsSection(
             "scrollbar",
         SettingsGlyph.NAVIGATION.imageVector(),
     ),
-    /** Focus mode: customizable Liquid Glass floating bar tools and placement. */
+    /** Focus mode: customizable floating bar tools and placement. */
     FOCUS_MODE(
         "Focus mode",
         "Customize the Focus mode floating bar and its tools.",
-        "focus mode floating bar full page liquid glass tools dock vertical horizontal",
+        "focus mode floating bar full page tools dock vertical horizontal",
         SettingsGlyph.FOCUS_MODE.imageVector(),
     ),
     /** Appearance: which colour scheme the app's chrome is painted with. */
@@ -381,6 +381,7 @@ private fun TwoPaneSettings(
                 query = query,
                 settings = settings,
                 onChange = onChange,
+                onNavigate = onSelect,
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
         }
@@ -393,6 +394,7 @@ private fun TwoPaneDetailPane(
     query: String,
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
+    onNavigate: (SettingsDestination) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewport = rememberSettingsScrollViewport()
@@ -424,7 +426,7 @@ private fun TwoPaneDetailPane(
                     ) { dest ->
                         Column(Modifier.fillMaxWidth()) {
                             TabletSectionHeader(dest)
-                            DestinationBody(dest, settings, onChange)
+                            DestinationBody(dest, settings, onChange, onNavigate)
                         }
                     }
                 }
@@ -498,7 +500,7 @@ private fun StackedSettings(
                 ) { openDest ->
                     if (openDest != null) {
                         Column(Modifier.fillMaxWidth()) {
-                            DestinationBody(openDest, settings, onChange)
+                            DestinationBody(openDest, settings, onChange) { onDestination(it) }
                         }
                     } else {
                         Column(Modifier.fillMaxWidth()) {
@@ -525,9 +527,14 @@ private fun DestinationBody(
     destination: SettingsDestination,
     settings: AppSettings,
     onChange: (AppSettings) -> Unit,
+    onNavigate: (SettingsDestination) -> Unit = {},
 ) {
     when (destination) {
-        SettingsDestination.PEN_INPUT -> PenInputSection(settings, onChange)
+        SettingsDestination.PEN_INPUT -> PenInputSection(
+            settings = settings,
+            onChange = onChange,
+            onOpenFocusMode = { onNavigate(SettingsDestination.FOCUS_MODE) },
+        )
         SettingsDestination.CANVAS_TOOLS -> CanvasToolsSection(settings, onChange)
         SettingsDestination.PALETTE_RING -> PaletteRingSection(settings, onChange)
         SettingsDestination.WORKSPACE -> WorkspaceSection(settings, onChange)

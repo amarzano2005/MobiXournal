@@ -1285,7 +1285,7 @@ private fun redefineWidthSlot(
 }
 
 @Composable
-private fun toolbarLayerCallbacks(surface: DrawingSurfaceView?, pane: PaneState): ToolbarLayerCallbacks =
+internal fun toolbarLayerCallbacks(surface: DrawingSurfaceView?, pane: PaneState): ToolbarLayerCallbacks =
     ToolbarLayerCallbacks(
         layers = pane.layers,
         hasSelection = pane.hasSelection,
@@ -1300,7 +1300,7 @@ private fun toolbarLayerCallbacks(surface: DrawingSurfaceView?, pane: PaneState)
     )
 
 @Composable
-private fun toolbarPagesCallbacks(
+internal fun toolbarPagesCallbacks(
     pane: PaneState,
     ui: EditorUiState,
     settings: AppSettings,

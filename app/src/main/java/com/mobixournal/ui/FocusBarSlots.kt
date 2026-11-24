@@ -53,8 +53,29 @@ internal fun FocusBarSlotItem(
     onSettingsChange: (AppSettings) -> Unit,
     style: ToolbarStyleCallbacks,
     favorites: ToolbarFavoritesCallbacks,
+    layerCallbacks: ToolbarLayerCallbacks,
+    pageCallbacks: ToolbarPagesCallbacks,
 ) {
     val surface = pane.surface
+    val singleTool = kind.singleEditorTool()
+    if (singleTool != null) {
+        FocusSingleToolSlot(
+            tool = singleTool,
+            active = ui.tool == singleTool,
+            onClick = { surface?.activateTool(singleTool, ui, settings, onSettingsChange) },
+        )
+        return
+    }
+    if (kind.isToolGroupSlot()) {
+        FocusToolGroupSlot(
+            groupId = kind.id,
+            ui = ui,
+            surface = surface,
+            settings = settings,
+            onSettingsChange = onSettingsChange,
+        )
+        return
+    }
     when (kind) {
         FocusBarSlotKind.PEN -> FocusStrokeToolSlot(
             tool = EditorTool.PEN,
@@ -82,25 +103,6 @@ internal fun FocusBarSlotItem(
             style = style,
             favorites = favorites,
         )
-        FocusBarSlotKind.ERASER -> FocusToolGroupSlot(
-            groupId = "eraser",
-            ui = ui,
-            surface = surface,
-            settings = settings,
-            onSettingsChange = onSettingsChange,
-        )
-        FocusBarSlotKind.HAND -> FocusSingleToolSlot(
-            tool = EditorTool.HAND,
-            active = ui.tool == EditorTool.HAND,
-            onClick = { surface?.activateTool(EditorTool.HAND, ui, settings, onSettingsChange) },
-        )
-        FocusBarSlotKind.SELECT -> FocusToolGroupSlot(
-            groupId = "select",
-            ui = ui,
-            surface = surface,
-            settings = settings,
-            onSettingsChange = onSettingsChange,
-        )
         FocusBarSlotKind.UNDO -> FocusActionSlot(
             icon = ChromeGlyph.UNDO.imageVector(),
             label = "Undo",
@@ -113,24 +115,45 @@ internal fun FocusBarSlotItem(
             enabled = pane.canRedo,
             onClick = { surface?.redo() },
         )
-        FocusBarSlotKind.TEXT -> FocusToolGroupSlot(
-            groupId = "text",
-            ui = ui,
-            surface = surface,
-            settings = settings,
-            onSettingsChange = onSettingsChange,
+        FocusBarSlotKind.PAGES -> PagesPopupButton(pageCallbacks)
+        FocusBarSlotKind.LAYERS -> LayersPopupButton(layerCallbacks)
+        FocusBarSlotKind.GUIDES -> CompactGuidePopupButton(
+            kind = settings.guideKind,
+            onKind = {
+                onSettingsChange(settings.copy(guideKind = it, guidePose = null))
+                surface?.placeGuide(it)
+            },
         )
-        FocusBarSlotKind.IMAGE -> FocusSingleToolSlot(
-            tool = EditorTool.IMAGE,
-            active = ui.tool == EditorTool.IMAGE,
-            onClick = { surface?.activateTool(EditorTool.IMAGE, ui, settings, onSettingsChange) },
-        )
-        FocusBarSlotKind.VSPACE -> FocusSingleToolSlot(
-            tool = EditorTool.VERTICAL_SPACE,
-            active = ui.tool == EditorTool.VERTICAL_SPACE,
-            onClick = { surface?.activateTool(EditorTool.VERTICAL_SPACE, ui, settings, onSettingsChange) },
-        )
+        else -> Unit
     }
+}
+
+private fun FocusBarSlotKind.singleEditorTool(): EditorTool? = when (this) {
+    FocusBarSlotKind.HAND -> EditorTool.HAND
+    FocusBarSlotKind.IMAGE -> EditorTool.IMAGE
+    FocusBarSlotKind.VSPACE -> EditorTool.VERTICAL_SPACE
+    FocusBarSlotKind.LINE -> EditorTool.LINE
+    FocusBarSlotKind.RECTANGLE -> EditorTool.RECTANGLE
+    FocusBarSlotKind.ELLIPSE -> EditorTool.ELLIPSE
+    FocusBarSlotKind.TRIANGLE -> EditorTool.TRIANGLE
+    FocusBarSlotKind.TRAPEZOID -> EditorTool.TRAPEZOID
+    FocusBarSlotKind.POLYGON -> EditorTool.POLYGON
+    FocusBarSlotKind.AXIS -> EditorTool.COORDINATE_AXIS
+    FocusBarSlotKind.GRAPH -> EditorTool.PLOT
+    FocusBarSlotKind.TABLE -> EditorTool.TABLE
+    else -> null
+}
+
+private fun FocusBarSlotKind.isToolGroupSlot(): Boolean = when (this) {
+    FocusBarSlotKind.ERASER,
+    FocusBarSlotKind.SELECT,
+    FocusBarSlotKind.TEXT,
+    FocusBarSlotKind.ARROW,
+    FocusBarSlotKind.CIRCUIT,
+    FocusBarSlotKind.CIRCUIT_ACTIVE,
+    FocusBarSlotKind.LOGIC,
+    -> true
+    else -> false
 }
 
 /**
@@ -263,7 +286,7 @@ private fun FocusToolGroupSlot(
     settings: AppSettings,
     onSettingsChange: (AppSettings) -> Unit,
 ) {
-    val group = remember(groupId) { TOOL_GROUPS.first { it.id == groupId } }
+    val group = remember(groupId) { ALL_TOOL_GROUPS.first { it.id == groupId } }
     val selected = group.selected(settings.toolGroupSelections)
     val active = ui.tool in group.tools
     var open by remember { mutableStateOf(false) }
