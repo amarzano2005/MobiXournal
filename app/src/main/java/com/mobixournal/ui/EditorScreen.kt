@@ -611,6 +611,7 @@ private fun EditorBody(
     val latestOnPickImage = rememberUpdatedState(onPickImage)
     val latestTabCounts = rememberUpdatedState(tabCounts)
     val latestPaneEntry = rememberUpdatedState(paneEntry)
+    val latestSplitView = rememberUpdatedState(splitView)
     val paneAt: @Composable (Int, Modifier) -> Unit = { index, paneModifier ->
         EditorPaneView(
             index = index,
@@ -620,7 +621,9 @@ private fun EditorBody(
             onActivePane = latestOnActivePane.value,
             onSurfaceCreated = latestOnSurfaceCreated.value,
             onPickImage = latestOnPickImage.value,
-            emptyEntry = latestPaneEntry.value.takeIf { latestTabCounts.value.getOrNull(index) == 0 },
+            emptyEntry = latestPaneEntry.value.takeIf {
+                latestSplitView.value && latestTabCounts.value.getOrNull(index) == 0
+            },
             modifier = paneModifier,
         )
     }

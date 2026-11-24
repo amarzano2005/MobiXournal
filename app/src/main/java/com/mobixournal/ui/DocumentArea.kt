@@ -21,12 +21,12 @@ private const val ENTRY_OVERLAY_SCALE_DELTA = 0.025f
 
 /**
  * The document area: **the entry screen when nothing is open, the editor when something is**, and
- * a stutter-free 144 Hz transition between them.
+ * symmetric, stutter-free 144 Hz transitions between them.
  *
- * Unlike `SurfaceView`, the pure-Compose entry layer animates cleanly with `graphicsLayer`. When
- * transitioning from Home to Editor, we let `editor()` inflate its `DrawingSurfaceView` and post
- * its first frame underneath the opaque entry overlay (`withFrameNanos`) before starting
- * [chromeSlideSpring], so the spring clock never loses its opening frames to view inflation.
+ * Entrance (Home → Editor, `p: 1 → 0`) and exit (Editor → Home, `p: 0 → 1`) are exact mathematical
+ * duals: the editor stays steady underneath at `scale = 1f, alpha = 1f`, while the pure-Compose
+ * entry overlay animates along the same curve (`alpha = p`, `scale = 1 + 0.025 * (1 - p)`) on an
+ * offscreen GPU layer after waiting for view inflation (`withFrameNanos`).
  */
 @Composable
 internal fun DocumentArea(
@@ -45,24 +45,25 @@ internal fun DocumentArea(
             entryProgress.snapTo(if (empty) 1f else 0f)
             return@LaunchedEffect
         }
-        if (!empty) {
-            // Let EditorBody + DrawingSurfaceView mount and complete first surfaceChanged/paint
-            // while entry() is still opaque on top, then start the spring on a clean vsync.
-            withFrameNanos { }
-            withFrameNanos { }
-        }
+        // Let the arriving subtree finish inflating (EditorBody + SurfaceView on enter, or
+        // NotebookEntryScreen offscreen layer on exit) before starting the spring on a clean vsync.
+        withFrameNanos { }
+        if (!empty) withFrameNanos { }
         entryProgress.animateTo(
             targetValue = if (empty) 1f else 0f,
             animationSpec = chromeSlideSpring(),
         )
     }
 
+    val showEditor by remember {
+        derivedStateOf { !latestEmpty || entryProgress.value < 0.99f }
+    }
     val showEntry by remember {
         derivedStateOf { latestEmpty || entryProgress.value > 0.01f }
     }
 
     Box(modifier = modifier) {
-        if (!empty) {
+        if (showEditor) {
             editor()
         }
         if (showEntry) {
@@ -77,11 +78,7 @@ internal fun DocumentArea(
                             CompositingStrategy.Auto
                         }
                         alpha = p
-                        val s = if (latestEmpty) {
-                            1f - ENTRY_OVERLAY_SCALE_DELTA * (1f - p)
-                        } else {
-                            1f + ENTRY_OVERLAY_SCALE_DELTA * (1f - p)
-                        }
+                        val s = 1f + ENTRY_OVERLAY_SCALE_DELTA * (1f - p)
                         scaleX = s
                         scaleY = s
                     },

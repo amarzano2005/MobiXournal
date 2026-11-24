@@ -328,8 +328,12 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     DocumentSessions.shared.retain(panes.flatMap { pane -> pane.tabs.tabs.map { it.docKey } }.toSet())
     p.tabs.active?.takeIf { it.id != showing }?.let { show(it, p) }
     tabsTick.value++
-    p.persist()
-    prunePdfCache() // the closed tab's background PDF is now unreferenced
+    if (!splitView.value && p.tabs.isEmpty) {
+        window.decorView.postDelayed({ p.persist(); prunePdfCache() }, 380L)
+    } else {
+        p.persist()
+        prunePdfCache() // the closed tab's background PDF is now unreferenced
+    }
 }
 
 /** Open a fresh blank document in a new tab of [p] and switch to it. */
