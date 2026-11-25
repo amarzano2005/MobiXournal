@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "living-anchor-center-align"
+title = "Center anchored popup vertically with figure across expand/collapse"
+description = "Centered LivingInspectorAnchor vertically with selection center and re-centered on size changes while !userDragged; updated LivingInspectorAnchorTest and PlotInspectorAnchorTest."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "parity: LivingInspectorAnchor aligns cleanly beside Plot, Shape, and Circuit across expanded/compact states; tests: LivingInspectorAnchorTest, PlotInspectorAnchorTest, SourceStructureTest"
+
+[[task]]
 id = "plot-size-live-reliability"
 title = "Fix tiny plot tap placement and random missed live updates"
 description = "Raised LIVING_PLACEMENT_SLOP_PT to 24.0 in LivingPlacement.kt, switched PlotInspectorAnchor live updates to snapshotFlow, and added selection?.pageIndex fallback in DrawingSurfaceSelection.kt."
