@@ -258,6 +258,10 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
     // eraser tip and a barrel modifier all keep the gesture they were classified with.
     val placingPlot = intent == GestureIntent.PLACE && placeKind == PlaceKind.PLOT
     if ((intent == GestureIntent.DRAW || placingPlot) && beginPlacementPress(event, pointerIndex)) return
+    if (placingPlot && selection != null) {
+        gestures.clearSelection()
+        return
+    }
     session.penOwned = (kind == PointerKind.STYLUS || kind == PointerKind.ERASER_TIP) &&
         (intent == GestureIntent.DRAW || intent == GestureIntent.ERASE)
     when (intent) {

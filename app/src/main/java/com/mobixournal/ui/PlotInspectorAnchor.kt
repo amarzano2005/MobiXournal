@@ -18,6 +18,7 @@ import androidx.compose.material.icons.automirrored.outlined.ShowChart
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -142,6 +144,11 @@ internal fun rememberPlotInspectorState(plot: PlotElement, session: Int = 0): Pl
     }
 }
 
+private enum class PlotInspectorTab(val label: String) {
+    CURVES("Curves"),
+    OPTIONS("Options"),
+}
+
 @Composable
 fun PlotInspectorAnchor(
     pane: PaneState,
@@ -152,10 +159,48 @@ fun PlotInspectorAnchor(
 ) {
     val plot = ui.editingPlot ?: return
     val surface = pane.surface
-
+    val initialPlot = remember(ui.plotInspectorSession) { plot }
     val state = rememberPlotInspectorState(plot, ui.plotInspectorSession)
     val keyboard = remember(ui.plotInspectorSession) { LivingKeyboardController() }
     var keyboardHeight by remember { mutableIntStateOf(0) }
+
+    fun applyCurrent() {
+        val xMin = state.xMin ?: return
+        val xMax = state.xMax ?: return
+        if (!state.canApply) return
+        val updated = PlotElementFactory.applyPlotEdit(
+            original = plot,
+            editedCurves = state.activeCurves,
+            xMin = xMin,
+            xMax = xMax,
+            showCriticalPoints = state.showCriticalPoints,
+            includeDerivative = state.includeDerivative,
+            includeSummary = state.includeSummary,
+            infoSide = state.infoSide,
+            shadeIntegral = state.shade.value,
+        )
+        if (updated != plot) {
+            surface?.replacePlotElement(plot, updated)
+            ui.editingPlot = updated
+        }
+    }
+
+    // Live-update the plot on the sheet whenever a valid expression, range or option changes.
+    LaunchedEffect(
+        state.modeTab,
+        state.activeCurves,
+        state.xMinText,
+        state.xMaxText,
+        state.showCriticalPoints,
+        state.includeDerivative,
+        state.includeSummary,
+        state.infoSide,
+        state.shade.on,
+        state.shade.fromText,
+        state.shade.toText,
+    ) {
+        applyCurrent()
+    }
 
     // The inspector keeps its own offset inside a full-size layer so the docked in-app keyboard
     // can sit at the canvas' bottom edge while the inspector stays anchored above it.
@@ -171,24 +216,17 @@ fun PlotInspectorAnchor(
             ) { dragModifier ->
                 PlotInspectorPanel(
                     state = state,
+                    session = ui.plotInspectorSession,
                     dragModifier = dragModifier,
-                    onDismiss = onDismiss,
-                    onApply = {
-                        val xMin = state.xMin ?: return@PlotInspectorPanel
-                        val xMax = state.xMax ?: return@PlotInspectorPanel
-                        val updated = PlotElementFactory.applyPlotEdit(
-                            original = plot,
-                            editedCurves = state.activeCurves,
-                            xMin = xMin,
-                            xMax = xMax,
-                            showCriticalPoints = state.showCriticalPoints,
-                            includeDerivative = state.includeDerivative,
-                            includeSummary = state.includeSummary,
-                            infoSide = state.infoSide,
-                            shadeIntegral = state.shade.value,
-                        )
-                        surface?.replacePlotElement(plot, updated)
-                        ui.editingPlot = updated
+                    onCancel = {
+                        if (plot != initialPlot) {
+                            surface?.replacePlotElement(plot, initialPlot)
+                        }
+                        onDismiss()
+                    },
+                    onDone = {
+                        applyCurrent()
+                        onDismiss()
                     },
                 )
             }
@@ -206,34 +244,52 @@ fun PlotInspectorAnchor(
 }
 
 /**
- * The panel's own content: its draggable header, the body, and the two commands that close it.
- *
- * The body takes the height the header and the buttons leave; inside it the report-side options are
- * measured before the inputs, so the chips are never the row that gets squeezed — the inputs scroll
- * instead, and the panel never grows past the canvas it floats in.
+ * The panel's own content: its draggable header, Curves/Options tabs, and footer actions.
  */
 @Composable
 private fun PlotInspectorPanel(
     state: PlotInspectorState,
+    session: Int,
     dragModifier: Modifier,
-    onDismiss: () -> Unit,
-    onApply: () -> Unit,
+    onCancel: () -> Unit,
+    onDone: () -> Unit,
 ) {
+    val keyboard = LocalLivingKeyboard.current
+    var tab by remember(session) { mutableStateOf(PlotInspectorTab.CURVES) }
+
     Column(
         modifier = Modifier.padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         PlotInspectorHeader(
-            onDismiss = onDismiss,
+            onDismiss = onCancel,
             modifier = dragModifier,
         )
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            for (entry in PlotInspectorTab.entries) {
+                FilterChip(
+                    selected = tab == entry,
+                    onClick = {
+                        tab = entry
+                        keyboard?.close()
+                    },
+                    label = { Text(entry.label) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+
         PlotInspectorBody(
             state = state,
+            tab = tab,
             modifier = Modifier.weight(1f, fill = false),
         )
 
-        PlotInspectorActions(canApply = state.canApply, onDismiss = onDismiss, onApply = onApply)
+        PlotInspectorActions(canApply = state.canApply, onDismiss = onCancel, onApply = onDone)
     }
 }
 
@@ -272,44 +328,60 @@ private fun PlotInspectorHeader(
 }
 
 @Composable
-private fun PlotInspectorBody(state: PlotInspectorState, modifier: Modifier = Modifier) {
+private fun PlotInspectorBody(
+    state: PlotInspectorState,
+    tab: PlotInspectorTab,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            // A comfortable ceiling on a tall canvas; the weight above is what bounds it on a short
-            // one, so this is never the constraint that clips the chips.
             .heightIn(max = 420.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        DialogInputsColumn(
-            modifier = Modifier.weight(1f, fill = false),
-            modeTab = state.modeTab,
-            onModeTabChange = { state.modeTab = it },
-            curves = state.curves,
-            paramX = state.paramX,
-            paramY = state.paramY,
-            onParamXChange = { state.paramX = it },
-            onParamYChange = { state.paramY = it },
-            xMinText = state.xMinText,
-            onXMinChange = { state.xMinText = it },
-            xMaxText = state.xMaxText,
-            onXMaxChange = { state.xMaxText = it },
-            rangeOk = state.rangeOk,
-            shade = state.shade,
-        )
-
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-        OptionsRow(
-            showCriticalPoints = state.showCriticalPoints,
-            onShowCriticalPointsChange = { state.showCriticalPoints = it },
-            includeDerivative = state.includeDerivative,
-            onIncludeDerivativeChange = { state.includeDerivative = it },
-            includeSummary = state.includeSummary,
-            onIncludeSummaryChange = { state.includeSummary = it },
-            infoSide = state.infoSide,
-            onInfoSideChange = { state.infoSide = it },
-        )
+        when (tab) {
+            PlotInspectorTab.CURVES -> {
+                val xMin = state.xMin ?: -6.28
+                val xMax = state.xMax?.takeIf { it > xMin } ?: (xMin + 12.56)
+                FunctionPlotPreviewBox(
+                    curves = state.activeCurves,
+                    xMin = xMin,
+                    xMax = xMax,
+                    showCriticalPoints = state.showCriticalPoints,
+                    includeDerivative = state.includeDerivative,
+                    previewHeight = 88.dp,
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                DialogInputsColumn(
+                    modifier = Modifier.weight(1f, fill = false),
+                    modeTab = state.modeTab,
+                    onModeTabChange = { state.modeTab = it },
+                    curves = state.curves,
+                    paramX = state.paramX,
+                    paramY = state.paramY,
+                    onParamXChange = { state.paramX = it },
+                    onParamYChange = { state.paramY = it },
+                    xMinText = state.xMinText,
+                    onXMinChange = { state.xMinText = it },
+                    xMaxText = state.xMaxText,
+                    onXMaxChange = { state.xMaxText = it },
+                    rangeOk = state.rangeOk,
+                    shade = state.shade,
+                )
+            }
+            PlotInspectorTab.OPTIONS -> {
+                OptionsRow(
+                    showCriticalPoints = state.showCriticalPoints,
+                    onShowCriticalPointsChange = { state.showCriticalPoints = it },
+                    includeDerivative = state.includeDerivative,
+                    onIncludeDerivativeChange = { state.includeDerivative = it },
+                    includeSummary = state.includeSummary,
+                    onIncludeSummaryChange = { state.includeSummary = it },
+                    infoSide = state.infoSide,
+                    onInfoSideChange = { state.infoSide = it },
+                )
+            }
+        }
     }
 }
 
@@ -325,13 +397,13 @@ private fun PlotInspectorActions(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TextButton(onClick = onDismiss) {
-            Text("Close")
+            Text("Cancel")
         }
         Button(
             enabled = canApply,
             onClick = onApply,
         ) {
-            Text("Apply")
+            Text("Done")
         }
     }
 }

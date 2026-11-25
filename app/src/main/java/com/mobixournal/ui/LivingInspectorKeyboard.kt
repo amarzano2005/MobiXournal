@@ -1,7 +1,10 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,9 +27,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -127,6 +132,7 @@ internal fun PlotInspectorAwareField(
             value = if (active) keyboard.field.text else value,
             active = active,
             caretAt = if (active) keyboard.field.selection.min else null,
+            maxLines = if (kind == LivingKeyboardKind.FORMULA) 3 else 1,
             isError = isError,
             onClick = {
                 keyboard.open(
@@ -155,6 +161,7 @@ internal fun PlotInspectorAwareField(
  * Non-focusable tappable display field for anchored inspectors: shows [label], [value] (with a
  * live caret while active), optional [suffix], and opens the docked in-app keyboard on tap.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun LivingDisplayField(
     label: String,
@@ -164,9 +171,14 @@ internal fun LivingDisplayField(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     suffix: String? = null,
+    maxLines: Int = 1,
     isError: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val bringIntoView = remember { BringIntoViewRequester() }
+    LaunchedEffect(active, value) {
+        if (active) bringIntoView.bringIntoView()
+    }
     val borderColor = when {
         isError -> scheme.error
         active -> scheme.primary
@@ -183,6 +195,7 @@ internal fun LivingDisplayField(
         color = containerColor,
         border = BorderStroke(if (active || isError) 1.5.dp else 1.dp, borderColor),
         modifier = modifier
+            .bringIntoViewRequester(bringIntoView)
             .semantics { role = Role.Button }
             .clickable(onClick = onClick),
     ) {
@@ -212,8 +225,8 @@ internal fun LivingDisplayField(
                     text = shown.ifEmpty { "0" },
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (value.isEmpty() && !active) scheme.onSurfaceVariant else scheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = maxLines,
+                    overflow = if (maxLines == 1) TextOverflow.Ellipsis else TextOverflow.Clip,
                     modifier = Modifier.weight(1f),
                 )
                 if (suffix != null) {

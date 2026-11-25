@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.PlotInfoSide
@@ -182,12 +183,13 @@ internal fun OptionsRow(
  * curves and refuses the rest, while the compiler samples a parametric pair as the loop it is.
  */
 @Composable
-private fun FunctionPlotPreviewBox(
+internal fun FunctionPlotPreviewBox(
     curves: List<PlotCurve>,
     xMin: Double,
     xMax: Double,
     showCriticalPoints: Boolean,
     includeDerivative: Boolean,
+    previewHeight: Dp = 190.dp,
 ) {
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     val background = MaterialTheme.colorScheme.surface.toArgb()
@@ -213,7 +215,7 @@ private fun FunctionPlotPreviewBox(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .height(190.dp),
+            .height(previewHeight),
         color = Color.Transparent,
     ) {
         Box(modifier = Modifier.padding(8.dp)) {

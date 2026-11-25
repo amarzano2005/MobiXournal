@@ -288,18 +288,20 @@ private fun ShapeGeometryTab(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ShapeNumberInput(
+                fieldId = "edge_$selectedIndex",
                 label = "Edge $edgeName",
                 suffix = "pt",
                 value = sidePt,
                 syncKey = editVersion * 31 + selectedIndex,
-                isEditing = activeField == "side_$selectedIndex",
-                onActivate = { onFocusField("side_$selectedIndex") },
+                isEditing = activeField == "edge_$selectedIndex",
+                onActivate = { onFocusField("edge_$selectedIndex") },
                 onCommit = { length ->
                     if (length > 0.5) onUpdate(ParametricShapes.setSideLength(shape, selectedIndex, length))
                 },
                 modifier = Modifier.weight(1f),
             )
             ShapeNumberInput(
+                fieldId = "angle_$selectedIndex",
                 label = "Angle $angleName",
                 suffix = "°",
                 value = angleDeg,
@@ -430,12 +432,13 @@ private fun ShapeStyleTab(
     onUpdate: (ParametricShapeElement) -> Unit,
 ) {
     ShapeNumberInput(
+        fieldId = "stroke_width",
         label = "Outline width",
         suffix = "pt",
         value = shape.strokeWidth,
         syncKey = editVersion,
-        isEditing = activeField == "width",
-        onActivate = { onFocusField("width") },
+        isEditing = activeField == "stroke_width",
+        onActivate = { onFocusField("stroke_width") },
         onCommit = { w ->
             if (w in 0.5..30.0) onUpdate(shape.copy(strokeWidth = w))
         },
@@ -494,6 +497,7 @@ private fun ShapeColorStrip(
 
 @Composable
 private fun ShapeNumberInput(
+    fieldId: String,
     label: String,
     suffix: String,
     value: Double,
@@ -504,7 +508,6 @@ private fun ShapeNumberInput(
     modifier: Modifier = Modifier,
 ) {
     val keyboard = LocalLivingKeyboard.current
-    val fieldId = "${label}_$syncKey"
     val active = keyboard?.activeFieldId == fieldId
     val formatted = formatMeasure(value)
 
@@ -522,7 +525,9 @@ private fun ShapeNumberInput(
                 initialText = formatted,
                 allowNegative = false,
             ) { typed ->
-                typed.toDoubleOrNull()?.let(onCommit)
+                if (typed.isNotEmpty() && !typed.endsWith(".")) {
+                    typed.toDoubleOrNull()?.let(onCommit)
+                }
             }
         },
         modifier = modifier,

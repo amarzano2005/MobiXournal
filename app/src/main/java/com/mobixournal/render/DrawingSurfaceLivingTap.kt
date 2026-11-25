@@ -24,13 +24,18 @@ import android.view.MotionEvent
 internal fun DrawingSurfaceView.tryLivingDoubleTap(event: MotionEvent): Boolean {
     val inSelection = selectMode || lassoMode
     val toolKind = shapeKind
-    if (!inSelection && toolKind == null) return false
+    val isPlotTool = placeKind == PlaceKind.PLOT
+    if (!inSelection && toolKind == null && !isPlotTool) return false
     val box = layout.pageAt(event.x + scrollX, event.y + scrollY) ?: return false
     val page = pageAt(box.index) ?: return false
     val hit = livingEditHit(page, box.toPtX(event.x, scrollX), box.toPtY(event.y, scrollY)) ?: return false
-    if (!inSelection && toolKind != null) {
-        val expected = livingFamilyOf(toolKind) ?: LivingEditFamily.SHAPE
-        if (hit.target.family != expected) return false
+    if (!inSelection) {
+        val expected = when {
+            isPlotTool -> LivingEditFamily.PLOT
+            toolKind != null -> livingFamilyOf(toolKind) ?: LivingEditFamily.SHAPE
+            else -> null
+        }
+        if (expected != null && hit.target.family != expected) return false
     }
     // Where the first tap landed, so the pair is about one element on one page.
     val key = box.index to hit.ref
