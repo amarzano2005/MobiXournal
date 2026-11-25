@@ -160,7 +160,7 @@ The foot reaches the lane's bottom edge, in the lane's own 6 dp of air rather th
 system strip: the app draws edge to edge with transparent bars, so nothing opaque sits under the
 commands, and its three buttons are 48 dp — a 36 dp target is a target a thumb misses. The typed range is the tablet's own *Manage pages…* card (`PageRangeDialog`, opened by the lane's gear), which
 reads the same `PageRanges` as the window's panel, so a number the tablet refuses is a number the
-window's commands cannot act on either. The Android rows now reserve a 40 dp number column, a centred paper preview and 40 dp selection/drag targets. `DocumentNavigationLayout` sets a 104 dp row and fits each preview within 132 � 88 dp without changing its aspect ratio. `PageListPreview` renders on a worker; its raster never blocks list composition. `NavigationPanelTest` captures portrait and landscape pages in tablet/phone layouts and both themes.
+window's commands cannot act on either. The Android rows now reserve a 40 dp number column, a centred paper preview and 40 dp selection/drag targets. `DocumentNavigationLayout` sets a 104 dp row and fits each preview within 132 × 88 dp without changing its aspect ratio. `PageListPreview` renders on a worker; its raster never blocks list composition. `NavigationPanelTest` captures portrait and landscape pages in tablet/phone layouts and both themes.
 
 **Add/remove page** edit the page list through the pure, tested `PageOps` (`mobix-core`, the one the
 window's Pages menu also calls, so neither shell can invent its own rules for a new sheet; a new page is born at the

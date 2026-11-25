@@ -153,7 +153,7 @@ previewed while it is drawn and committed on lift as **one edit** through the ta
   rasterised with PDFBox (about 144 dpi) under the ink; a `.mobix`'s bundled bytes win over the original.
 - **Shows the strips where the Settings say**: one **48 dp band** beside the page or a **44 dp band**
   across the top, its slots 36 dp on a 4 dp corner — **Left**, **Right** or **Top** (`stripPlacement`),
-  re-laid live. Both **take a lane** (2026-10-28) and both are one tone (phase 3A): the band is the
+  re-laid live. Both **take a lane** and both share one tone: the band is the
   header's own material, the canvas is handed what is left, and no bar lies on the sheet.
   `Ctrl+,` opens the panel that sets it — [`desktop-settings.md`](desktop-settings.md)
   owns what each section answers; the header has no chooser, because moving the strips is a setting.

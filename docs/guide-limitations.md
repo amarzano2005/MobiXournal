@@ -37,12 +37,12 @@ A capability that works everywhere is not listed: this page is the exceptions, n
 | Stylus tilt and azimuth recorded | **Supported** | **Supported** | Every sample keeps both. The window's Compose pointer has no such axis, so the pen's own tablet stream supplies them. | [stylus.md](stylus.md) |
 | Gaomon wheel in Windows Radial mode | **Not supported** | **Experimental** | Zoom and fit are wired to Windows controller events; the window clears Windows' built-in tools (**Volume**, **Scroll**, **Zoom**, **Undo**) via `SetDefaultMenuItems` and selects **MobiXournal**, with native ABI and window configuration tests in `TabletDialAbiTest`. | [desktop-tablet.md](desktop-tablet.md) |
 | Tilt changing stroke width | **Not supported** | **Not supported** | Width follows the Xournal++ pressure filter, so tilting the pen changes nothing on the page. | [stylus.md](stylus.md) |
-| MSI signed by a known publisher | — | **Not supported** | No certificate is configured for the build, so the installer is left unsigned rather than given a false identity — checked against the published `1.1.0` file on 2026-11-09. | [tools.md](tools.md) |
+| MSI signed by a known publisher | — | **Not supported** | No certificate is configured for the build, so the installer is left unsigned rather than given a false identity — verified on the published desktop MSI asset. | [tools.md](tools.md) |
 
 ## The check the matrix cannot run
 
 The signing row is about a file you download rather than about code, and it has been checked: the
-`1.1.0` installer published with the desktop release carries **no signature at all**, so Windows reports
+`.msi` installer published with the desktop release carries **no signature at all**, so Windows reports
 an unknown publisher and SmartScreen may ask before it runs. To confirm it on any copy, right-click
 the `.msi`, choose *Properties* and open *Digital Signatures*, or run `Get-AuthenticodeSignature` in
 PowerShell. A signed installer is a build with a certificate configured rather than a different

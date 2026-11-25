@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "docs-neutral-design-system-and-guards"
+title = "Rewrite ui-modernization.md as neutral design system spec and add doc guards"
+description = "Rewrote docs/ui-modernization.md into an objective design-system specification (removing subjective adjectives, migration manifesto framing, and the broken text fence around Mobile/Tablet bullets while preserving DesignTokens JSON and all anchors), fixed a non-UTF-8 0xd7 byte in docs/pages-and-paper.md, generalized the stale 1.1.0 MSI reference in docs/guide-limitations.md, and removed dated phase tags in docs/desktop-ui-layout.md and docs/desktop-workstation.md. Added noTextCodeFenceContainsMarkdownProse and noSpokeUsesManifestoAdjectives guards in DocsGuardTest.kt. Verified with DocsGuardTest (66/67 pass, only pre-existing README.md 163/160 budget), DocClaimsTest, ModernThemeTest, ColorContractGuardTest, SourceStructureTest, DesktopThemeTest, :desktop:createDistributable, and check-doc-sync.py."
+status = "finished"
+level = "task"
+category = "docs"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "none: documentation and DocsGuardTest-only change with no UI or runtime surface."
+
+[[task]]
 id = "double-tap-living-figure-in-figure-tool"
 title = "Open living editor on double-tap while figure tool is active"
 description = "Updated DrawingSurfaceLivingTap.kt on Android so tryLivingDoubleTap opens the matching living editor when shapeKind != null and hit.target.family matches the active tool family, and updated SelectionGesture.kt (placementPress) on Desktop so the first click records TapTracker.isSecond and the second click opens onEditLiving without requiring a third click. Updated docs/mobix-living-entities.md; verified with SourceStructureTest, LivingEdit/CanvasTaps tests, DesktopSelectionTest, :desktop:createDistributable, check-doc-sync.py, and signed release APK via scripts/release-apk.sh."

@@ -84,7 +84,7 @@ keep theirs, and Save As still switches.
 
 **Desktop decisions (2026-10-21, updated 2026-11-19):**
 - **The chrome uses the app's own flat opaque tones on a `#000000` true-black desk — not Mica.** Windows 11 Mica is excluded so wallpaper tint never drifts from the tablet; since 2026-11-19 (superseding 2026-10-25), desktop chrome uses opaque tones (`DESKTOP_BAND_DARK_RGB` `#141417` bands, `DESKTOP_SURFACE_DARK_RGB` panels/popups, `DESKTOP_CONTROL_DARK_RGB` controls) with no shadow and one hairline while Android retains frosted glass.
-- **Tool placements ship as docked bands** (lane 2026-10-28, flat band phase 3A): the 48 dp vertical rail (default, Left/Right) or 44 dp horizontal ribbon under the header are drawn beside the sheet, never overlapping it and never as a capsule in a lane; `stripPlacement` in settings holds the choice.
+- **Tool placements ship as docked bands**: the 48 dp vertical rail (default, Left/Right) or 44 dp horizontal ribbon under the header are drawn beside the sheet, never overlapping it and never as a capsule in a lane; `stripPlacement` in settings holds the choice.
 
 **The shell as built (2026-10-22).** `desktop/` has the header, tab strip, sidebar, workspace, status bar
 and both tool strips ([`desktop-workstation.md`](desktop-workstation.md) owns its inventory); from **this**

@@ -819,6 +819,57 @@ class DocsGuardTest {
     }
 
     /**
+     * Plain-text diagram fences (` ```text `) must not trap Markdown prose, bold runs, or `.md` links,
+     * which render literally instead of formatting.
+     */
+    @Test
+    fun noTextCodeFenceContainsMarkdownProse() {
+        val linkRe = Regex("""\[[^\]]+]\([^)]+\.md[^)]*\)""")
+        val hits = mutableListOf<String>()
+        for (file in spokes()) {
+            var inTextFence = false
+            file.readLines().forEachIndexed { idx, line ->
+                val trimmed = line.trimStart()
+                if (trimmed.startsWith("```text")) {
+                    inTextFence = true
+                } else if (trimmed.startsWith("```")) {
+                    inTextFence = false
+                } else if (inTextFence && (linkRe.containsMatchIn(line) || "**" in line)) {
+                    hits += "${file.name}:${idx + 1}"
+                }
+            }
+        }
+        assertTrue(
+            "Markdown prose/links found inside ```text code fences:\n  " + hits.joinToString("\n  "),
+            hits.isEmpty(),
+        )
+    }
+
+    /**
+     * Architecture spokes use objective, verifiable specifications rather than subjective design-manifesto
+     * adjectives or transition slogans.
+     */
+    @Test
+    fun noSpokeUsesManifestoAdjectives() {
+        val banned = Regex("""\b(sleek|luminescent|vibrant|chunky|bulky)\b|moving beyond heavy""", RegexOption.IGNORE_CASE)
+        val hits = mutableListOf<String>()
+        for (file in spokes()) {
+            var fenced = false
+            file.readLines().forEachIndexed { idx, line ->
+                if (line.trimStart().startsWith("```")) fenced = !fenced
+                if (!fenced) {
+                    val m = banned.find(line)
+                    if (m != null) hits += "${file.name}:${idx + 1} ('${m.value}')"
+                }
+            }
+        }
+        assertTrue(
+            "Subjective manifesto wording found in docs/ spokes:\n  " + hits.joinToString("\n  "),
+            hits.isEmpty(),
+        )
+    }
+
+    /**
      * `README.md` must stay scannable and readable for a human (`AGENTS.md`).
      *
      * Previously, updates bypassed [noFrontDoorParagraphIsAWallOfText] by cramming 1 500–2 200 characters
