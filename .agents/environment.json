@@ -1,0 +1,3 @@
+{
+  "install": "git config core.hooksPath .githooks && bash scripts/host-build.sh --list && bash scripts/todo.sh validate"
+}
