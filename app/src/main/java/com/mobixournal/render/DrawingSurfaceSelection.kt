@@ -637,10 +637,22 @@ internal fun DrawingSurfaceView.reportTextSelectionRect() {
 }
 
 /** Whether corner resizing on the active selection locks aspect ratio (`sx == sy`). */
-fun DrawingSurfaceView.isSelectionAspectLocked(): Boolean = gestures.aspectLocked
+fun DrawingSurfaceView.isSelectionAspectLocked(): Boolean =
+    singleSelectedShape()?.aspectLocked ?: gestures.aspectLocked
 
-/** Toggle proportional corner resizing (`sx == sy`) and repaint selection handles. */
+/** Toggle proportional corner resizing (`sx == sy`), persisting on a single selected figure, and repaint. */
 fun DrawingSurfaceView.setSelectionAspectLocked(locked: Boolean) {
+    val shape = singleSelectedShape()
+    if (shape != null) {
+        if (shape.aspectLocked == locked && gestures.aspectLocked == locked) return
+        gestures.aspectLocked = locked
+        if (shape.aspectLocked != locked) {
+            replaceShapeElement(shape, shape.copy(aspectLocked = locked))
+        } else {
+            invalidate()
+        }
+        return
+    }
     if (gestures.aspectLocked == locked) return
     gestures.aspectLocked = locked
     invalidate()

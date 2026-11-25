@@ -117,16 +117,8 @@ data class AppSettings(
     /** The format a **new** document is written in ([NewDocumentFormat]), asked once at first launch and
      * changeable under Settings → App & data; `.mobix` is the default — what the app authors has no home in `.xopp`. */
     val newDocumentFormat: NewDocumentFormat = NewDocumentFormat.MOBIX,
-    /**
-     * Whether a document is written **by itself** once the strokes stop, without asking.
-     *
-     * Off at first launch: a save is the reader's decision until they say otherwise. It only ever writes a
-     * document that already has a file — a document with no name of its own still waits for Save, because
-     * the app may not choose where someone's notebook lives (`docs/data-path.md`).
-     */
     val autoSave: Boolean = false,
-    /** When false, fingers only pan/zoom — never draw (palm-safe for stylus users); off at first launch, so a
-     * hand resting on the glass never inks a page written on with a stylus. */
+    /** When false, fingers only pan/zoom — never draw (palm-safe for stylus users). */
     val fingerDraws: Boolean = false,
     /** What the stylus primary barrel-button does while held. */
     val barrelAction: BarrelAction = BarrelAction.ERASE,
@@ -157,6 +149,8 @@ data class AppSettings(
      * switches turn each other off, so one stroke is never recognised twice (the window's rule too).
      */
     val recognizeOnHold: Boolean = false,
+    /** Whether newly inserted figures start with proportion lock enabled (closed padlock). */
+    val defaultFigureAspectLock: Boolean = true,
     /** Pull shape-tool endpoints onto the page background's ruling (grid/lined sheets only). */
     val snapToGrid: Boolean = false,
     /** Pull a selection's rotate handle onto 15-degree increments. */
@@ -568,6 +562,7 @@ class SettingsStore(context: Context) {
             // A stored pair that says both is read as the lift one: the two triggers cannot be on together.
             recognizeOnHold = prefs.getBoolean(KEY_RECOGNIZE_ON_HOLD, d.recognizeOnHold) &&
                 !prefs.getBoolean(KEY_RECOGNIZE_SHAPES, d.recognizeShapes),
+            defaultFigureAspectLock = prefs.getBoolean(KEY_DEFAULT_FIGURE_ASPECT_LOCK, d.defaultFigureAspectLock),
             snapToGrid = prefs.getBoolean(KEY_SNAP_GRID, d.snapToGrid),
             snapRotation = prefs.getBoolean(KEY_SNAP_ROTATION, d.snapRotation),
             guideKind = enumOr(prefs.getString(KEY_GUIDE_KIND, null), d.guideKind),
@@ -720,6 +715,7 @@ class SettingsStore(context: Context) {
             .putString(KEY_STROKE_PRECISION, s.strokePrecision.name)
             .putBoolean(KEY_RECOGNIZE_SHAPES, s.recognizeShapes)
             .putBoolean(KEY_RECOGNIZE_ON_HOLD, s.recognizeOnHold)
+            .putBoolean(KEY_DEFAULT_FIGURE_ASPECT_LOCK, s.defaultFigureAspectLock)
             .putBoolean(KEY_SNAP_GRID, s.snapToGrid)
             .putBoolean(KEY_SNAP_ROTATION, s.snapRotation)
             .putString(KEY_GUIDE_KIND, s.guideKind.name)
@@ -835,6 +831,7 @@ class SettingsStore(context: Context) {
         const val KEY_MINIMUM_PRESSURE = "minimum_pressure"
         const val KEY_STROKE_PRECISION = "stroke_precision"
         const val KEY_RECOGNIZE_SHAPES = "recognize_shapes"
+        const val KEY_DEFAULT_FIGURE_ASPECT_LOCK = "default_figure_aspect_lock"
         const val KEY_RECOGNIZE_ON_HOLD = "recognize_on_hold"
         const val KEY_SNAP_GRID = "snap_to_grid"
         const val KEY_SNAP_ROTATION = "snap_rotation"

@@ -34,6 +34,8 @@ data class FigureShape(
     val trapezoidAngleB: Double = 60.0,
     /** The sides a [com.mobixournal.render.ShapeKind.POLYGON] drag draws, held to the builder's range. */
     val polygonSides: Int = ShapeBuilder.DEFAULT_POLYGON_SIDES,
+    /** Whether newly inserted figures start with proportion lock enabled. */
+    val defaultAspectLock: Boolean = true,
 ) {
 
     /** This shape with [sides] as the polygon's count, clamped to the builder's own range. */

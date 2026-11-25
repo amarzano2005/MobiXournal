@@ -103,6 +103,7 @@ object ParametricShapes {
         strokeColor: Int,
         strokeWidth: Double,
         lineStyle: LineStyle = LineStyle.PLAIN,
+        aspectLocked: Boolean = true,
     ): ParametricShapeElement? {
         if (!figure.isClosedPolygon) return null
         val vertices = verticesOf(figure)
@@ -114,6 +115,7 @@ object ParametricShapes {
             strokeWidth = strokeWidth,
             id = ElementId.mint(ElementId.SHAPE),
             lineStyle = lineStyle,
+            aspectLocked = aspectLocked,
         )
     }
 
@@ -127,6 +129,7 @@ object ParametricShapes {
         strokeColor: Int,
         strokeWidth: Double,
         lineStyle: LineStyle = LineStyle.PLAIN,
+        aspectLocked: Boolean = true,
     ): ParametricShapeElement? {
         val key = shapeNameForTool(kind) ?: return null
         val vertices = verticesOfPoints(points)
@@ -139,6 +142,7 @@ object ParametricShapes {
             extraAttrs = mapOf(FigurePins.SHAPE_ATTR to kind.name),
             id = ElementId.mint(ElementId.SHAPE),
             lineStyle = lineStyle,
+            aspectLocked = aspectLocked,
         )
     }
 

@@ -48,6 +48,8 @@ internal class PagePressTargets(
     val figures: FigureShape = FigureShape(),
     /** When freehand strokes snap to geometric primitives (`figure.recognizeShapes`/`recognizeOnHold`). */
     val recognition: ShapeRecognition = ShapeRecognition.OFF,
+    /** Whether newly inserted figures start with proportion lock enabled. */
+    val defaultFigureAspectLock: Boolean = true,
     /**
      * The drag in flight that `Esc` would cancel, or null once it is over. The shell holds the other end
      * (`DesktopShellState.liveDrag`): a shape is drawn from a drag, and a drag with no way back is a

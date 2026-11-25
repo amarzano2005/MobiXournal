@@ -64,6 +64,16 @@ fun FiguresSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         )
     }
     SettingsGroup("Default size") { DefaultFigureSize(settings, onChange) }
+    SettingsGroup("Proportions") {
+        OptionGroup(
+            title = "Default lock",
+            subtitle = "Initial proportion lock state for newly inserted figures.",
+            options = listOf(true, false),
+            selected = settings.defaultFigureAspectLock,
+            label = { if (it) "Locked (closed)" else "Unlocked (open)" },
+            onSelect = { onChange(settings.copy(defaultFigureAspectLock = it)) },
+        )
+    }
     SettingsGroup("Triangle") { TriangleGeometry(settings, onChange) }
     SettingsGroup("Trapezoid") { TrapezoidGeometry(settings, onChange) }
     SettingsGroup("Table") { TableDefaults(settings, onChange) }

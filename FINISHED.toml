@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "per-figure-aspect-lock-and-setting"
+title = "Persist aspect lock per figure and add default lock setting"
+description = "Added aspectLocked: Boolean = true to ParametricShapeElement and MobixShapeCodec, wired defaultFigureAspectLock into AppSettings/AppSettingsBackup/FiguresSection (Android) and DesktopSettings/FigureChoices/FiguresSettings/FigureShape (Desktop), synced SelectionGestureController/DrawingSurfaceSelection/SelectionActionAnchor per selected figure, and added codec round-trip test in MobixLivingCodecTest. Verified with MobixLivingCodecTest, SelectionResizeMathTest, SettingsBackupGuardTest, SettingsCopyParityTest, SettingsWriteGuardTest, SourceStructureTest, SelectionResizeTest, DesktopShapeRecognitionTest, ChromeGlyphsTest, :desktop:createDistributable, and signed release APK."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "parity: both Android FiguresSection and Desktop FiguresSettings expose the same Default lock selector (SettingsCopyParityTest, SettingsWriteGuardTest); tests: MobixLivingCodecTest, SettingsBackupGuardTest, SourceStructureTest, and release APK verified"
+
+[[task]]
 id = "aspect-lock-glyph-and-default"
 title = "Redesign ASPECT_LOCK glyph and enable aspect lock by default"
 description = "Redesigned ChromeGlyph.ASPECT_LOCK and ASPECT_UNLOCK in mobix-core/design/ChromeGlyphs.kt (outlined 13x17.5 padlock with spaced 5.5u L-brackets), enabled aspectLocked=true by default in SelectionGestureController, SelectionActionAnchor, and EditorActionBars, and updated ShapeVertexInputTest to unlock before vertex deformation. Verified with ChromeGlyphsTest, ChromeGlyphPathsTest, SelectionResizeMathTest, SelectionResizeTest, SourceStructureTest, :desktop:createDistributable, and signed release APK."

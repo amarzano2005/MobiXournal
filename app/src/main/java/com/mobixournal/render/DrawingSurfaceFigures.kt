@@ -78,6 +78,7 @@ internal fun DrawingSurfaceView.commitRecognisedFigure(
         strokeColor = strokeColor(),
         strokeWidth = raw.map { it.width }.average(),
         lineStyle = currentLineStyle,
+        aspectLocked = gestures.defaultAspectLocked,
     ) ?: return false
     commitLivingShape(shape, select = false)
     return true
@@ -99,6 +100,7 @@ internal fun DrawingSurfaceView.commitShapeToolFigure(
         strokeColor = strokeColor(),
         strokeWidth = shapeDraft.widthPt,
         lineStyle = currentLineStyle,
+        aspectLocked = gestures.defaultAspectLocked,
     ) ?: return false
     commitLivingShape(shape, select = true)
     return true

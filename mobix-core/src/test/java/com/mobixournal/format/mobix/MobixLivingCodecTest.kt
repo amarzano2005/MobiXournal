@@ -310,6 +310,18 @@ class MobixLivingCodecTest {
     }
 
     @Test
+    fun aShapeRoundTripsAspectLockedAndDefaultsToTrue() {
+        val unlocked = shape().copy(aspectLocked = false)
+        val backUnlocked = roundTrip(unlocked) as ParametricShapeElement
+        assertEquals(false, backUnlocked.aspectLocked)
+
+        val legacyJson = """{"type":"parametricShape","id":"shp_old","shape":"RECTANGLE",
+            "vertices":[{"x":0,"y":0},{"x":10,"y":0},{"x":10,"y":10},{"x":0,"y":10}]}"""
+        val backLegacy = decode(legacyJson) as ParametricShapeElement
+        assertEquals(true, backLegacy.aspectLocked)
+    }
+
+    @Test
     fun aCircuitKeepsItsPinsRelativeToItsPositionAndNamesTheNetTheyReach() {
         // The pins are stated in the component's own frame and before its rotation, which is what lets a
         // component turn without its wires coming adrift; a floating pin says so with an absent net.

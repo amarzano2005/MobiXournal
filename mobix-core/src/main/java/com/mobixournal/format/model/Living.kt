@@ -296,6 +296,8 @@ data class ParametricShapeElement(
     /** JSON keys a newer writer put on this figure and this build did not read. */
     val unknown: Map<String, JsonNode> = emptyMap(),
     val lineStyle: LineStyle = LineStyle.PLAIN,
+    /** Whether corner/edge resizing locks proportions for this figure (default true). */
+    val aspectLocked: Boolean = true,
 ) : Element
 
 /**

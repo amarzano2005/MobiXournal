@@ -197,18 +197,17 @@ class DesktopSettings(val file: File = defaultFile()) {
     /** Whether freehand strokes snap to geometric primitives on lift (`figure.recognizeShapes`). */
     var recognizeShapes: Boolean
         get() = properties.getProperty(KEY_RECOGNIZE_SHAPES)?.toBooleanStrictOrNull() ?: true
-        set(value) {
-            properties.setProperty(KEY_RECOGNIZE_SHAPES, value.toString())
-            save()
-        }
+        set(value) { properties.setProperty(KEY_RECOGNIZE_SHAPES, value.toString()); save() }
 
-    /** Whether a **resting** tip snaps the stroke instead (`figure.recognizeOnHold`) — never on with the lift. */
+    /** Whether a **resting** tip snaps the stroke instead (`figure.recognizeOnHold`). */
     var recognizeOnHold: Boolean
         get() = properties.getProperty(KEY_RECOGNIZE_ON_HOLD)?.toBooleanStrictOrNull() ?: false
-        set(value) {
-            properties.setProperty(KEY_RECOGNIZE_ON_HOLD, value.toString())
-            save()
-        }
+        set(value) { properties.setProperty(KEY_RECOGNIZE_ON_HOLD, value.toString()); save() }
+
+    /** Whether newly inserted figures start with proportion lock enabled (`figure.defaultAspectLock`). */
+    var defaultFigureAspectLock: Boolean
+        get() = properties.getProperty(KEY_DEFAULT_FIGURE_ASPECT_LOCK)?.toBooleanStrictOrNull() ?: true
+        set(value) { properties.setProperty(KEY_DEFAULT_FIGURE_ASPECT_LOCK, value.toString()); save() }
 
     /** What a new tab is written as, and whether the first run's question about it was answered. */
     internal val documentFormat = DocumentFormatStore(properties, ::save)
@@ -647,6 +646,7 @@ class DesktopSettings(val file: File = defaultFile()) {
         /** Whether freehand strokes snap to geometric primitives on lift (`figure.recognizeShapes`). */
         const val KEY_RECOGNIZE_SHAPES = "figure.recognizeShapes"
         const val KEY_RECOGNIZE_ON_HOLD = "figure.recognizeOnHold"
+        const val KEY_DEFAULT_FIGURE_ASPECT_LOCK = "figure.defaultAspectLock"
 
         /** What a new tab is written as: `.mobix`, a gzip `.xopp` or a zipped `.xopp`. */
         const val KEY_NEW_DOCUMENT_FORMAT = "document.newFormat"

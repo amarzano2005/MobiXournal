@@ -220,6 +220,7 @@ fun DrawingSurfaceView.applySettings(s: AppSettings) {
     recognizeShapes = s.recognizeShapes
     // The hold's own switch lives with the hold (`HoldSnap`), not on the view: one trigger or the other.
     holdSnap.enabled = s.recognizeOnHold
+    gestures.defaultAspectLocked = s.defaultFigureAspectLock
     // The pen-tip ring's slots: the factory ring both shells carry — the palette's first five colours (the
     // editable custom colour last), the three widths, then the six tools, ending on the pen. Rebuilt with
     // the settings, so a palette edited in Settings is on the ring at the next summon.

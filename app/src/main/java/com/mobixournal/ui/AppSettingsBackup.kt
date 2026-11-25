@@ -53,6 +53,7 @@ object AppSettingsBackup {
         b.append("  \"strokePrecision\": \"").append(settings.strokePrecision.name).append("\",\n")
         b.append("  \"recognizeShapes\": ").append(settings.recognizeShapes).append(",\n")
         b.append("  \"recognizeOnHold\": ").append(settings.recognizeOnHold).append(",\n")
+        b.append("  \"defaultFigureAspectLock\": ").append(settings.defaultFigureAspectLock).append(",\n")
         b.append("  \"snapToGrid\": ").append(settings.snapToGrid).append(",\n")
         b.append("  \"snapRotation\": ").append(settings.snapRotation).append(",\n")
         b.append("  \"guideKind\": \"").append(settings.guideKind.name).append("\",\n")
@@ -280,6 +281,7 @@ object AppSettingsBackup {
             // Two triggers cannot both be on: a file that says so is read as the lift recogniser.
             recognizeOnHold = root.getBool("recognizeOnHold", fallback.recognizeOnHold) &&
                 !root.getBool("recognizeShapes", fallback.recognizeShapes),
+            defaultFigureAspectLock = root.getBool("defaultFigureAspectLock", fallback.defaultFigureAspectLock),
             snapToGrid = root.getBool("snapToGrid", fallback.snapToGrid),
             snapRotation = root.getBool("snapRotation", fallback.snapRotation),
             guideKind = readEnum("guideKind", GuideKind.values(), fallback.guideKind),

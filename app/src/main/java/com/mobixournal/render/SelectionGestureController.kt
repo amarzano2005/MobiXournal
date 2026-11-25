@@ -39,15 +39,10 @@ internal class SelectionGestureController(
      * never has its whole page list walked by a gesture.
      */
     private val pageAt: (Int) -> Page?,
-    /** Adopt [Document] as a live edit — assigned straight through, not recorded; see [beginGesture]. */
     private val setDocument: (Document) -> Unit,
-    /** The current page layout, for view-px ↔ page-pt conversion and page hit-testing. */
     private val layout: () -> StackedLayout,
-    /** The scroll offsets a touch is measured against. */
     private val viewport: ViewportState,
-    /** The layer a marquee selects within — matching desktop's current-layer-only selection. */
     private val activeLayerOf: (Page) -> Int,
-    /** True when the marquee traces a free-form lasso instead of a rectangle. */
     private val lassoMode: () -> Boolean,
     /** True when a rotate snaps to fixed angle steps. */
     private val snapRotation: () -> Boolean,
@@ -65,6 +60,11 @@ internal class SelectionGestureController(
 
     /** The current selection (a page index + the refs of its selected elements), or null. */
     var selection: ActiveSelection? = null
+        set(value) {
+            field = value
+            val shape = value?.refs?.singleOrNull()?.let { r -> pageAt(value.pageIndex)?.layers?.getOrNull(r.layerIndex)?.elements?.getOrNull(r.elementIndex) as? ParametricShapeElement }
+            aspectLocked = shape?.aspectLocked ?: defaultAspectLocked
+        }
 
     // Live rubber-band marquee and the page it selects within. The corners are held in **page-local
     // pt** (not view px) so the drag auto-scroll extends the marquee instead of shifting it: the start
@@ -123,6 +123,7 @@ internal class SelectionGestureController(
     private var resizeAnchorY = 0.0
     private var resizeStartDist = 1.0
     private var resizeAxis = ResizeAxis.BOTH
+    var defaultAspectLocked: Boolean = true
     var aspectLocked: Boolean = true
     private var resizeStartPtX = 0.0
     private var resizeStartPtY = 0.0

@@ -138,18 +138,11 @@ internal suspend fun PointerInputScope.pageGestures(
     // The PDF text's own pairing: a click with the marquee must not pair with one on a word (`PageCanvasPress.kt`).
     val pdfTaps = TapTracker()
     val gesture = PageInkGesture(
-        tab = tab,
-        tool = tool,
-        ink = ink,
-        view = viewport,
-        pageW = pageW,
-        pageH = pageH,
-        density = density,
-        draft = draft,
-        onEdited = onEdited,
-        pen = pen,
-        bands = pdfBands,
-        recognition = targets.recognition,
+        tab = tab, tool = tool, ink = ink, view = viewport,
+        pageW = pageW, pageH = pageH, density = density,
+        draft = draft, onEdited = onEdited, pen = pen,
+        bands = pdfBands, recognition = targets.recognition,
+        defaultFigureAspectLock = targets.figures.defaultAspectLock,
     )
     // The edge scroll's clock, running for as long as this canvas has a pointer handler: a drag registers
     // with [DragView.beginDrag] and is called back while the sheet travels; no timer can live inside
@@ -523,7 +516,7 @@ internal suspend fun AwaitPointerEventScope.shapeDrag(
             val points = preview(lastX, lastY)
             if (change.changedToUpIgnoreConsumed() || !change.pressed) {
                 draft.clear()
-                if (!cancelled) commitShape(points, kind, tab, ink, onEdited)
+                if (!cancelled) commitShape(points, kind, tab, ink, onEdited, aspectLocked = figures.defaultAspectLock)
                 break
             }
             change.consume()

@@ -32,7 +32,7 @@ internal object MobixShapeCodec {
 
     private val SHAPE_KEYS = setOf(
         "type", "id", "shape", MobixJson.BOUNDS, VERTICES, "strokeColor", "strokeWidth",
-        "lineStyle", "fillColor", "showAngles", "showSideLengths", MobixJson.ATTRS,
+        "lineStyle", "fillColor", "showAngles", "showSideLengths", "aspectLocked", MobixJson.ATTRS,
     )
     private val VERTEX_KEYS = setOf("x", "y")
 
@@ -49,6 +49,7 @@ internal object MobixShapeCodec {
         shape.fillColor?.let { out["fillColor"] = MobixJson.colour(it) }
         out["showAngles"] = JsonNode.of(shape.showAngles)
         out["showSideLengths"] = JsonNode.of(shape.showSideLengths)
+        if (!shape.aspectLocked) out["aspectLocked"] = JsonNode.of(false)
         if (shape.extraAttrs.isNotEmpty()) out[MobixJson.ATTRS] = MobixJson.attrsNode(shape.extraAttrs)
         MobixJson.putUnknown(out, shape.unknown)
     }
@@ -91,6 +92,7 @@ internal object MobixShapeCodec {
             id = node.getStrOrNull("id") ?: mint(ElementId.SHAPE),
             unknown = MobixJson.unknownFields(node, SHAPE_KEYS),
             lineStyle = lineStyle,
+            aspectLocked = node.getBool("aspectLocked", true),
         )
     }
 

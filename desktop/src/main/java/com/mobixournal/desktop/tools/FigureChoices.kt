@@ -31,6 +31,10 @@ internal class FigureChoices(private val store: DesktopSettings) {
     var recognizeOnHold by mutableStateOf(store.recognizeOnHold)
         private set
 
+    /** Whether newly inserted figures start with proportion lock enabled (`figure.defaultAspectLock`). */
+    var defaultAspectLock by mutableStateOf(store.defaultFigureAspectLock)
+        private set
+
     /** The one answer the sheet is handed: the two switches are exclusive, so it is never both. */
     val recognition: ShapeRecognition
         get() = when {
@@ -68,6 +72,12 @@ internal class FigureChoices(private val store: DesktopSettings) {
         recognizeOnHold = value == ShapeRecognition.ON_HOLD
         store.recognizeShapes = recognizeShapes
         store.recognizeOnHold = recognizeOnHold
+    }
+
+    /** Choose whether newly inserted figures start with proportion lock enabled. */
+    fun chooseDefaultAspectLock(value: Boolean) {
+        defaultAspectLock = value
+        store.defaultFigureAspectLock = value
     }
 
     /** One figure's answer changed — the variant, an angle a scalene one is built from, or the sides. */
@@ -113,6 +123,7 @@ internal class FigureChoices(private val store: DesktopSettings) {
         width = store.figureWidth
         shape = store.figureShape()
         recognizeShapes = store.recognizeShapes
+        defaultAspectLock = store.defaultFigureAspectLock
         menu = null
         editingFigure = null
     }

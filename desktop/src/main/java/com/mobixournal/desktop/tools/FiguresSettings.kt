@@ -21,8 +21,23 @@ import kotlin.math.roundToInt
 internal fun FiguresSettings(policy: DesktopSettingsState) {
     FigureRecognitionSettings(policy)
     FigureWidthSettings(policy)
+    FigureLockSettings(policy)
     TriangleSettings(policy, onCustomize = { policy.figures.openDialog(DesktopTool.TRIANGLE) })
     TrapezoidSettings(policy, onCustomize = { policy.figures.openDialog(DesktopTool.TRAPEZOID) })
+}
+
+@Composable
+private fun FigureLockSettings(policy: DesktopSettingsState) {
+    SettingsGroup("Proportions") {
+        SettingsSelect(
+            label = "Default lock",
+            note = "Initial proportion lock state for newly inserted figures.",
+            options = listOf(true, false),
+            picked = policy.figures.defaultAspectLock,
+            optionLabel = { if (it) "Locked (closed)" else "Unlocked (open)" },
+            onPick = { policy.figures.chooseDefaultAspectLock(it) },
+        )
+    }
 }
 
 @Composable

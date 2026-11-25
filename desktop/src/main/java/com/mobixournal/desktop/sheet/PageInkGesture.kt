@@ -89,6 +89,7 @@ internal class PageInkGesture(
     private val bands: MutableState<List<MagneticHighlighter.Band>>? = null,
     /** When this stroke is recognised — the lift and the resting tip never both, see [ShapeRecognition]. */
     private val recognition: ShapeRecognition = ShapeRecognition.OFF,
+    private val defaultFigureAspectLock: Boolean = true,
 ) {
     private val pageWidth = pageW.toDouble()
     private val pageHeight = pageH.toDouble()
@@ -407,7 +408,15 @@ internal class PageInkGesture(
         }
         val index = tab.page
         val before = tab.document.snapshot()
-        val shape = figure?.let { ParametricShapes.elementFor(it, ink.colour, sampleWidth(samples), ink.lineStyle) }
+        val shape = figure?.let {
+            ParametricShapes.elementFor(
+                it,
+                ink.colour,
+                sampleWidth(samples),
+                ink.lineStyle,
+                aspectLocked = defaultFigureAspectLock,
+            )
+        }
         val wrote = if (shape != null) {
             // New ink lands on the tab's **active layer**, the tablet's rule: a layer picked in the Layers
             // menu is the one being written on, not always the stack's last sheet.
@@ -531,9 +540,17 @@ internal fun commitShape(
     tab: DesktopTab,
     ink: DesktopInk,
     onEdited: (Int) -> Unit,
+    aspectLocked: Boolean = true,
 ) {
     val element: com.mobixournal.format.model.Element =
-        ParametricShapes.elementForShapeTool(kind, points, ink.colour, ink.width.toDouble(), ink.lineStyle)
+        ParametricShapes.elementForShapeTool(
+            kind,
+            points,
+            ink.colour,
+            ink.width.toDouble(),
+            ink.lineStyle,
+            aspectLocked = aspectLocked,
+        )
             ?: shapeStroke(points, ink.colour, ink.width, ink.lineStyle, kind)
             ?: return
     val index = tab.page
