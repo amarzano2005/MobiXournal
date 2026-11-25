@@ -146,7 +146,7 @@ private fun ShapeInspectorPanel(
             tab = it
             keyboard?.close()
         })
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f))
 
         Column(
             modifier = Modifier

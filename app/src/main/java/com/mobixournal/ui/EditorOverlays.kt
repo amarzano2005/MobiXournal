@@ -249,6 +249,9 @@ fun BoxScope.EditorOverlays(
                     )
                     surface?.replacePlotElement(editing, updated)
                 } else {
+                    ui.tool = EditorTool.SELECT
+                    surface?.selectMode = true
+                    surface?.placeKind = null
                     surface?.insertPlotElement(
                         curves = curves,
                         xMin = xMin,
@@ -260,7 +263,6 @@ fun BoxScope.EditorOverlays(
                         infoSide = infoSide,
                         bounds = box,
                     )
-                    ui.tool = EditorTool.SELECT
                     // The slot **stays in hand**, as on the window: the graph lands selected, and the press
                     // that means "this graph" is the pick (`beginPlacementPress`), not another placement — so
                     // there is nothing to hand to Select.

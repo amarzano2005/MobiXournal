@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "plot-selection-divider-fix"
+title = "Preserve plot selection after placement and raise inspector divider contrast"
+description = "Switched to SELECT before insertPlotElement in EditorOverlays to preserve post-insertion selection, and raised HorizontalDivider contrast (onSurface alpha 0.22) in PlotInspectorAnchor and ShapeEditorDialog."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "material: FloatingSurface + visible hairline divider; tokens: MaterialTheme.colorScheme without literals; parity: Plot lands selected in Select tool matching desktop; docs: interface-contract.md updated; tests: PlacementPickTest, LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
+
+[[task]]
 id = "living-double-tap-lift-align"
 title = "Defer living double-tap to lift, align anchor space, and add tab divider"
 description = "Deferred living double-tap to ACTION_UP via TapClassifier.livingDown/consumePendingLiving, removed insetPadding mismatch in EditorRegions, and added HorizontalDivider below Curves/Options tabs in PlotInspectorAnchor."
