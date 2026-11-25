@@ -74,7 +74,12 @@ internal fun anchoredInspectorOffset(
 
     if (fitsRight || fitsLeft) {
         val x = if (fitsRight) preferredRightX else preferredLeftX
-        val y = selectionTop.toInt().coerceIn(marginPx, maxY)
+        val alignedY = if (selectionBottom != null) {
+            ((selectionTop + selectionBottom) / 2f - inspectorSize.height / 2f).toInt()
+        } else {
+            selectionTop.toInt()
+        }
+        val y = alignedY.coerceIn(marginPx, maxY)
         return IntOffset(x, y)
     }
 
@@ -84,7 +89,7 @@ internal fun anchoredInspectorOffset(
         val preferredAboveY = (selectionTop - gapPx - inspectorSize.height).toInt()
         val fitsAbove = preferredAboveY >= marginPx
         if (fitsBelow || fitsAbove) {
-            val x = selectionLeft.toInt().coerceIn(marginPx, maxX)
+            val x = ((selectionLeft + selectionRight) / 2f - inspectorSize.width / 2f).toInt().coerceIn(marginPx, maxX)
             val y = if (fitsBelow) preferredBelowY else preferredAboveY
             return IntOffset(x, y)
         }
@@ -93,7 +98,12 @@ internal fun anchoredInspectorOffset(
     val spaceRight = canvasSize.width - selectionRight
     val spaceLeft = selectionLeft
     val x = if (spaceRight >= spaceLeft) maxX else marginPx
-    val y = selectionTop.toInt().coerceIn(marginPx, maxY)
+    val alignedY = if (selectionBottom != null) {
+        ((selectionTop + selectionBottom) / 2f - inspectorSize.height / 2f).toInt()
+    } else {
+        selectionTop.toInt()
+    }
+    val y = alignedY.coerceIn(marginPx, maxY)
     return IntOffset(x, y)
 }
 
@@ -166,18 +176,15 @@ internal fun LivingInspectorAnchor(
         imeBottomPx = imeBottomPx,
         customKeyboardHeightPx = keyboardHeightPx,
     )
-    val maxPanelHeight = with(density) {
-        (effectiveCanvasSize.height - 2 * marginPx).coerceAtLeast(0).toDp()
-    }
-    val maxPanelWidth = with(density) {
-        (effectiveCanvasSize.width - 2 * marginPx).coerceAtLeast(0).toDp()
-    }
+    val maxPanelHeight = with(density) { (effectiveCanvasSize.height - 2 * marginPx).coerceAtLeast(0).toDp() }
+    val maxPanelWidth = with(density) { (effectiveCanvasSize.width - 2 * marginPx).coerceAtLeast(0).toDp() }
     val resolvedMaxWidth = minOf(maxWidth, maxPanelWidth)
     val resolvedMinWidth = minOf(minWidth, resolvedMaxWidth)
 
     val rememberedAnchor = remember(sessionKey) { anchorRect }
     var inspectorSize by remember(sessionKey) { mutableStateOf(IntSize.Zero) }
     var placement by remember(sessionKey) { mutableStateOf<IntOffset?>(null) }
+    var userDragged by remember(sessionKey) { mutableStateOf(false) }
 
     val displayOffset = placement?.let {
         clampInspectorToCanvas(it, inspectorSize, effectiveCanvasSize, marginPx)
@@ -191,6 +198,7 @@ internal fun LivingInspectorAnchor(
         detectDragGestures { change, dragAmount ->
             change.consume()
             val stored = placement ?: return@detectDragGestures
+            userDragged = true
             val clamped = clampInspectorToCanvas(
                 offset = stored,
                 inspectorSize = latestInspectorSize,
@@ -212,7 +220,7 @@ internal fun LivingInspectorAnchor(
             .offset { displayOffset ?: IntOffset.Zero }
             .onSizeChanged { size ->
                 inspectorSize = size
-                if (placement == null) {
+                if (placement == null || !userDragged) {
                     placement = anchoredInspectorOffset(
                         selectionLeft = rememberedAnchor?.left,
                         selectionTop = rememberedAnchor?.top,

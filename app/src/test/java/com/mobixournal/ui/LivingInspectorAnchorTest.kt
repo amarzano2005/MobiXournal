@@ -77,7 +77,7 @@ class LivingInspectorAnchorTest {
             gapPx = 12,
             marginPx = 8,
         )
-        // Neither right (612+280 > 712) nor left (100-12-280 < 8) fits -> below at 350+12 = 362
-        assertEquals(IntOffset(x = 100, y = 362), offset)
+        // Neither right (612+280 > 712) nor left (100-12-280 < 8) fits -> below at 350+12 = 362, centered x = 350 - 140 = 210
+        assertEquals(IntOffset(x = 210, y = 362), offset)
     }
 }

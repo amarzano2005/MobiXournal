@@ -76,8 +76,8 @@ class PlotInspectorAnchorTest {
             marginPx = marginPx,
         )
 
-        // Left placement = 500 - 12 - 340 = 148 >= 8 (fits on left)
-        assertEquals(IntOffset(x = 148, y = 150), offset)
+        // Left placement = 500 - 12 - 340 = 148 >= 8; vertically centered on [150, 500] -> 325 - 200 = 125
+        assertEquals(IntOffset(x = 148, y = 125), offset)
     }
 
     @Test
