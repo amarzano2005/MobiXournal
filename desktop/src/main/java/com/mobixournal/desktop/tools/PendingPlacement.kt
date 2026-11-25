@@ -100,7 +100,7 @@ class PendingPlacement(
     var xMax by mutableStateOf("10")
 
     /** The display flags of the graph dialog. */
-    var showCriticalPoints by mutableStateOf(true)
+    var showCriticalPoints by mutableStateOf(false)
     var includeDerivative by mutableStateOf(false)
     var includeSummary by mutableStateOf(false)
 

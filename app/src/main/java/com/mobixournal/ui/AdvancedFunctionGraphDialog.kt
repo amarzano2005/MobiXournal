@@ -157,7 +157,7 @@ fun AdvancedFunctionGraphDialog(
 
     var xMinText by remember { mutableStateOf(initialXMin?.let { formatRangeNumber(it) } ?: "-10") }
     var xMaxText by remember { mutableStateOf(initialXMax?.let { formatRangeNumber(it) } ?: "10") }
-    var showCriticalPoints by remember { mutableStateOf(initialShowCriticalPoints ?: true) }
+    var showCriticalPoints by remember { mutableStateOf(initialShowCriticalPoints ?: false) }
     var includeDerivative by remember { mutableStateOf(initialIncludeDerivative ?: false) }
     var includeSummary by remember { mutableStateOf(initialIncludeSummary ?: false) }
     var infoSide by remember { mutableStateOf(initialInfoSide ?: PlotInfoSide.BELOW) }

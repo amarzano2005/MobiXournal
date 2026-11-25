@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "plot-critical-default-off"
+title = "Disable detect critical points by default on Android and Desktop"
+description = "Set showCriticalPoints default to false in AdvancedFunctionGraphDialog.kt (Android) and PendingPlacement.kt (Desktop)."
+status = "finished"
+level = "task"
+category = "chore"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "parity: Android and Desktop both default showCriticalPoints to false; tests: DesktopLivingSlotsTest, PlotInspectorAnchorTest, SourceStructureTest"
+
+[[task]]
 id = "plot-selection-divider-fix"
 title = "Preserve plot selection after placement and raise inspector divider contrast"
 description = "Switched to SELECT before insertPlotElement in EditorOverlays to preserve post-insertion selection, and raised HorizontalDivider contrast (onSurface alpha 0.22) in PlotInspectorAnchor and ShapeEditorDialog."
