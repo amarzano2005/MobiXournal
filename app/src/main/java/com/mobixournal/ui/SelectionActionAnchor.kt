@@ -114,7 +114,7 @@ fun SelectionActionAnchor(
         canEditShape = surface?.singleSelectedShape() != null,
         onEditShape = {
             surface?.singleSelectedShape()?.let { shape ->
-                ui.editingShape = shape
+                ui.openShapeInspector(shape)
             }
         },
         canEditPlot = surface?.singleSelectedPlot() != null,

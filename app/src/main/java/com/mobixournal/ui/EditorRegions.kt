@@ -1694,7 +1694,7 @@ fun EditorPaneView(
                     onDismiss = { ui.editingMathBlock = null },
                 )
             }
-            ShapeEditorHost(ui, state.surface)
+            ShapeEditorHost(ui, state, canvasSizePx)
             // The **Manage pages** card (its own file: the flag, the card and its two commands).
             PageRangeHost(ui, state.surface, state.pageCount)
             if (ui.editingCircuit != null) {

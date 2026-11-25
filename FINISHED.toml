@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "shape-anchored-inspector"
+title = "Convert shape editor into compact anchored inspector"
+description = "Replaced ShapeEditorDialog with compact anchored ShapeInspectorPanel on LivingInspectorAnchor, added Geometry/Style tabs, interactive ShapeMiniDiagram with A/B/C labels and highlighted active edge, geometric Edge AB (pt) / Angle ∠A (°) inputs, ShapeInspectorHelpersTest, and updated docs/interface-contract.md."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "material: FloatingSurface via LivingInspectorAnchor; tokens: MaterialTheme.colorScheme and PenPalette without literals; parity: Desktop InspectorLane vs Android LivingInspectorAnchor; docs: docs/interface-contract.md updated; tests: ShapeInspectorHelpersTest, LivingInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
+
+[[task]]
 id = "living-editor-generalization"
 title = "Generalize living-element editor rule and keyboard avoidance"
 description = "Extracted LivingInspectorAnchor with universal IME/custom-keyboard clamping, migrated PlotInspectorAnchor and CircuitInspectorAnchor (with circuitInspectorSession), added verticalScroll to LatexDialog, added LivingInspectorAnchorTest, and documented the living-element editor rule in docs/interface-contract.md and .agents/skills/new-living-element/SKILL.md."

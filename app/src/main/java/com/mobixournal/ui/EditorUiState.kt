@@ -108,6 +108,11 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
      * the corner handles the selection draws.
      */
     var editingShape by mutableStateOf<com.mobixournal.format.model.ParametricShapeElement?>(null)
+    /**
+     * Which **open** of the shape inspector this is — bumped by [openShapeInspector], never by an edit.
+     */
+    var shapeInspectorSession by mutableStateOf(0)
+        private set
     /** The existing [MathBlockElement] whose formula dialog is open, or null when none is. */
     var editingMathBlock by mutableStateOf<com.mobixournal.format.model.MathBlockElement?>(null)
     /**
@@ -254,6 +259,12 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     fun openCircuitInspector(circuit: com.mobixournal.format.model.CircuitElement) {
         editingCircuit = circuit
         circuitInspectorSession++
+    }
+
+    /** Open the anchored shape inspector on [shape] as a **fresh** session (new state, anchored anew). */
+    fun openShapeInspector(shape: com.mobixournal.format.model.ParametricShapeElement) {
+        editingShape = shape
+        shapeInspectorSession++
     }
 
     /** The pane the toolbar and overlays drive. */
