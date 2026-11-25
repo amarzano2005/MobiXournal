@@ -34,6 +34,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -165,11 +166,12 @@ fun PlotInspectorAnchor(
     var keyboardHeight by remember { mutableIntStateOf(0) }
 
     fun applyCurrent() {
+        val current = ui.editingPlot ?: return
         val xMin = state.xMin ?: return
         val xMax = state.xMax ?: return
         if (!state.canApply) return
         val updated = PlotElementFactory.applyPlotEdit(
-            original = plot,
+            original = current,
             editedCurves = state.activeCurves,
             xMin = xMin,
             xMax = xMax,
@@ -179,27 +181,32 @@ fun PlotInspectorAnchor(
             infoSide = state.infoSide,
             shadeIntegral = state.shade.value,
         )
-        if (updated != plot) {
-            surface?.replacePlotElement(plot, updated)
+        if (updated != current) {
+            surface?.replacePlotElement(current, updated)
             ui.editingPlot = updated
         }
     }
 
-    // Live-update the plot on the sheet whenever a valid expression, range or option changes.
-    LaunchedEffect(
-        state.modeTab,
-        state.activeCurves,
-        state.xMinText,
-        state.xMaxText,
-        state.showCriticalPoints,
-        state.includeDerivative,
-        state.includeSummary,
-        state.infoSide,
-        state.shade.on,
-        state.shade.fromText,
-        state.shade.toText,
-    ) {
-        applyCurrent()
+    // Live-update the plot on the sheet whenever any curve, range, shade or option changes.
+    LaunchedEffect(ui.plotInspectorSession) {
+        snapshotFlow {
+            Triple(
+                state.activeCurves,
+                state.xMinText to state.xMaxText,
+                listOf(
+                    state.modeTab,
+                    state.showCriticalPoints,
+                    state.includeDerivative,
+                    state.includeSummary,
+                    state.infoSide,
+                    state.shade.on,
+                    state.shade.fromText,
+                    state.shade.toText,
+                ),
+            )
+        }.collect {
+            applyCurrent()
+        }
     }
 
     // The inspector keeps its own offset inside a full-size layer so the docked in-app keyboard

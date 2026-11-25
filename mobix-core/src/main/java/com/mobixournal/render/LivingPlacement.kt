@@ -37,7 +37,7 @@ data class LivingSize(val width: Double, val height: Double)
  * still needs an answer for a plain tap (the family's default size, centred on the press), and a drag of
  * two points is a shaky hand, not a two-point table.
  */
-const val LIVING_PLACEMENT_SLOP_PT: Double = 4.0
+const val LIVING_PLACEMENT_SLOP_PT: Double = 24.0
 
 /**
  * Where a press on a STEM slot puts its element, and what it builds — the shared half of the placement,

@@ -452,7 +452,7 @@ internal fun DrawingSurfaceView.pageIndexHolding(element: Element): Int? {
  */
 fun DrawingSurfaceView.replacePlotElement(old: PlotElement, new: PlotElement) {
     val before = doc
-    val index = pageIndexHolding(old) ?: return
+    val index = pageIndexHolding(old) ?: selection?.pageIndex ?: return
     val replaced = windowEditPage(index) { page ->
         ElementEdits.replaceElementOn(page, old, new)
             ?: fallbackReplacePlotOn(page, index, new)
@@ -496,7 +496,7 @@ fun DrawingSurfaceView.singleSelectedTable(): TableElement? {
  */
 fun DrawingSurfaceView.replaceTableElement(old: TableElement, new: TableElement) {
     val before = doc
-    val index = pageIndexHolding(old) ?: return
+    val index = pageIndexHolding(old) ?: selection?.pageIndex ?: return
     windowEditPage(index) { page -> ElementEdits.replaceElementOn(page, old, new) ?: page } ?: return
     history.record(before)
     notifyHistory()
@@ -511,7 +511,7 @@ fun DrawingSurfaceView.replaceTableElement(old: TableElement, new: TableElement)
  */
 fun DrawingSurfaceView.replaceMathBlock(old: MathBlockElement, new: MathBlockElement) {
     val before = doc
-    val index = pageIndexHolding(old) ?: return
+    val index = pageIndexHolding(old) ?: selection?.pageIndex ?: return
     windowEditPage(index) { page -> ElementEdits.replaceElementOn(page, old, new) ?: page } ?: return
     history.record(before)
     notifyHistory()
@@ -539,7 +539,7 @@ fun DrawingSurfaceView.singleSelectedShape(): ParametricShapeElement? {
  */
 fun DrawingSurfaceView.replaceShapeElement(old: ParametricShapeElement, new: ParametricShapeElement) {
     val before = doc
-    val index = pageIndexHolding(old) ?: return
+    val index = pageIndexHolding(old) ?: selection?.pageIndex ?: return
     windowEditPage(index) { page -> ElementEdits.replaceElementOn(page, old, new) ?: page } ?: return
     history.record(before)
     notifyHistory()
@@ -564,7 +564,7 @@ fun DrawingSurfaceView.singleSelectedCircuit(): CircuitElement? {
  */
 fun DrawingSurfaceView.replaceCircuitElement(old: CircuitElement, new: CircuitElement) {
     val before = doc
-    val index = pageIndexHolding(old) ?: return
+    val index = pageIndexHolding(old) ?: selection?.pageIndex ?: return
     val replaced = windowEditPage(index) { page ->
         ElementEdits.replaceElementOn(page, old, new)
             ?: fallbackReplaceCircuitOn(page, index, new)
