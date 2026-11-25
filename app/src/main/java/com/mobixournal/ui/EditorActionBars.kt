@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.outlined.Undo
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ContentCopy
@@ -63,7 +62,6 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.design.ToolGlyph
-import com.mobixournal.render.SelectionOps
 import com.mobixournal.ui.theme.FloatingSurface
 
 /**
@@ -96,8 +94,6 @@ fun SelectionActionBar(
     palette: ColorPaletteState,
     onReWidth: (Float) -> Unit,
     widthSlots: List<Float>,
-    onAlign: (SelectionOps.SelectionAlign) -> Unit,
-    onDistribute: (Boolean) -> Unit,
     canEditShape: Boolean = false,
     onEditShape: () -> Unit = {},
     canEditPlot: Boolean = false,
@@ -148,48 +144,14 @@ fun SelectionActionBar(
                 BarIconButton("Duplicate", ChromeGlyph.DUPLICATE.imageVector(), onDuplicate)
                 RecolorMenu(onRecolor, palette)
                 ReWidthMenu(widthSlots, onReWidth)
-                AlignMenu(onAlign, onDistribute)
                 BarToggleButton(
                     contentDescription = if (aspectLocked) "Unlock proportions" else "Lock proportions",
-                    icon = ChromeGlyph.ASPECT_LOCK.imageVector(),
+                    icon = (if (aspectLocked) ChromeGlyph.ASPECT_LOCK else ChromeGlyph.ASPECT_UNLOCK).imageVector(),
                     selected = aspectLocked,
                     onClick = onToggleAspectLock,
                 )
                 BarIconButton("Delete", ChromeGlyph.DELETE.imageVector(), onDelete)
             }
-        }
-    }
-}
-
-/**
- * A drop-down with the alignment and distribution actions for a multi-element selection: six edges
- * (left/centre/right, top/middle/bottom) and even spacing along each axis. Text-only rows — the bar
- * is too small to carry eight more glyphs, and the labels read faster than abstract alignment icons.
- */
-@Composable
-private fun AlignMenu(
-    onAlign: (SelectionOps.SelectionAlign) -> Unit,
-    onDistribute: (Boolean) -> Unit,
-) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        BarIconButton("Align & distribute", ChromeGlyph.ALIGN_LEFT.imageVector()) { open = true }
-        ToolbarMenu(expanded = open, onDismissRequest = { open = false }, fill = com.mobixournal.ui.theme.rememberPopupPanelColor()) {
-            @Composable
-            fun row(label: String, action: () -> Unit) {
-                DropdownMenuItem(
-                    text = { Text(label, style = MaterialTheme.typography.bodyMedium) },
-                    onClick = { open = false; action() },
-                )
-            }
-            row("Align left") { onAlign(SelectionOps.SelectionAlign.LEFT) }
-            row("Align horizontal centre") { onAlign(SelectionOps.SelectionAlign.H_CENTRE) }
-            row("Align right") { onAlign(SelectionOps.SelectionAlign.RIGHT) }
-            row("Align top") { onAlign(SelectionOps.SelectionAlign.TOP) }
-            row("Align vertical middle") { onAlign(SelectionOps.SelectionAlign.V_MIDDLE) }
-            row("Align bottom") { onAlign(SelectionOps.SelectionAlign.BOTTOM) }
-            row("Distribute horizontally") { onDistribute(true) }
-            row("Distribute vertically") { onDistribute(false) }
         }
     }
 }

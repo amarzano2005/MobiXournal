@@ -14,10 +14,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.mobixournal.render.alignSelection
 import com.mobixournal.render.clearSelection
 import com.mobixournal.render.copySelection
-import com.mobixournal.render.distributeSelection
 import com.mobixournal.render.cutSelection
 import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.duplicateSelection
@@ -110,8 +108,6 @@ fun SelectionActionAnchor(
         palette = palette,
         onReWidth = { w -> surface?.restyleSelection(null, w.toDouble()) },
         widthSlots = settings.penWidths,
-        onAlign = { a -> surface?.alignSelection(a) },
-        onDistribute = { h -> surface?.distributeSelection(h) },
         canEditShape = surface?.singleSelectedShape() != null,
         onEditShape = {
             surface?.singleSelectedShape()?.let { shape ->

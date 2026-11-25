@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "selection-bar-resize-lock-glyphs"
+title = "Remove Align button and add resize-lock open/closed glyphs with separate X/Y side handles"
+description = "Removed AlignMenu and Align & distribute button from both Android SelectionActionBar (EditorActionBars.kt, SelectionActionAnchor.kt) and Desktop SelectionBar (SelectionBar.kt, BAR_BUTTONS updated to 8). Redesigned ChromeGlyph.ASPECT_LOCK and added ChromeGlyph.ASPECT_UNLOCK in ChromeGlyphs.kt with diagonal resize arrows around closed/open padlocks, wired in EditorActionBars.kt. Enabled separate X/Y side handles on locked single ParametricShapeElement in SelectionHandlesPaint.kt and SelectionHandleResize.kt while corners remain proportional. Updated docs/selection.md and docs/selection-actions.md. Verified via ChromeGlyphsTest, ChromeGlyphPathsTest, DesktopSelectionBarTest, SelectionResizeMathTest, SourceStructureTest, DocsGuardTest.everyDocFitsTheLineBudget, :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "material: FloatingSurface and BarToggleButton unchanged on both shells; glyph: custom 24x24 ChromeGlyph.ASPECT_LOCK and ChromeGlyph.ASPECT_UNLOCK paths with diagonal resize arrows and closed/open shackle; states: locked vs unlocked toggle swaps icon and contentDescription; parity: Align removed from both Android and Desktop selection bars; copy: English contentDescription strings unchanged."
+
+[[task]]
 id = "docs-neutral-design-system-and-guards"
 title = "Rewrite ui-modernization.md as neutral design system spec and add doc guards"
 description = "Rewrote docs/ui-modernization.md into an objective design-system specification (removing subjective adjectives, migration manifesto framing, and the broken text fence around Mobile/Tablet bullets while preserving DesignTokens JSON and all anchors), fixed a non-UTF-8 0xd7 byte in docs/pages-and-paper.md, generalized the stale 1.1.0 MSI reference in docs/guide-limitations.md, and removed dated phase tags in docs/desktop-ui-layout.md and docs/desktop-workstation.md. Added noTextCodeFenceContainsMarkdownProse and noSpokeUsesManifestoAdjectives guards in DocsGuardTest.kt. Verified with DocsGuardTest (66/67 pass, only pre-existing README.md 163/160 budget), DocClaimsTest, ModernThemeTest, ColorContractGuardTest, SourceStructureTest, DesktopThemeTest, :desktop:createDistributable, and check-doc-sync.py."

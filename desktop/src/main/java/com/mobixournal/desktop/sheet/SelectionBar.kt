@@ -195,9 +195,6 @@ internal fun SelectionBar(
     modifier: Modifier = Modifier,
     placement: () -> IntOffset,
 ) {
-    var alignOpen by remember { mutableStateOf(false) }
-    // A second click on the align button puts its menu away (see [DismissGuard]).
-    val alignGuard = remember { DismissGuard() }
     // Recolour opens the palette **under the bar**, the tablet's own mechanism: the swatches are a
     // decided-by-a-tap command, not eight more squares on a bar that is already eight wide.
     var recolourOpen by remember { mutableStateOf(false) }
@@ -230,13 +227,7 @@ internal fun SelectionBar(
                 SelectionCommands(
                     ui = ui,
                     recolourOpen = recolourOpen,
-                    alignOpen = alignOpen,
                     onRecolour = { recolourOpen = !recolourOpen && recolourGuard.mayOpen(Unit) },
-                    onAlign = { alignOpen = !alignOpen && alignGuard.mayOpen(Unit) },
-                    onCloseAlign = {
-                        alignGuard.closed(Unit)
-                        alignOpen = false
-                    },
                 )
             }
         }
@@ -262,20 +253,16 @@ internal fun SelectionBar(
 }
 
 /**
- * The commands a selection adds, after Paste: duplicate, the ink's two doors, align and distribute, then
- * edit and delete.
+ * The commands a selection adds, after Paste: duplicate, the ink's two doors, then edit and delete.
  *
  * Split out of [SelectionBar] so that composable stays a placement and a row — the row itself is longer than
- * a function's budget once nine buttons and one menu are written inside it.
+ * a function's budget once seven buttons are written inside it.
  */
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.SelectionCommands(
     ui: SelectionBarUi,
     recolourOpen: Boolean,
-    alignOpen: Boolean,
     onRecolour: () -> Unit,
-    onAlign: () -> Unit,
-    onCloseAlign: () -> Unit,
 ) {
     BarButton(ChromeGlyph.DUPLICATE, ui.enabled(SelectionAction.DUPLICATE), "Duplicate", "Ctrl+D") {
         ui.onAction(SelectionAction.DUPLICATE)
@@ -287,19 +274,6 @@ private fun androidx.compose.foundation.layout.RowScope.SelectionCommands(
     BarButton(ChromeGlyph.WIDTH, ui.enabled(SelectionAction.WIDTH), "Line width", "") {
         ui.onAction(SelectionAction.WIDTH)
     }
-    Box {
-        BarButton(
-            // The tablet's own align button wears FormatAlignLeft; the catalogue's left-aligned lines are
-            // that picture, so the menu opens from the same mark on both shells.
-            ChromeGlyph.ALIGN_LEFT,
-            ui.enabled(SelectionAction.ALIGN_LEFT),
-            "Align & distribute",
-            "",
-            active = alignOpen,
-            onClick = onAlign,
-        )
-        GlassPresence(alignOpen) { AlignMenu(ui, onCloseAlign) }
-    }
     BarDivider()
     BarButton(ChromeGlyph.EDIT, ui.enabled(SelectionAction.EDIT), ui.editLabel.ifEmpty { "Edit" }, "") {
         ui.onAction(SelectionAction.EDIT)
@@ -307,61 +281,6 @@ private fun androidx.compose.foundation.layout.RowScope.SelectionCommands(
     BarButton(ChromeGlyph.DELETE, ui.enabled(SelectionAction.DELETE), "Delete", "Del") {
         ui.onAction(SelectionAction.DELETE)
     }
-}
-
-/** The six alignments and the two distributions, in the bar's own material, anchored under the button. */
-@Composable
-private fun AlignMenu(ui: SelectionBarUi, onClose: () -> Unit) {
-    GlassPopup(
-        // The button's own height, in dp: the menu hangs from it, whatever the display's density.
-        offset = IntOffset(0, with(LocalDensity.current) { ALIGN_MENU_DROP.roundToPx() }),
-        onDismissRequest = onClose,
-        properties = FloatingSurface,
-    ) {
-        Column(Modifier.glassSurface().padding(6.dp)) {
-            Text("Align", color = DesktopTheme.inkMuted, style = DesktopTheme.label)
-            Spacer(Modifier.height(4.dp))
-            val rows = listOf(
-                listOf(
-                    SelectionAction.ALIGN_LEFT to ChromeGlyph.ALIGN_LEFT,
-                    SelectionAction.ALIGN_H_CENTRE to ChromeGlyph.ALIGN_H_CENTRE,
-                    SelectionAction.ALIGN_RIGHT to ChromeGlyph.ALIGN_RIGHT,
-                ),
-                listOf(
-                    SelectionAction.ALIGN_TOP to ChromeGlyph.ALIGN_TOP,
-                    SelectionAction.ALIGN_V_MIDDLE to ChromeGlyph.ALIGN_V_MIDDLE,
-                    SelectionAction.ALIGN_BOTTOM to ChromeGlyph.ALIGN_BOTTOM,
-                ),
-                listOf(
-                    SelectionAction.DISTRIBUTE_H to ChromeGlyph.DISTRIBUTE_H,
-                    SelectionAction.DISTRIBUTE_V to ChromeGlyph.DISTRIBUTE_V,
-                ),
-            )
-            for (row in rows) {
-                Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                    for ((action, glyph) in row) {
-                        BarButton(glyph, ui.enabled(action), label(action), "") {
-                            ui.onAction(action)
-                            onClose()
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/** The tooltip a bar control prints, in the same words the tablet's bar uses. */
-private fun label(action: SelectionAction): String = when (action) {
-    SelectionAction.ALIGN_LEFT -> "Align left"
-    SelectionAction.ALIGN_H_CENTRE -> "Centre horizontally"
-    SelectionAction.ALIGN_RIGHT -> "Align right"
-    SelectionAction.ALIGN_TOP -> "Align top"
-    SelectionAction.ALIGN_V_MIDDLE -> "Centre vertically"
-    SelectionAction.ALIGN_BOTTOM -> "Align bottom"
-    SelectionAction.DISTRIBUTE_H -> "Distribute horizontally"
-    SelectionAction.DISTRIBUTE_V -> "Distribute vertically"
-    else -> action.name.lowercase().replaceFirstChar { it.uppercase() }
 }
 
 @Composable
@@ -434,11 +353,8 @@ private val BAR_GLYPH = 18.dp
  * Nine squares: cut, copy, paste, duplicate, recolour, width, align, edit and delete. It said eight while nine
  * were drawn, which put the bar's measured centre half a button off and made its clamp a button too narrow.
  */
-internal const val BAR_BUTTONS = 9
+internal const val BAR_BUTTONS = 8
 internal const val BAR_DIVIDERS = 2
-
-/** How far the align menu hangs below its button: the 32 dp square plus its air. */
-private val ALIGN_MENU_DROP = 44.dp
 
 /** The stand-in draws **Paste** and nothing else, so its width is one square with no divider. */
 internal const val PASTE_ONLY_BUTTONS = 1

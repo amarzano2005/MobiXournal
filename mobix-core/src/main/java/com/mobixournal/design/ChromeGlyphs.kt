@@ -97,8 +97,11 @@ enum class ChromeGlyph {
     /** The turn that takes a step back. */
     UNDO,
 
-    /** The frame around the page: toggle proportion lock for selection corner resizing. */
+    /** Locked proportion toggle for selection resizing: resize arrows around a closed padlock. */
     ASPECT_LOCK,
+
+    /** Unlocked proportion toggle for selection resizing: resize arrows around an open padlock. */
+    ASPECT_UNLOCK,
 
     /** And its mirror. */
     REDO,
@@ -385,9 +388,25 @@ object ChromeGlyphCatalogue {
                 "c0.12-0.22 0.07-0.47-0.12-0.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6" +
                 "s3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
         ChromeGlyph.ASPECT_LOCK ->
-            "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1 0.9 2 2 2h12c1.1 0 " +
-                "2-0.9 2-2V10c0-1.1-0.9-2-2-2Zm-6 9c-1.1 0-2-0.9-2-2s0.9-2 2-2 2 0.9 2 2-0.9 2-2 2Zm3.1-9" +
-                "H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2Z"
+            // Top-left diagonal resize arrow + bottom-right diagonal resize arrow + closed padlock.
+            "M2 2H7L5.2 3.8L7.2 5.8L5.8 7.2L3.8 5.2L2 7Z" +
+                "M22 22H17L18.8 20.2L16.8 18.2L18.2 16.8L20.2 18.8L22 17Z" +
+                "M9.2 11V8.8C9.2 7.25 10.45 6 12 6C13.55 6 14.8 7.25 14.8 8.8V11H13.4V8.8" +
+                "C13.4 8.03 12.77 7.4 12 7.4C11.23 7.4 10.6 8.03 10.6 8.8V11Z" +
+                "M9 11H15C15.55 11 16 11.45 16 12V17C16 17.55 15.55 18 15 18H9" +
+                "C8.45 18 8 17.55 8 17V12C8 11.45 8.45 11 9 11Z" +
+                "M12 13.4C11.39 13.4 10.9 13.89 10.9 14.5C10.9 15.11 11.39 15.6 12 15.6" +
+                "C12.61 15.6 13.1 15.11 13.1 14.5C13.1 13.89 12.61 13.4 12 13.4Z"
+        ChromeGlyph.ASPECT_UNLOCK ->
+            // Same resize arrows around an open padlock (shackle raised and detached on the right).
+            "M2 2H7L5.2 3.8L7.2 5.8L5.8 7.2L3.8 5.2L2 7Z" +
+                "M22 22H17L18.8 20.2L16.8 18.2L18.2 16.8L20.2 18.8L22 17Z" +
+                "M9.2 11V7.8C9.2 6.25 10.45 5 12 5C13.55 5 14.8 6.25 14.8 7.8V8.5H13.4V7.8" +
+                "C13.4 7.03 12.77 6.4 12 6.4C11.23 6.4 10.6 7.03 10.6 7.8V11Z" +
+                "M9 11H15C15.55 11 16 11.45 16 12V17C16 17.55 15.55 18 15 18H9" +
+                "C8.45 18 8 17.55 8 17V12C8 11.45 8.45 11 9 11Z" +
+                "M12 13.4C11.39 13.4 10.9 13.89 10.9 14.5C10.9 15.11 11.39 15.6 12 15.6" +
+                "C12.61 15.6 13.1 15.11 13.1 14.5C13.1 13.89 12.61 13.4 12 13.4Z"
         // The one brand mark: GitHub's published octocat, on the same grid as every other command.
         ChromeGlyph.GITHUB ->
             "M12 0.297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385 0.6 0.113 0.82-0.258 " +

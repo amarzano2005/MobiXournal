@@ -110,9 +110,10 @@ its proportions are the figure's to change — while a **picture**'s and a **mix
 (`ResizeAxis.BOTH`, one ratio for both axes); the one handle an image gives up is the turn,
 because its model carries no rotation. Both shells share this rule and the corner/edge scale math through
 `render/SelectionResizeMath.kt`: holding `Shift` on Desktop or toggling **Lock proportions**
-(`ChromeGlyph.ASPECT_LOCK`) on Android's `SelectionActionBar` forces `ResizeAxis.BOTH` (`sx == sy`) on any
-corner drag, including a single `ParametricShapeElement` (switching its vertex grips to proportional corner
-handles while locked). Both shells cap a handle's reach **per axis**, at a third of that axis's own
+(`ChromeGlyph.ASPECT_LOCK` / `ChromeGlyph.ASPECT_UNLOCK`) on Android's `SelectionActionBar` forces
+`ResizeAxis.BOTH` (`sx == sy`) on any corner drag, including a single `ParametricShapeElement` (switching
+its vertex grips to the eight box handles while locked, so corners scale proportionally and edge-midpoint
+handles continue to stretch X and Y separately). Both shells cap a handle's reach **per axis**, at a third of that axis's own
 extent, so a small element keeps a middle to be moved by.
 
 A **line** and an **arrow** are not figures with a box to stretch: they are a **shaft**, with the two freedoms

@@ -31,9 +31,9 @@ its pages. Nothing is imported silently: the drop point is the element's placeme
 
 ## Align & distribute (`SelectionOps.align` / `distribute`)
 
-**Align & distribute (`SelectionOps.align` / `distribute`).** With two or more elements selected the
-same bar offers the six alignments — left/centre/right and top/middle/bottom — plus horizontal and
-vertical distribution. Alignment translates every selected element but the **anchor**: the outermost
+`SelectionOps.align` and `SelectionOps.distribute` in `mobix-core` remain tested pure page-list rewrites
+(the **Align & distribute** button/menu was removed from both shells' floating selection bars to keep the
+bars compact). Alignment translates every selected element but the **anchor**: the outermost
 one on that axis, so the group lines up on its own extent and nothing moves further than it has to
 (aligning left moves everything right of the leftmost element onto it, not all of them across the
 page). Distribution keeps the two end elements and respaces the rest evenly between them, sorting by
@@ -45,7 +45,7 @@ undo step, and both are no-ops — with no history entry — when the selection 
 ## The window's bar and its inspector lane
 
 A selection is not only something to drag: the window draws the tablet's **action bar** under its outline —
-Cut, Copy, Paste, Duplicate, Recolour, Line width, Align & distribute, Edit, Delete — and each is the shared
+Cut, Copy, Paste, Duplicate, Recolour, Line width, Edit, Delete — and each is the shared
 command, not a second implementation. The clipboard holds model elements, so a copied plot pastes as a live
 plot, a paste lands **beside** what it copied and stays selected, `Cut` is the copy and the deletion in one
 step, and `Ctrl+D` duplicates. Copy **never writes the system clipboard**: a drawing is not a string, and

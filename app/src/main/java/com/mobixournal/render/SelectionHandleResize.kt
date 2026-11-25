@@ -81,7 +81,7 @@ internal fun handleResizeStart(
             }
         }
     }
-    if (isSingleShape) return null
+    if (isSingleShape && !aspectLocked) return null
     // Edge-midpoint handles stretch one axis only — the out-of-proportion resize. The anchor is the
     // opposite edge's midpoint, so the far edge stays pinned while this one follows the pointer: pull
     // the right edge out and the element gets wider without getting taller.
