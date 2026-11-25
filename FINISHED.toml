@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "popup-motion-safe-insets-sync"
+title = "Fix popup fly-in, resize lag, safe-inset clamping, and 1:1 selection bar tracking"
+description = "Fixed popup fly-in from (0,0) and resize lag in LivingInspectorAnchor, clamped all anchored popups inside safeInsets (insetPadding), removed SelectionActionAnchor spring lag for 1:1 tracking, wired CircuitValueKeyboard to DialogPresence + SHEET spring, and added anchoredOffsetRespectsTopAndLeftSafeInsets test."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "material: FloatingSurface; tokens: DesignTokens.GlassMotion POPOVER/SHEET in place; states: 1:1 SelectionActionAnchor tracking; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, PlotInspectorAnchorTest, ShapeInspectorHelpersTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
+
+[[task]]
 id = "living-anchor-overlap-motion"
 title = "Add minimum-overlap placement and GlassMotion animations to all anchored popups"
 description = "Implemented 4-side minimum-overlap placement in anchoredInspectorOffset, wired DialogPresence + rememberClosingArgument + liquidGlassSpringAnimation + liquidGlassContentSize + animateIntOffsetAsState across LivingInspectorAnchor and LivingInspectorKeyboardBar, and added anchoredOffsetPicksMinimumOverlapWhenAllSidesTight test."

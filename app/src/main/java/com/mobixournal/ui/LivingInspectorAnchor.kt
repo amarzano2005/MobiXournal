@@ -1,18 +1,17 @@
 package com.mobixournal.ui
 
 import android.graphics.RectF
-import androidx.compose.animation.core.animateIntOffsetAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,6 +24,7 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.ui.theme.FloatingSurface
 import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
-import com.mobixournal.ui.theme.liquidGlassContentSize
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import kotlin.math.roundToInt
 
@@ -66,8 +65,8 @@ private fun overlapAreaPx(
 
 /**
  * Pure positioning helper for an anchored living-element inspector: evaluates all four sides
- * (right, left, below, above) inside [canvasSize] and picks the candidate with minimum overlap
- * over the figure (preserving Right > Left > Below > Above on ties).
+ * (right, left, below, above) inside `[minX..maxX] x [minY..maxY]` and picks the candidate with
+ * minimum overlap over the figure (preserving Right > Left > Below > Above on ties).
  */
 internal fun anchoredInspectorOffset(
     selectionLeft: Float?,
@@ -78,24 +77,31 @@ internal fun anchoredInspectorOffset(
     canvasSize: IntSize,
     gapPx: Int,
     marginPx: Int,
+    safeLeftPx: Int = 0,
+    safeTopPx: Int = 0,
+    safeRightPx: Int = 0,
+    safeBottomPx: Int = 0,
 ): IntOffset {
+    val minX = safeLeftPx + marginPx
+    val minY = safeTopPx + marginPx
+    val maxX = (canvasSize.width - safeRightPx - inspectorSize.width - marginPx).coerceAtLeast(minX)
+    val maxY = (canvasSize.height - safeBottomPx - inspectorSize.height - marginPx).coerceAtLeast(minY)
+
     if (selectionLeft == null || selectionRight == null || selectionTop == null || inspectorSize.width <= 0) {
-        val cx = ((canvasSize.width - inspectorSize.width) / 2).coerceAtLeast(marginPx)
-        val cy = ((canvasSize.height - inspectorSize.height) / 2).coerceAtLeast(marginPx)
+        val cx = ((minX + maxX) / 2).coerceIn(minX, maxX)
+        val cy = ((minY + maxY) / 2).coerceIn(minY, maxY)
         return IntOffset(cx, cy)
     }
 
-    val maxX = (canvasSize.width - inspectorSize.width - marginPx).coerceAtLeast(marginPx)
-    val maxY = (canvasSize.height - inspectorSize.height - marginPx).coerceAtLeast(marginPx)
     val bottom = selectionBottom ?: selectionTop
-    val centeredY = (((selectionTop + bottom) / 2f) - inspectorSize.height / 2f).toInt().coerceIn(marginPx, maxY)
-    val centeredX = (((selectionLeft + selectionRight) / 2f) - inspectorSize.width / 2f).toInt().coerceIn(marginPx, maxX)
+    val centeredY = (((selectionTop + bottom) / 2f) - inspectorSize.height / 2f).toInt().coerceIn(minY, maxY)
+    val centeredX = (((selectionLeft + selectionRight) / 2f) - inspectorSize.width / 2f).toInt().coerceIn(minX, maxX)
 
     val candidates = listOf(
-        IntOffset((selectionRight + gapPx).toInt().coerceIn(marginPx, maxX), centeredY),
-        IntOffset((selectionLeft - gapPx - inspectorSize.width).toInt().coerceIn(marginPx, maxX), centeredY),
-        IntOffset(centeredX, (bottom + gapPx).toInt().coerceIn(marginPx, maxY)),
-        IntOffset(centeredX, (selectionTop - gapPx - inspectorSize.height).toInt().coerceIn(marginPx, maxY)),
+        IntOffset((selectionRight + gapPx).toInt().coerceIn(minX, maxX), centeredY),
+        IntOffset((selectionLeft - gapPx - inspectorSize.width).toInt().coerceIn(minX, maxX), centeredY),
+        IntOffset(centeredX, (bottom + gapPx).toInt().coerceIn(minY, maxY)),
+        IntOffset(centeredX, (selectionTop - gapPx - inspectorSize.height).toInt().coerceIn(minY, maxY)),
     )
     return candidates.minByOrNull { pos ->
         overlapAreaPx(pos.x, pos.y, inspectorSize.width, inspectorSize.height, selectionLeft, selectionTop, selectionRight, bottom)
@@ -110,34 +116,45 @@ internal fun draggedInspectorOffset(
     delta: Offset,
     inspectorSize: IntSize,
     canvasSize: IntSize,
+    minX: Int = 0,
+    minY: Int = 0,
+    safeRightPx: Int = 0,
+    safeBottomPx: Int = 0,
 ): IntOffset {
-    val maxX = (canvasSize.width - inspectorSize.width).coerceAtLeast(0)
-    val maxY = (canvasSize.height - inspectorSize.height).coerceAtLeast(0)
+    val maxX = (canvasSize.width - safeRightPx - inspectorSize.width).coerceAtLeast(minX)
+    val maxY = (canvasSize.height - safeBottomPx - inspectorSize.height).coerceAtLeast(minY)
     return IntOffset(
-        (start.x + delta.x.roundToInt()).coerceIn(0, maxX),
-        (start.y + delta.y.roundToInt()).coerceIn(0, maxY),
+        (start.x + delta.x.roundToInt()).coerceIn(minX, maxX),
+        (start.y + delta.y.roundToInt()).coerceIn(minY, maxY),
     )
 }
 
 /**
- * Clamps a placed [offset] into [canvasSize] without mutating the underlying placement.
+ * Clamps a placed [offset] into the safe region of [canvasSize] without mutating the underlying placement.
  */
 internal fun clampInspectorToCanvas(
     offset: IntOffset,
     inspectorSize: IntSize,
     canvasSize: IntSize,
     marginPx: Int = 0,
+    safeLeftPx: Int = 0,
+    safeTopPx: Int = 0,
+    safeRightPx: Int = 0,
+    safeBottomPx: Int = 0,
 ): IntOffset {
-    val maxX = (canvasSize.width - inspectorSize.width - marginPx).coerceAtLeast(marginPx)
-    val maxY = (canvasSize.height - inspectorSize.height - marginPx).coerceAtLeast(marginPx)
-    return IntOffset(offset.x.coerceIn(marginPx, maxX), offset.y.coerceIn(marginPx, maxY))
+    val minX = safeLeftPx + marginPx
+    val minY = safeTopPx + marginPx
+    val maxX = (canvasSize.width - safeRightPx - inspectorSize.width - marginPx).coerceAtLeast(minX)
+    val maxY = (canvasSize.height - safeBottomPx - inspectorSize.height - marginPx).coerceAtLeast(minY)
+    return IntOffset(offset.x.coerceIn(minX, maxX), offset.y.coerceIn(minY, maxY))
 }
 
 /**
  * Shared floating container for **anchored** living-element inspectors (such as plot, shape and circuit).
  *
- * Picks the side with minimum overlap over the figure, animates arrival/departure and size/position
- * changes on [DesignTokens.GlassMotion], and stays instant during manual header drags.
+ * Keeps the canvas's own `(0, 0)` coordinate space so [anchorRect] matches directly, while clamping
+ * strictly inside [safeInsets] (below the tab strip / top bar and clear of the rail) and above any
+ * docked keyboard. Plays [DesignTokens.GlassMotion.SurfaceRole.POPOVER] in place on arrival/departure.
  */
 @Composable
 internal fun LivingInspectorAnchor(
@@ -145,6 +162,7 @@ internal fun LivingInspectorAnchor(
     anchorRect: RectF?,
     canvasSizePx: IntSize,
     modifier: Modifier = Modifier,
+    safeInsets: PaddingValues = PaddingValues(0.dp),
     minWidth: Dp = 240.dp,
     maxWidth: Dp = 360.dp,
     keyboardHeightPx: Int = 0,
@@ -154,62 +172,53 @@ internal fun LivingInspectorAnchor(
     content: @Composable (dragModifier: Modifier) -> Unit,
 ) {
     val density = LocalDensity.current
+    val dir = LocalLayoutDirection.current
     val gapPx = with(density) { gapDp.roundToPx() }
     val marginPx = with(density) { marginDp.roundToPx() }
+    val safeL = with(density) { safeInsets.calculateStartPadding(dir).roundToPx() }
+    val safeT = with(density) { safeInsets.calculateTopPadding().roundToPx() }
+    val safeR = with(density) { safeInsets.calculateEndPadding(dir).roundToPx() }
+    val safeB = with(density) { safeInsets.calculateBottomPadding().roundToPx() }
+
     val effectiveCanvas = effectiveInspectorCanvasSize(canvasSizePx, WindowInsets.ime.getBottom(density), keyboardHeightPx)
-    val maxH = with(density) { (effectiveCanvas.height - 2 * marginPx).coerceAtLeast(0).toDp() }
-    val maxW = minOf(maxWidth, with(density) { (effectiveCanvas.width - 2 * marginPx).coerceAtLeast(0).toDp() })
+    val availH = (effectiveCanvas.height - safeT - safeB - 2 * marginPx).coerceAtLeast(0)
+    val availW = (effectiveCanvas.width - safeL - safeR - 2 * marginPx).coerceAtLeast(0)
+    val maxH = with(density) { availH.toDp() }
+    val maxW = minOf(maxWidth, with(density) { availW.toDp() })
     val minW = minOf(minWidth, maxW)
 
     val rememberedAnchor = remember(sessionKey) { anchorRect }
     var inspectorSize by remember(sessionKey) { mutableStateOf(IntSize.Zero) }
-    var placement by remember(sessionKey) { mutableStateOf<IntOffset?>(null) }
-    var userDragged by remember(sessionKey) { mutableStateOf(false) }
-    var isDragging by remember(sessionKey) { mutableStateOf(false) }
+    var draggedPlacement by remember(sessionKey) { mutableStateOf<IntOffset?>(null) }
 
-    LaunchedEffect(sessionKey, effectiveCanvas, inspectorSize, userDragged) {
-        if (!userDragged && inspectorSize.width > 0) {
-            placement = anchoredInspectorOffset(
-                rememberedAnchor?.left, rememberedAnchor?.top, rememberedAnchor?.right, rememberedAnchor?.bottom,
-                inspectorSize, effectiveCanvas, gapPx, marginPx,
-            )
-        }
-    }
-
-    val targetOffset = placement?.let { clampInspectorToCanvas(it, inspectorSize, effectiveCanvas, marginPx) }
-    val animatedOffset by animateIntOffsetAsState(
-        targetValue = targetOffset ?: IntOffset.Zero,
-        animationSpec = spring(
-            dampingRatio = DesignTokens.GlassMotion.OPEN_DAMPING_RATIO,
-            stiffness = DesignTokens.GlassMotion.OPEN_STIFFNESS,
-        ),
-        label = "inspectorOffset",
-    )
-    val shownOffset = if (isDragging) targetOffset else animatedOffset
+    val computedOffset = if (inspectorSize.width > 0) {
+        draggedPlacement?.let {
+            clampInspectorToCanvas(it, inspectorSize, effectiveCanvas, marginPx, safeL, safeT, safeR, safeB)
+        } ?: anchoredInspectorOffset(
+            rememberedAnchor?.left, rememberedAnchor?.top, rememberedAnchor?.right, rememberedAnchor?.bottom,
+            inspectorSize, effectiveCanvas, gapPx, marginPx, safeL, safeT, safeR, safeB,
+        )
+    } else null
 
     val latestCanvas by rememberUpdatedState(effectiveCanvas)
     val latestSize by rememberUpdatedState(inspectorSize)
-    val latestMargin by rememberUpdatedState(marginPx)
+    val latestOffset by rememberUpdatedState(computedOffset)
     val dragModifier = Modifier.pointerInput(sessionKey) {
-        detectDragGestures(
-            onDragStart = { isDragging = true },
-            onDragEnd = { isDragging = false },
-            onDragCancel = { isDragging = false },
-        ) { change, dragAmount ->
+        detectDragGestures { change, dragAmount ->
             change.consume()
-            val stored = placement ?: return@detectDragGestures
-            userDragged = true
-            val clamped = clampInspectorToCanvas(stored, latestSize, latestCanvas, latestMargin)
-            placement = draggedInspectorOffset(clamped, dragAmount, latestSize, latestCanvas)
+            val current = draggedPlacement ?: latestOffset ?: return@detectDragGestures
+            draggedPlacement = draggedInspectorOffset(
+                current, dragAmount, latestSize, latestCanvas, safeL + marginPx, safeT + marginPx, safeR + marginPx, safeB + marginPx,
+            )
         }
     }
 
     FloatingSurface(
         modifier = modifier
-            .alpha(if (targetOffset == null) 0f else 1f)
-            .offset { shownOffset ?: IntOffset.Zero }
+            .alpha(if (computedOffset == null) 0f else 1f)
+            .offset { computedOffset ?: IntOffset.Zero }
             .liquidGlassSpringAnimation(
-                expanded = !LocalFloatingSurfaceClosing.current,
+                expanded = !LocalFloatingSurfaceClosing.current && computedOffset != null,
                 origin = TransformOrigin(0.5f, 0.5f),
                 role = DesignTokens.GlassMotion.SurfaceRole.POPOVER,
             )
@@ -218,8 +227,6 @@ internal fun LivingInspectorAnchor(
             .heightIn(max = maxH)
             .padding(4.dp),
     ) {
-        Box(modifier = Modifier.liquidGlassContentSize()) {
-            content(dragModifier)
-        }
+        content(dragModifier)
     }
 }

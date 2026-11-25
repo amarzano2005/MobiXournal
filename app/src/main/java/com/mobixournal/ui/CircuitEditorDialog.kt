@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -55,9 +56,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitLabelSide
 import com.mobixournal.render.replaceCircuitElement
+import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.FloatingSurface
 import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
@@ -81,6 +84,7 @@ fun CircuitInspectorAnchor(
     ui: EditorUiState,
     canvasSizePx: IntSize,
     modifier: Modifier = Modifier,
+    safeInsets: PaddingValues = PaddingValues(0.dp),
     onDismiss: () -> Unit = { ui.editingCircuit = null },
 ) {
     val circuit = rememberClosingArgument(ui.editingCircuit) ?: return
@@ -113,10 +117,10 @@ fun CircuitInspectorAnchor(
             sessionKey = session,
             anchorRect = pane.selectionRect,
             canvasSizePx = canvasSizePx,
+            safeInsets = safeInsets,
             minWidth = 240.dp,
             maxWidth = 290.dp,
             keyboardHeightPx = if (keyboardOpen) keyboardHeight else 0,
-            animateSurface = true,
         ) { dragModifier ->
             CircuitInspectorContent(
                 circuit = circuit,
@@ -146,24 +150,23 @@ fun CircuitInspectorAnchor(
                 dragModifier = dragModifier,
             )
         }
-        if (keyboardOpen) {
+        DialogPresence(keyboardOpen) {
             CircuitValueKeyboard(
                 field = field,
                 onFieldChange = { field = it },
                 onDone = { keyboardOpen = false },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    // Measured first, so the height reserved for it is the whole keyboard — the insets
-                    // and the air around it included — and the panel above clears every key.
                     .onSizeChanged { keyboardHeight = it.height }
-                    // A keyboard, not a grid across the whole tablet: the keys keep a thumb's width
-                    // instead of stretching to a quarter of the canvas each.
                     .widthIn(max = KEYBOARD_MAX_WIDTH)
                     .fillMaxWidth()
-                    // The window is edge-to-edge, so without this the last row (the pages, the arrows,
-                    // Done) would sit under the gesture bar and be unreachable.
                     .navigationBarsPadding()
-                    .padding(8.dp),
+                    .padding(8.dp)
+                    .liquidGlassSpringAnimation(
+                        expanded = !LocalFloatingSurfaceClosing.current,
+                        origin = TransformOrigin(0.5f, 1f),
+                        role = DesignTokens.GlassMotion.SurfaceRole.SHEET,
+                    ),
             )
         }
     }

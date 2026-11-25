@@ -97,4 +97,22 @@ class LivingInspectorAnchorTest {
         )
         assertEquals(IntOffset(x = 160, y = 432), offset)
     }
+
+    @Test
+    fun anchoredOffsetRespectsTopAndLeftSafeInsets() {
+        val offset = anchoredInspectorOffset(
+            selectionLeft = 100f,
+            selectionTop = 10f,
+            selectionRight = 400f,
+            selectionBottom = 180f,
+            inspectorSize = IntSize(width = 280, height = 300),
+            canvasSize = IntSize(width = 1200, height = 800),
+            gapPx = 12,
+            marginPx = 8,
+            safeLeftPx = 64,
+            safeTopPx = 96,
+        )
+        // Must stay at or below safeTopPx + marginPx = 104
+        assertEquals(IntOffset(x = 412, y = 104), offset)
+    }
 }

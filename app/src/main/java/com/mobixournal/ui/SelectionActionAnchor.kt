@@ -88,17 +88,8 @@ fun SelectionActionAnchor(
         gapPx = gapPx,
         marginPx = marginPx,
     )
-    // The placement **glides** instead of jumping, but only once the bar has been measured. Before that
-    // its target is the parked margin, and an offset animation started there carried the bar in from the
-    // top of the canvas. Creating the animation state at the first real placement makes it begin *at* its
-    // target, so the bar appears where it belongs; a later change of shape (Paste alone ↔ the whole set,
-    // an Edit button arriving) still glides into place instead of snapping.
-    val placed = if (measured) {
-        val gliding by animateIntOffsetAsState(offset, label = "selectionBarPlace")
-        gliding
-    } else {
-        offset
-    }
+    // Track the selection's live bounds 1:1 with zero spring lag so the bar moves in lockstep
+    // with the dragged element; arrival motion is owned by [liquidGlassSpringAnimation].
     SelectionActionBar(
         hasSelection = rect != null,
         canPaste = canPaste,
@@ -132,13 +123,13 @@ fun SelectionActionAnchor(
         canEditCircuit = surface?.singleSelectedCircuit() != null,
         onEditCircuit = {
             surface?.singleSelectedCircuit()?.let { circuit ->
-                ui.editingCircuit = circuit
+                ui.openCircuitInspector(circuit)
             }
         },
         aspectLocked = aspectLocked,
         onToggleAspectLock = { aspectLocked = !aspectLocked; surface?.setSelectionAspectLocked(aspectLocked) },
         modifier = modifier
-            .offset { placed }
+            .offset { offset }
             // The arrival is the app's one floating-surface motion — the glass spring's scale and fade,
             // played **in place**. The bar is a surface over the page, so it appears where the selection
             // is instead of sliding in from an edge. Applied before the bar's own fill, so the layer

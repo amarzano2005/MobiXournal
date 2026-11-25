@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -76,6 +77,7 @@ fun ShapeEditorHost(
     pane: PaneState,
     canvasSizePx: IntSize,
     modifier: Modifier = Modifier,
+    safeInsets: PaddingValues = PaddingValues(0.dp),
 ) {
     val shape = rememberClosingArgument(ui.editingShape) ?: return
     val surface = pane.surface
@@ -92,10 +94,10 @@ fun ShapeEditorHost(
                 sessionKey = session,
                 anchorRect = pane.selectionRect,
                 canvasSizePx = canvasSizePx,
+                safeInsets = safeInsets,
                 minWidth = 280.dp,
                 maxWidth = 320.dp,
                 keyboardHeightPx = if (keyboard.isOpen) keyboardHeight else 0,
-                animateSurface = true,
             ) { dragModifier ->
                 ShapeInspectorPanel(
                     shape = shape,

@@ -4,6 +4,7 @@ import android.graphics.RectF
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -158,6 +159,7 @@ fun PlotInspectorAnchor(
     ui: EditorUiState,
     canvasSizePx: IntSize,
     modifier: Modifier = Modifier,
+    safeInsets: PaddingValues = PaddingValues(0.dp),
     onDismiss: () -> Unit = { ui.editingPlot = null },
 ) {
     val plot = rememberClosingArgument(ui.editingPlot) ?: return
@@ -219,10 +221,10 @@ fun PlotInspectorAnchor(
                 sessionKey = ui.plotInspectorSession,
                 anchorRect = pane.selectionRect,
                 canvasSizePx = canvasSizePx,
+                safeInsets = safeInsets,
                 minWidth = 272.dp,
                 maxWidth = 288.dp,
                 keyboardHeightPx = if (keyboard.isOpen) keyboardHeight else 0,
-                animateSurface = true,
             ) { dragModifier ->
                 PlotInspectorPanel(
                     state = state,
