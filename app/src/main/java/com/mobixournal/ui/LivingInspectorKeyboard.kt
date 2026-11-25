@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -46,7 +47,11 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.DesignTokens
+import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.FloatingSurface
+import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
+import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 
 /** Which compact in-app keyboard profile an anchored inspector field asks for. */
 enum class LivingKeyboardKind {
@@ -348,38 +353,44 @@ internal fun LivingInspectorKeyboardBar(
     controller: LivingKeyboardController,
     modifier: Modifier = Modifier,
 ) {
-    if (!controller.isOpen) return
-    val maxWidth = when (controller.kind) {
-        LivingKeyboardKind.NUMERIC -> 300.dp
-        LivingKeyboardKind.FORMULA -> 460.dp
-    }
-    FloatingSurface(
-        modifier = modifier
-            .widthIn(max = maxWidth)
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(8.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+    DialogPresence(controller.isOpen) {
+        val maxWidth = when (controller.kind) {
+            LivingKeyboardKind.NUMERIC -> 300.dp
+            LivingKeyboardKind.FORMULA -> 460.dp
+        }
+        FloatingSurface(
+            modifier = modifier
+                .widthIn(max = maxWidth)
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(8.dp)
+                .liquidGlassSpringAnimation(
+                    expanded = !LocalFloatingSurfaceClosing.current,
+                    origin = TransformOrigin(0.5f, 1f),
+                    role = DesignTokens.GlassMotion.SurfaceRole.SHEET,
+                ),
         ) {
-            KeyboardActiveViewer(
-                label = controller.activeLabel,
-                text = valueWithCaret(controller.field.text, controller.field.selection.min),
-            )
-            when (controller.kind) {
-                LivingKeyboardKind.NUMERIC -> NumericKeyGrid(
-                    allowNegative = controller.allowNegative,
-                    onKey = controller::applyKey,
+            Column(
+                modifier = Modifier.padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                KeyboardActiveViewer(
+                    label = controller.activeLabel,
+                    text = valueWithCaret(controller.field.text, controller.field.selection.min),
                 )
-                LivingKeyboardKind.FORMULA -> FormulaKeyGrid(onKey = controller::applyKey)
+                when (controller.kind) {
+                    LivingKeyboardKind.NUMERIC -> NumericKeyGrid(
+                        allowNegative = controller.allowNegative,
+                        onKey = controller::applyKey,
+                    )
+                    LivingKeyboardKind.FORMULA -> FormulaKeyGrid(onKey = controller::applyKey)
+                }
+                KeyboardActionRow(
+                    onLeft = { controller.moveCaret(-1) },
+                    onRight = { controller.moveCaret(1) },
+                    onDone = controller::close,
+                )
             }
-            KeyboardActionRow(
-                onLeft = { controller.moveCaret(-1) },
-                onRight = { controller.moveCaret(1) },
-                onDone = controller::close,
-            )
         }
     }
 }

@@ -52,6 +52,8 @@ import com.mobixournal.format.model.PlotKind
 import com.mobixournal.render.PlotCurve
 import com.mobixournal.render.PlotElementFactory
 import com.mobixournal.render.replacePlotElement
+import com.mobixournal.ui.theme.DialogPresence
+import com.mobixournal.ui.theme.rememberClosingArgument
 import com.mobixournal.ui.theme.FloatingSurface
 
 /**
@@ -158,7 +160,7 @@ fun PlotInspectorAnchor(
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit = { ui.editingPlot = null },
 ) {
-    val plot = ui.editingPlot ?: return
+    val plot = rememberClosingArgument(ui.editingPlot) ?: return
     val surface = pane.surface
     val initialPlot = remember(ui.plotInspectorSession) { plot }
     val state = rememberPlotInspectorState(plot, ui.plotInspectorSession)
@@ -240,14 +242,12 @@ fun PlotInspectorAnchor(
             }
         }
 
-        if (keyboard.isOpen) {
-            LivingInspectorKeyboardBar(
-                controller = keyboard,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .onSizeChanged { keyboardHeight = it.height },
-            )
-        }
+        LivingInspectorKeyboardBar(
+            controller = keyboard,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .onSizeChanged { keyboardHeight = it.height },
+        )
     }
 }
 

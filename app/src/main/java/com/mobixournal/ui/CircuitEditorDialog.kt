@@ -61,6 +61,7 @@ import com.mobixournal.render.replaceCircuitElement
 import com.mobixournal.ui.theme.FloatingSurface
 import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
+import com.mobixournal.ui.theme.rememberClosingArgument
 import kotlin.math.round
 import kotlin.math.roundToInt
 
@@ -82,7 +83,7 @@ fun CircuitInspectorAnchor(
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit = { ui.editingCircuit = null },
 ) {
-    val circuit = ui.editingCircuit ?: return
+    val circuit = rememberClosingArgument(ui.editingCircuit) ?: return
     val surface = pane.surface
     val session = ui.circuitInspectorSession
 

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "living-anchor-overlap-motion"
+title = "Add minimum-overlap placement and GlassMotion animations to all anchored popups"
+description = "Implemented 4-side minimum-overlap placement in anchoredInspectorOffset, wired DialogPresence + rememberClosingArgument + liquidGlassSpringAnimation + liquidGlassContentSize + animateIntOffsetAsState across LivingInspectorAnchor and LivingInspectorKeyboardBar, and added anchoredOffsetPicksMinimumOverlapWhenAllSidesTight test."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "material: FloatingSurface; tokens: DesignTokens.GlassMotion POPOVER/SHEET + liquidGlassContentSize + animateIntOffsetAsState; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, PlotInspectorAnchorTest, ShapeInspectorHelpersTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
+
+[[task]]
 id = "living-anchor-center-align"
 title = "Center anchored popup vertically with figure across expand/collapse"
 description = "Centered LivingInspectorAnchor vertically with selection center and re-centered on size changes while !userDragged; updated LivingInspectorAnchorTest and PlotInspectorAnchorTest."

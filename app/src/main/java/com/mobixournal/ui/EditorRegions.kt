@@ -1668,7 +1668,7 @@ fun EditorPaneView(
                 canvasSizePx = canvasSizePx,
                 modifier = Modifier.align(Alignment.TopStart),
             )
-            if (ui.editingPlot != null) {
+            DialogPresence(ui.editingPlot != null) {
                 PlotInspectorAnchor(
                     pane = state,
                     ui = ui,
@@ -1694,10 +1694,12 @@ fun EditorPaneView(
                     onDismiss = { ui.editingMathBlock = null },
                 )
             }
-            ShapeEditorHost(ui, state, canvasSizePx, Modifier.fillMaxSize())
+            DialogPresence(ui.editingShape != null) {
+                ShapeEditorHost(ui, state, canvasSizePx, Modifier.fillMaxSize())
+            }
             // The **Manage pages** card (its own file: the flag, the card and its two commands).
             PageRangeHost(ui, state.surface, state.pageCount)
-            if (ui.editingCircuit != null) {
+            DialogPresence(ui.editingCircuit != null) {
                 // The inspector places itself inside the canvas and hosts its own keyboard along the
                 // bottom edge, so the overlay takes the whole box rather than an aligned corner of it.
                 CircuitInspectorAnchor(

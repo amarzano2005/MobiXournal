@@ -54,6 +54,7 @@ import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.ShapeVertex
 import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.replaceShapeElement
+import com.mobixournal.ui.theme.rememberClosingArgument
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 
@@ -76,7 +77,7 @@ fun ShapeEditorHost(
     canvasSizePx: IntSize,
     modifier: Modifier = Modifier,
 ) {
-    val shape = ui.editingShape ?: return
+    val shape = rememberClosingArgument(ui.editingShape) ?: return
     val surface = pane.surface
     val session = ui.shapeInspectorSession
     val onDismiss = { ui.editingShape = null }
@@ -108,14 +109,12 @@ fun ShapeEditorHost(
                 )
             }
         }
-        if (keyboard.isOpen) {
-            LivingInspectorKeyboardBar(
-                controller = keyboard,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .onSizeChanged { keyboardHeight = it.height },
-            )
-        }
+        LivingInspectorKeyboardBar(
+            controller = keyboard,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .onSizeChanged { keyboardHeight = it.height },
+        )
     }
 }
 

@@ -80,4 +80,21 @@ class LivingInspectorAnchorTest {
         // Neither right (612+280 > 712) nor left (100-12-280 < 8) fits -> below at 350+12 = 362, centered x = 350 - 140 = 210
         assertEquals(IntOffset(x = 210, y = 362), offset)
     }
+
+    @Test
+    fun anchoredOffsetPicksMinimumOverlapWhenAllSidesTight() {
+        // Figure occupies [80..520] x [120..420] on a 600x700 canvas; inspector is 280x220.
+        // Right/Left overlap heavily with the figure, whereas Below (420+12=432, height 220 -> 652 <= 692) has 0 overlap.
+        val offset = anchoredInspectorOffset(
+            selectionLeft = 80f,
+            selectionTop = 120f,
+            selectionRight = 520f,
+            selectionBottom = 420f,
+            inspectorSize = IntSize(width = 280, height = 220),
+            canvasSize = IntSize(width = 600, height = 700),
+            gapPx = 12,
+            marginPx = 8,
+        )
+        assertEquals(IntOffset(x = 160, y = 432), offset)
+    }
 }
