@@ -210,8 +210,8 @@ fun PlotInspectorAnchor(
                 sessionKey = ui.plotInspectorSession,
                 anchorRect = pane.selectionRect,
                 canvasSizePx = canvasSizePx,
-                minWidth = 280.dp,
-                maxWidth = 320.dp,
+                minWidth = 272.dp,
+                maxWidth = 288.dp,
                 keyboardHeightPx = if (keyboard.isOpen) keyboardHeight else 0,
                 animateSurface = true,
             ) { dragModifier ->
@@ -292,11 +292,12 @@ private fun PlotInspectorHeader(
     modifier: Modifier = Modifier,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(
+            modifier = modifier.weight(1f),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -329,7 +330,7 @@ private fun PlotInspectorBody(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(max = 420.dp),
+            .heightIn(max = 330.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         when (tab) {

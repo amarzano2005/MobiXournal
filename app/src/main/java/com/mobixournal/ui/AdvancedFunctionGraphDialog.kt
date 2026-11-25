@@ -373,11 +373,23 @@ internal fun DialogInputsColumn(
 @Composable
 private fun ModeSelectorPill(modeTab: Int, onModeTabChange: (Int) -> Unit) {
     if (LocalLivingKeyboard.current != null) {
-        InspectorTabBar(
-            labels = listOf("Cartesian y=f(x)", "Parametric {x, y}"),
-            selectedIndex = modeTab,
-            onSelect = onModeTabChange,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            InspectorChip(
+                label = "Cartesian",
+                selected = modeTab == 0,
+                onClick = { onModeTabChange(0) },
+                modifier = Modifier.weight(1f),
+            )
+            InspectorChip(
+                label = "Parametric",
+                selected = modeTab == 1,
+                onClick = { onModeTabChange(1) },
+                modifier = Modifier.weight(1f),
+            )
+        }
         return
     }
     Surface(

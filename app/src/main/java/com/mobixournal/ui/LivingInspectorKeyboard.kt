@@ -2,10 +2,12 @@ package com.mobixournal.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -116,8 +118,8 @@ internal class LivingKeyboardController(
 internal val LocalLivingKeyboard = compositionLocalOf<LivingKeyboardController?> { null }
 
 /**
- * Unified compact chip for anchored inspectors: clips to `8.dp` before `clickable` so
- * ripples and hover states strictly follow the rounded geometry.
+ * Secondary option pill for anchored inspectors: subtle fill without heavy border so
+ * editable [LivingDisplayField] inputs remain visually primary. Clips to `8.dp` before `clickable`.
  */
 @Composable
 internal fun InspectorChip(
@@ -130,10 +132,9 @@ internal fun InspectorChip(
     val shape = RoundedCornerShape(8.dp)
     Surface(
         shape = shape,
-        color = if (selected) scheme.primaryContainer.copy(alpha = 0.45f) else scheme.surfaceVariant.copy(alpha = 0.25f),
-        border = BorderStroke(1.dp, if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.7f)),
+        color = if (selected) scheme.primary.copy(alpha = 0.16f) else scheme.surfaceVariant.copy(alpha = 0.22f),
         modifier = modifier
-            .height(32.dp)
+            .height(30.dp)
             .clip(shape)
             .semantics { role = Role.Button }
             .clickable(onClick = onClick),
@@ -155,7 +156,8 @@ internal fun InspectorChip(
 }
 
 /**
- * Single-row segmented tab bar for anchored inspectors, sharing one material and clipped geometry.
+ * Level-1 underline navigation tabs for anchored inspectors — no boxes or borders so tabs
+ * read clearly above the body controls.
  */
 @Composable
 internal fun InspectorTabBar(
@@ -164,17 +166,41 @@ internal fun InspectorTabBar(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        labels.forEachIndexed { index, label ->
-            InspectorChip(
-                label = label,
-                selected = index == selectedIndex,
-                onClick = { onSelect(index) },
-                modifier = Modifier.weight(1f),
-            )
+    val scheme = MaterialTheme.colorScheme
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            labels.forEachIndexed { index, label ->
+                val active = index == selectedIndex
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(6.dp))
+                        .semantics { role = Role.Tab }
+                        .clickable { onSelect(index) }
+                        .padding(top = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (active) scheme.primary else scheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .height(2.dp)
+                            .background(
+                                if (active) scheme.primary else scheme.outlineVariant.copy(alpha = 0f),
+                            ),
+                    )
+                }
+            }
         }
     }
 }

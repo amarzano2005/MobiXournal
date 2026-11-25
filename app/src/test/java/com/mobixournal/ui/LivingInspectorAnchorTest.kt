@@ -64,4 +64,20 @@ class LivingInspectorAnchorTest {
         controller.close()
         assertEquals(false, controller.isOpen)
     }
+
+    @Test
+    fun anchoredOffsetFallsBackBelowWhenNeitherSideFits() {
+        val offset = anchoredInspectorOffset(
+            selectionLeft = 100f,
+            selectionTop = 100f,
+            selectionRight = 600f,
+            selectionBottom = 350f,
+            inspectorSize = IntSize(width = 280, height = 300),
+            canvasSize = IntSize(width = 720, height = 800),
+            gapPx = 12,
+            marginPx = 8,
+        )
+        // Neither right (612+280 > 712) nor left (100-12-280 < 8) fits -> below at 350+12 = 362
+        assertEquals(IntOffset(x = 100, y = 362), offset)
+    }
 }

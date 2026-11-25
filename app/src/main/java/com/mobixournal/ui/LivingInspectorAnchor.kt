@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -68,23 +69,31 @@ internal fun anchoredInspectorOffset(
     val preferredLeftX = (selectionLeft - gapPx - inspectorSize.width).toInt()
     val fitsLeft = preferredLeftX >= marginPx
 
-    val x = when {
-        fitsRight -> preferredRightX
-        fitsLeft -> preferredLeftX
-        else -> {
-            val spaceRight = canvasSize.width - selectionRight
-            val spaceLeft = selectionLeft
-            if (spaceRight >= spaceLeft) {
-                (canvasSize.width - inspectorSize.width - marginPx).coerceAtLeast(marginPx)
-            } else {
-                marginPx
-            }
+    val maxX = (canvasSize.width - inspectorSize.width - marginPx).coerceAtLeast(marginPx)
+    val maxY = (canvasSize.height - inspectorSize.height - marginPx).coerceAtLeast(marginPx)
+
+    if (fitsRight || fitsLeft) {
+        val x = if (fitsRight) preferredRightX else preferredLeftX
+        val y = selectionTop.toInt().coerceIn(marginPx, maxY)
+        return IntOffset(x, y)
+    }
+
+    if (selectionBottom != null && inspectorSize.height > 0) {
+        val preferredBelowY = (selectionBottom + gapPx).toInt()
+        val fitsBelow = preferredBelowY + inspectorSize.height <= canvasSize.height - marginPx
+        val preferredAboveY = (selectionTop - gapPx - inspectorSize.height).toInt()
+        val fitsAbove = preferredAboveY >= marginPx
+        if (fitsBelow || fitsAbove) {
+            val x = selectionLeft.toInt().coerceIn(marginPx, maxX)
+            val y = if (fitsBelow) preferredBelowY else preferredAboveY
+            return IntOffset(x, y)
         }
     }
 
-    val maxY = (canvasSize.height - inspectorSize.height - marginPx).coerceAtLeast(marginPx)
+    val spaceRight = canvasSize.width - selectionRight
+    val spaceLeft = selectionLeft
+    val x = if (spaceRight >= spaceLeft) maxX else marginPx
     val y = selectionTop.toInt().coerceIn(marginPx, maxY)
-
     return IntOffset(x, y)
 }
 
@@ -174,17 +183,26 @@ internal fun LivingInspectorAnchor(
         clampInspectorToCanvas(it, inspectorSize, effectiveCanvasSize, marginPx)
     }
 
-    val dragModifier = Modifier.pointerInput(sessionKey, effectiveCanvasSize) {
+    val latestCanvasSize by rememberUpdatedState(effectiveCanvasSize)
+    val latestInspectorSize by rememberUpdatedState(inspectorSize)
+    val latestMarginPx by rememberUpdatedState(marginPx)
+
+    val dragModifier = Modifier.pointerInput(sessionKey) {
         detectDragGestures { change, dragAmount ->
             change.consume()
-            displayOffset?.let { current ->
-                placement = draggedInspectorOffset(
-                    start = current,
-                    delta = dragAmount,
-                    inspectorSize = inspectorSize,
-                    canvasSize = effectiveCanvasSize,
-                )
-            }
+            val stored = placement ?: return@detectDragGestures
+            val clamped = clampInspectorToCanvas(
+                offset = stored,
+                inspectorSize = latestInspectorSize,
+                canvasSize = latestCanvasSize,
+                marginPx = latestMarginPx,
+            )
+            placement = draggedInspectorOffset(
+                start = clamped,
+                delta = dragAmount,
+                inspectorSize = latestInspectorSize,
+                canvasSize = latestCanvasSize,
+            )
         }
     }
 
