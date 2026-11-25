@@ -67,7 +67,7 @@ fun singleElementOf(page: Page, selection: PageSelection): Element? =
 const val ROTATE_HANDLE_GAP_PT = 26.0
 
 /** The smallest scale a handle drag may produce, so a flourish cannot collapse the selection to a line. */
-const val MIN_SELECTION_SCALE = 0.05
+const val MIN_SELECTION_SCALE = com.mobixournal.render.SelectionResizeMath.MIN_SCALE
 
 /**
  * The largest scale a handle drag may produce, so a stretch cannot fling the selection off the page.
@@ -75,7 +75,7 @@ const val MIN_SELECTION_SCALE = 0.05
  * The tablet's own ceiling (`DrawingSurfaceDefaults.MAX_RESIZE`): a factor read off a drag is a ratio of a
  * span, and on a small box a hand's travel divided by a short span runs away.
  */
-const val MAX_SELECTION_SCALE = 20.0
+const val MAX_SELECTION_SCALE = com.mobixournal.render.SelectionResizeMath.MAX_SCALE
 
 /**
  * The extent below which a box is **a line** on that axis rather than a box: the thickness a pen draws, so a
@@ -85,7 +85,7 @@ const val MAX_SELECTION_SCALE = 20.0
  * Stretching across such an axis could only multiply it by a factor read from a point or two of travel, which
  * is why the handles that would do it are not offered there (`docs/selection.md`).
  */
-const val FLAT_PT = 4.0
+const val FLAT_PT = com.mobixournal.render.SelectionResizeMath.FLAT_PT
 
 /** True when the box has no extent worth stretching along x — a line, not a box with a width. */
 val Bounds.isFlatX: Boolean get() = width <= FLAT_PT
@@ -98,36 +98,13 @@ fun rotateHandleOf(bounds: Bounds, gapPt: Double = ROTATE_HANDLE_GAP_PT): Pair<D
     ((bounds.left + bounds.right) / 2.0) to (bounds.top - gapPt)
 
 /**
- * What [selection]'s handle at page point (x, y) is — [SelectionHandle.NONE] when the point is off it.
- *
- * [tolPt] is the grab radius in page points, which the canvas derives from pixels so a handle is equally easy
- * to hit at every zoom. It is capped **per axis**, at a third of that axis's own extent, so a small selection
- * keeps a middle to be moved by. Capping each axis on its own extent is what makes a **line** behave: a
- * line's box is only as thick as the pen that drew it, and capping both axes by the smaller one left its end
- * handles with a grab radius of a point or two — a press on the end caught the handle, carried the whole line
- * or dropped the selection and started a new marquee, which reads as a tool that does something different
- * every time. An axis with no extent to speak of ([isFlatX] / [isFlatY]) has no middle to protect either, so
- * a handle there reaches the full radius.
- *
- * The rotate handle is checked first: it sits above the box, where nothing else can be, and a press meant for
- * it that landed a hair low should not start a new selection.
- *
- * Both families of handle are asked by default: the four corners and the four **edge midpoints**, which are
- * the tablet's own eight (`docs/selection.md`) — except on a box that is **flat** on an axis, which wears
- * neither the corners (they sit exactly where its two end handles are) nor the edges along that axis (a scale
- * there could only multiply by one). A line is stretched from its two ends, and the band between them carries
- * it, so a press above or below it still moves it instead of landing on nothing. [includeEdges] stays a
- * parameter only so a caller can state its intent; [includeRotate] is false for an image, whose model carries
- * no rotation.
- */
-/**
  * Whether a **corner** drag keeps the selection's proportions.
  *
- * An image's does: a picture is resized, never reshaped. A figure's does not — its corner is the free
- * stretch that widens a rectangle or squashes a triangle, and it is what a corner of the box has always
- * done in this window. `Shift` locks any corner, so a figure can still be scaled proportionally by hand.
+ * Pictures and mixed selections lock proportions by default; `Shift` locks any corner, so a figure
+ * can still be scaled proportionally by hand.
  */
-fun cornerLocksAspect(element: Element?, shift: Boolean): Boolean = shift || element is ImageElement
+fun cornerLocksAspect(element: Element?, shift: Boolean): Boolean =
+    com.mobixournal.render.SelectionResizeMath.cornerLocksAspect(element, shift, lockMixed = false)
 
 fun selectionHandleAt(
     selection: PageSelection,
@@ -260,56 +237,36 @@ fun scaleFactors(
     val (anchorX, anchorY) = anchorOf(bounds, handle)
     val flatX = bounds.isFlatX
     val flatY = bounds.isFlatY
-    when (handle) {
-        SelectionHandle.LEFT -> {
-            val spanX = bounds.left - anchorX
-            val sx = if (flatX || spanX == 0.0) 1.0 else (x - anchorX) / spanX
-            return clampScale(sx) to 1.0
-        }
-        SelectionHandle.RIGHT -> {
-            val spanX = bounds.right - anchorX
-            val sx = if (flatX || spanX == 0.0) 1.0 else (x - anchorX) / spanX
-            return clampScale(sx) to 1.0
-        }
-        SelectionHandle.TOP -> {
-            val spanY = bounds.top - anchorY
-            val sy = if (flatY || spanY == 0.0) 1.0 else (y - anchorY) / spanY
-            return 1.0 to clampScale(sy)
-        }
-        SelectionHandle.BOTTOM -> {
-            val spanY = bounds.bottom - anchorY
-            val sy = if (flatY || spanY == 0.0) 1.0 else (y - anchorY) / spanY
-            return 1.0 to clampScale(sy)
-        }
+    val math = com.mobixournal.render.SelectionResizeMath
+    return when (handle) {
+        SelectionHandle.LEFT ->
+            (if (flatX) 1.0 else math.axisScaleFactor(bounds.left, x, anchorX, MIN_SELECTION_SCALE, MAX_SELECTION_SCALE)) to 1.0
+        SelectionHandle.RIGHT ->
+            (if (flatX) 1.0 else math.axisScaleFactor(bounds.right, x, anchorX, MIN_SELECTION_SCALE, MAX_SELECTION_SCALE)) to 1.0
+        SelectionHandle.TOP ->
+            1.0 to (if (flatY) 1.0 else math.axisScaleFactor(bounds.top, y, anchorY, MIN_SELECTION_SCALE, MAX_SELECTION_SCALE))
+        SelectionHandle.BOTTOM ->
+            1.0 to (if (flatY) 1.0 else math.axisScaleFactor(bounds.bottom, y, anchorY, MIN_SELECTION_SCALE, MAX_SELECTION_SCALE))
         SelectionHandle.TOP_LEFT,
         SelectionHandle.TOP_RIGHT,
         SelectionHandle.BOTTOM_LEFT,
-        SelectionHandle.BOTTOM_RIGHT -> {
-            val startX = when (handle) {
-                SelectionHandle.TOP_LEFT, SelectionHandle.BOTTOM_LEFT -> bounds.left
-                else -> bounds.right
-            }
-            val startY = when (handle) {
-                SelectionHandle.TOP_LEFT, SelectionHandle.TOP_RIGHT -> bounds.top
-                else -> bounds.bottom
-            }
-            val spanX = startX - anchorX
-            val spanY = startY - anchorY
-            var sx = if (flatX || spanX == 0.0) 1.0 else (x - anchorX) / spanX
-            var sy = if (flatY || spanY == 0.0) 1.0 else (y - anchorY) / spanY
-            if (lockAspect && !flatX && !flatY) {
-                val s = if (kotlin.math.abs(sx - 1.0) >= kotlin.math.abs(sy - 1.0)) sx else sy
-                sx = s
-                sy = s
-            }
-            return clampScale(sx) to clampScale(sy)
-        }
-        else -> return 1.0 to 1.0
+        SelectionHandle.BOTTOM_RIGHT -> math.cornerScaleFactors(
+            bounds = bounds,
+            handleIsLeft = handle == SelectionHandle.TOP_LEFT || handle == SelectionHandle.BOTTOM_LEFT,
+            handleIsTop = handle == SelectionHandle.TOP_LEFT || handle == SelectionHandle.TOP_RIGHT,
+            currentX = x,
+            currentY = y,
+            anchorX = anchorX,
+            anchorY = anchorY,
+            lockAspect = lockAspect,
+            flatX = flatX,
+            flatY = flatY,
+            minScale = MIN_SELECTION_SCALE,
+            maxScale = MAX_SELECTION_SCALE,
+        )
+        else -> 1.0 to 1.0
     }
 }
-
-/** A factor a handle drag may produce — see [MIN_SELECTION_SCALE] and [MAX_SELECTION_SCALE]. */
-private fun clampScale(s: Double): Double = s.coerceIn(MIN_SELECTION_SCALE, MAX_SELECTION_SCALE)
 
 /**
  * The turn a rotate drag has described so far, in radians, from the grab point to the current one.

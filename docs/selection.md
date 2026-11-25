@@ -105,10 +105,14 @@ only** (`ResizeAxis.X` / `ResizeAxis.Y`, the pure `axisScaleFactor` measuring tr
 edge's midpoint, applied by `SelectionOps.scaleXY`) — the out-of-proportion resize, so a drawing can be
 widened without being made taller. The window carries the same eight: `SelectionOverlay` draws them,
 `selectionHandleAt` answers them and `scaleFactors` computes the two factors, so a side stretches one axis
-on both shells. A corner of a **single figure** scales each axis by its own ratio (`ResizeAxis.FREE`) —
+on both shells. A corner of a **single figure** scales each axis by its own ratio (`ResizeAxis.FREE`) by default —
 its proportions are the figure's to change — while a **picture**'s and a **mixed** selection's keep them
 (`ResizeAxis.BOTH`, one ratio for both axes); the one handle an image gives up is the turn,
-because its model carries no rotation. Both shells cap a handle's reach **per axis**, at a third of that axis's own
+because its model carries no rotation. Both shells share this rule and the corner/edge scale math through
+`render/SelectionResizeMath.kt`: holding `Shift` on Desktop or toggling **Lock proportions**
+(`ChromeGlyph.ASPECT_LOCK`) on Android's `SelectionActionBar` forces `ResizeAxis.BOTH` (`sx == sy`) on any
+corner drag, including a single `ParametricShapeElement` (switching its vertex grips to proportional corner
+handles while locked). Both shells cap a handle's reach **per axis**, at a third of that axis's own
 extent, so a small element keeps a middle to be moved by.
 
 A **line** and an **arrow** are not figures with a box to stretch: they are a **shaft**, with the two freedoms

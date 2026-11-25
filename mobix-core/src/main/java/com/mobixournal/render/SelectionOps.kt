@@ -122,7 +122,7 @@ object SelectionOps {
             is Stroke -> element.copy(
                 points = if (scaleWidth) {
                     element.points.map {
-                        StrokePoint(it.x * sx + dx, it.y * sy + dy, it.width * ink)
+                        it.copy(x = it.x * sx + dx, y = it.y * sy + dy, width = it.width * ink)
                     }
                 } else {
                     FigureRedraw.stretch(element.points, sx, sy, dx, dy)
@@ -182,10 +182,14 @@ object SelectionOps {
             is CircuitElement -> circuitStretch(element, sx, sy, dx, dy)
             // ParametricShapeElement scales its vertices, keeping its outline width as drawn (unless
             // the caller is re-homing the ink, which scales that too, exactly as for a stroke).
-            is ParametricShapeElement -> element.copy(
-                vertices = element.vertices.map { it.copy(x = it.x * sx + dx, y = it.y * sy + dy) },
-                strokeWidth = element.strokeWidth * ink,
-            )
+            is ParametricShapeElement -> {
+                val scaled = element.copy(
+                    vertices = element.vertices.map { it.copy(x = it.x * sx + dx, y = it.y * sy + dy) },
+                    strokeWidth = element.strokeWidth * ink,
+                )
+                if (kotlin.math.abs(sx - sy) <= 1e-6) scaled
+                else scaled.copy(shape = ParametricShapes.reclassifiedKind(scaled))
+            }
         }
     }
 
@@ -289,7 +293,7 @@ object SelectionOps {
             val c = cos(angle); val s = sin(angle)
             element.copy(points = element.points.map {
                 val rx = it.x - px; val ry = it.y - py
-                StrokePoint(px + rx * c - ry * s, py + rx * s + ry * c, it.width)
+                it.copy(x = px + rx * c - ry * s, y = py + rx * s + ry * c)
             })
         }
         is CircuitElement -> {
@@ -351,7 +355,7 @@ object SelectionOps {
     fun restyle(element: Element, color: Int?, widthPt: Double?): Element = when (element) {
         is Stroke -> {
             var e = if (color != null) element.copy(color = color) else element
-            if (widthPt != null) e = e.copy(points = e.points.map { StrokePoint(it.x, it.y, widthPt) }, uniformWidth = true)
+            if (widthPt != null) e = e.copy(points = e.points.map { it.copy(width = widthPt) }, uniformWidth = true)
             e
         }
         is TextElement -> if (color != null) element.copy(color = color) else element

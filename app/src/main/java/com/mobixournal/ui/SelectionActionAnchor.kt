@@ -21,8 +21,10 @@ import com.mobixournal.render.distributeSelection
 import com.mobixournal.render.cutSelection
 import com.mobixournal.render.deleteSelection
 import com.mobixournal.render.duplicateSelection
+import com.mobixournal.render.isSelectionAspectLocked
 import com.mobixournal.render.pasteClipboard
 import com.mobixournal.render.restyleSelection
+import com.mobixournal.render.setSelectionAspectLocked
 import com.mobixournal.render.singleSelectedCircuit
 import com.mobixournal.render.singleSelectedPlot
 import com.mobixournal.render.singleSelectedShape
@@ -69,6 +71,7 @@ fun SelectionActionAnchor(
         return
     }
     val palette = rememberColorPaletteState(settings, onSettingsChange)
+    var aspectLocked by remember(surface) { mutableStateOf(surface?.isSelectionAspectLocked() ?: false) }
     var barSize by remember { mutableStateOf(IntSize.Zero) }
     val measured = barSize.width > 0
     val gapPx = with(LocalDensity.current) { SELECTION_BAR_GAP.roundToPx() }
@@ -133,6 +136,8 @@ fun SelectionActionAnchor(
                 ui.editingCircuit = circuit
             }
         },
+        aspectLocked = aspectLocked,
+        onToggleAspectLock = { aspectLocked = !aspectLocked; surface?.setSelectionAspectLocked(aspectLocked) },
         modifier = modifier
             .offset { placed }
             // The arrival is the app's one floating-surface motion — the glass spring's scale and fade,

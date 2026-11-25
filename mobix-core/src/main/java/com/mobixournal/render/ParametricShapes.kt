@@ -210,8 +210,8 @@ object ParametricShapes {
         return moveVertex(shape, nextIndex, vertex.x + lenB * cos(targetAngle), vertex.y + lenB * sin(targetAngle))
     }
 
-    /** Keeps `SQUARE` and `RECTANGLE` labels truthful after free vertex edits. */
-    private fun reclassifiedKind(shape: ParametricShapeElement): String {
+    /** Keeps `SQUARE` and `RECTANGLE` labels truthful after free vertex or non-uniform scale edits. */
+    fun reclassifiedKind(shape: ParametricShapeElement): String {
         if (shape.shape != RECTANGLE && shape.shape != SQUARE) return shape.shape
         if (shape.vertices.size != 4) return POLYGON
         val rightAngles = (0 until 4).all { abs(interiorAngleDeg(shape, it) - 90.0) <= RIGHT_ANGLE_TOL_DEG }

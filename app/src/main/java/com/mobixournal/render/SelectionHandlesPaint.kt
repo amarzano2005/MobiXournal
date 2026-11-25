@@ -50,9 +50,10 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
             )
         }
     }
-    // Corner & edge resize handles: skipped for a single living parametric shape whose vertices own corners.
+    // Corner & edge resize handles: skipped for a single living parametric shape unless aspect-lock is active.
     val isSingleShape = singleSelectedShape() != null
-    if (shaft == null && !flatX && !flatY && !isSingleShape) {
+    val aspectLocked = gestures.aspectLocked
+    if (shaft == null && !flatX && !flatY && (!isSingleShape || aspectLocked)) {
         for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bottom)) {
             canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)
         }
@@ -102,6 +103,6 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
             }
         }
     }
-    // A single selected shape: a dot on each corner, the handles the vertex drag grabs.
-    drawShapeVertexHandles(canvas, box)
+    // A single selected shape: a dot on each corner unless aspect-lock is active.
+    if (!aspectLocked) drawShapeVertexHandles(canvas, box)
 }

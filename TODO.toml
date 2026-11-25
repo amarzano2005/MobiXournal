@@ -87,21 +87,6 @@ rebuild = true
 emulator_debug = false
 
 [[task]]
-id = "unify-proportional-corner-resize-and-shape-reclassification-across-shells"
-title = "Unify proportional corner resize and shape reclassification across shells"
-description = "Centralize corner/edge resize handle axis and aspect-locked scale-factor math in mobix-core (shared by SelectionResize.kt / SelectionHandleResize.kt and DesktopSelection.kt) so corner drags support uniform proportional scaling (sx == sy) consistently across shells (Shift-lock on Desktop plus an explicit aspect-lock toggle on Android's selection bar, and proportional 8-handle box resize for ParametricShapeElement). Update SelectionOps.affineXY to preserve SQUARE/RECTANGLE when sx == sy, call ParametricShapes.reclassifiedKind when non-uniform scaling breaks equal sides or 90-degree angles, and preserve StrokePoint telemetry (pressure, tilt, azimuth, dtMs, unknown) via p.copy(...) in affineXY, rotate, and restyle. Update docs/selection.md and docs/mobix-living-entities.md; verify via ./gradlew :mobix-core:test --tests '*Selection*' --tests '*ParametricShapes*' :app:testDebugUnitTest :desktop:test."
-status = "active"
-level = "task"
-category = "feature"
-urgency = "high"
-order = 14
-created = 2026-11-25
-tags = ["geometry", "selection", "parity"]
-targets = ["mobix-core/src/main/java/com/mobixournal/render/SelectionOps.kt", "mobix-core/src/main/java/com/mobixournal/render/ParametricShapes.kt", "app/src/main/java/com/mobixournal/render/SelectionResize.kt", "app/src/main/java/com/mobixournal/render/SelectionHandleResize.kt", "desktop/src/main/java/com/mobixournal/desktop/sheet/DesktopSelection.kt"]
-rebuild = true
-emulator_debug = false
-
-[[task]]
 id = "mobix-stem-semantic-core"
 title = "Epic: one semantic core for STEM objects, shared by both shells"
 description = """

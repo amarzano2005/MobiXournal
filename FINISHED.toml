@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "unify-proportional-corner-resize-and-shape-reclassification-across-shells"
+title = "Unify proportional corner resize and shape reclassification across shells"
+description = "Centralized ResizeAxis and corner/edge aspect-lock scale math in mobix-core/src/main/java/com/mobixournal/render/SelectionResizeMath.kt, shared by DesktopSelection.kt, SelectionResize.kt, SelectionHandleResize.kt, and SelectionGestureController.kt. Added ChromeGlyph.ASPECT_LOCK in ChromeGlyphs.kt and a Lock/Unlock proportions BarToggleButton on Android SelectionActionBar (EditorActionBars.kt / SelectionActionAnchor.kt / DrawingSurfaceSelection.kt / SelectionHandlesPaint.kt) supporting proportional 4-corner scaling on ParametricShapeElement. Updated SelectionOps.affineXY to preserve SQUARE/RECTANGLE on uniform scaling (sx == sy) and call ParametricShapes.reclassifiedKind on non-uniform scaling, and preserved StrokePoint telemetry via p.copy(...) in affineXY, rotate, and restyle. Updated docs/selection.md and docs/mobix-living-entities.md; verified with SelectionResizeMathTest, DesktopSelectionTest, SourceStructureTest, UI guards, :desktop:createDistributable, and signed release APK via scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-25
+completed = 2026-11-25
+tags = ["geometry", "selection", "parity"]
+design = "glyph: ChromeGlyph.ASPECT_LOCK added to ChromeGlyphs.kt with unique SVG path verified by ToolGlyphCoverageTest; tokens: BarToggleButton uses MaterialTheme.colorScheme.primaryContainer/onPrimaryContainer when active; copy: English Lock/Unlock proportions labels; parity: Shift corner aspect-lock on Desktop and Lock proportions toggle on Android SelectionActionBar share SelectionResizeMath."
+
+[[task]]
 id = "anchor-rotate-stem-to-figure-outline-and-preserve-origin-tool"
 title = "Anchor rotate stem to figure outline and preserve origin tool"
 description = "Preserved FigurePins.SHAPE_ATTR in ParametricShapes.elementForShapeTool so deformed rectangles remain selectable by the Rectangle tool via ElementHitTester.matchesFigureTool; added rotateStemRight and rotateStemTop in ElementHitTester and wired them into Android (SelectionHandlesPaint, SelectionHandleResize, SelectionGestureController) and Desktop (SelectionOverlay, DesktopSelection, SelectionGesture) so the rotate stem never floats off the figure outline. Added regression tests in ElementHitTesterTest."

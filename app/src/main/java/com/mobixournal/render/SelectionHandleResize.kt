@@ -43,6 +43,7 @@ internal fun handleResizeStart(
     viewport: ViewportState,
     selection: ActiveSelection?,
     page: Page?,
+    aspectLocked: Boolean = false,
 ): ResizeStart? {
     val pad = DrawingSurfaceDefaults.SELECT_PAD_PX
     val boxWpx = (b.width * box.scale).toFloat()
@@ -60,11 +61,12 @@ internal fun handleResizeStart(
         return ResizeStart(axis, anchorX, anchorY, startPtX, startPtY, dist)
     }
 
-    // A single living parametric shape uses its vertex handles and rotation, never a rectangular box.
+    // A single living parametric shape uses its vertex handles by default, and switches to proportional
+    // corner handles when aspect-lock is enabled on the selection bar.
     val isSingleShape = selection?.refs?.singleOrNull()?.let { ref ->
         page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? ParametricShapeElement
     } != null
-    if (isSingleShape) return null
+    if (isSingleShape && !aspectLocked) return null
     // The corner handles: the anchor is the diagonally-opposite corner.
     if (!flatX && !flatY) {
         val cornersPt = arrayOf(b.left to b.top, b.right to b.top, b.right to b.bottom, b.left to b.bottom)
@@ -75,10 +77,11 @@ internal fun handleResizeStart(
             val hy = (cornersPt[i].second * box.scale + box.topPx - viewport.scrollY).toFloat() + padY
             if (grabs(hx, hy)) {
                 val anchor = cornersPt[(i + 2) % 4]
-                return start(cornerAxis(selection, page), anchor.first, anchor.second)
+                return start(cornerAxis(selection, page, aspectLocked), anchor.first, anchor.second)
             }
         }
     }
+    if (isSingleShape) return null
     // Edge-midpoint handles stretch one axis only — the out-of-proportion resize. The anchor is the
     // opposite edge's midpoint, so the far edge stays pinned while this one follows the pointer: pull
     // the right edge out and the element gets wider without getting taller.
@@ -181,8 +184,8 @@ internal fun turnKnob(
  * The axis a corner drag scales: a single **figure**'s corner is free (its proportions are the figure's),
  * while a picture's and a mixed selection's stay uniform ([ResizeAxis.BOTH]).
  */
-private fun cornerAxis(selection: ActiveSelection?, page: Page?): ResizeAxis {
+private fun cornerAxis(selection: ActiveSelection?, page: Page?, aspectLocked: Boolean): ResizeAxis {
     val ref = selection?.refs?.singleOrNull() ?: return ResizeAxis.BOTH
     val element = page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
-    return if (cornerChangesProportions(element)) ResizeAxis.FREE else ResizeAxis.BOTH
+    return SelectionResizeMath.cornerAxis(element, aspectLocked)
 }

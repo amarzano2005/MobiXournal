@@ -158,7 +158,7 @@ functions the handles report (`ParametricShapes.sideLengthPt` / `interiorAngleDe
 never disagree with the figure under the pen; they are ordinary text, on the sheet and in the `.xopp`
 export (`XoppSynthesis`) alike.
 
-What becomes a shape, and what does not: **closed polygons** — whether recognised from freehand pen drawing (triangle, rectangle) or committed by an explicit polygon shape tool (rectangle, square, triangle, trapezoid, polygon), in any `LineStyle` — become a living `ParametricShapeElement`. Circles and ellipses keep strokes because they lack polygon corners, and highlighter ink stays a stroke to preserve alpha blending. A `RECTANGLE` or `SQUARE` whose vertices are freely dragged off 90° reclassifies as `POLYGON`.
+What becomes a shape, and what does not: **closed polygons** — whether recognised from freehand pen drawing (triangle, rectangle) or committed by an explicit polygon shape tool (rectangle, square, triangle, trapezoid, polygon), in any `LineStyle` — become a living `ParametricShapeElement`. Circles and ellipses keep strokes because they lack polygon corners, and highlighter ink stays a stroke to preserve alpha blending. A `RECTANGLE` or `SQUARE` whose vertices are freely dragged off 90° — or scaled non-uniformly (`sx != sy`) via `SelectionOps.affineXY` — reclassifies via `ParametricShapes.reclassifiedKind`, while uniform proportional scaling (`sx == sy`) preserves `SQUARE` and `RECTANGLE`.
 
 With the eraser, living entities are deleted **only in whole-stroke mode** (`EraserMode.WHOLE_STROKE`); standard segment erasing skips them, and grazing a parametric shape's length/angle readout labels never deletes the shape.
 

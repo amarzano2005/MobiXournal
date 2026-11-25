@@ -635,3 +635,13 @@ internal fun DrawingSurfaceView.reportTextSelectionRect() {
         onTextSelectionReport?.invoke(report)
     }
 }
+
+/** Whether corner resizing on the active selection locks aspect ratio (`sx == sy`). */
+fun DrawingSurfaceView.isSelectionAspectLocked(): Boolean = gestures.aspectLocked
+
+/** Toggle proportional corner resizing (`sx == sy`) and repaint selection handles. */
+fun DrawingSurfaceView.setSelectionAspectLocked(locked: Boolean) {
+    if (gestures.aspectLocked == locked) return
+    gestures.aspectLocked = locked
+    invalidate()
+}

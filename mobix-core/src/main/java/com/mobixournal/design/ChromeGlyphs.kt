@@ -97,6 +97,9 @@ enum class ChromeGlyph {
     /** The turn that takes a step back. */
     UNDO,
 
+    /** The frame around the page: toggle proportion lock for selection corner resizing. */
+    ASPECT_LOCK,
+
     /** And its mirror. */
     REDO,
 
@@ -381,6 +384,10 @@ object ChromeGlyphCatalogue {
                 "c0.59-0.24 1.13-0.56 1.62-0.94l2.39 0.96c0.22 0.08 0.47 0 0.59-0.22l1.92-3.32" +
                 "c0.12-0.22 0.07-0.47-0.12-0.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6" +
                 "s3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
+        ChromeGlyph.ASPECT_LOCK ->
+            "M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1 0.9 2 2 2h12c1.1 0 " +
+                "2-0.9 2-2V10c0-1.1-0.9-2-2-2Zm-6 9c-1.1 0-2-0.9-2-2s0.9-2 2-2 2 0.9 2 2-0.9 2-2 2Zm3.1-9" +
+                "H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2Z"
         // The one brand mark: GitHub's published octocat, on the same grid as every other command.
         ChromeGlyph.GITHUB ->
             "M12 0.297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385 0.6 0.113 0.82-0.258 " +

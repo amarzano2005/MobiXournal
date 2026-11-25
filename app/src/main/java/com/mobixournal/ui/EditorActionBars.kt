@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.FormatAlignLeft
 import androidx.compose.material.icons.automirrored.outlined.Undo
@@ -105,6 +106,8 @@ fun SelectionActionBar(
     onEditTable: () -> Unit = {},
     canEditCircuit: Boolean = false,
     onEditCircuit: () -> Unit = {},
+    aspectLocked: Boolean = false,
+    onToggleAspectLock: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     // The one floating surface: the menus' fill and the menus' *edge* ([FloatingSurface]), at the
@@ -146,6 +149,12 @@ fun SelectionActionBar(
                 RecolorMenu(onRecolor, palette)
                 ReWidthMenu(widthSlots, onReWidth)
                 AlignMenu(onAlign, onDistribute)
+                BarToggleButton(
+                    contentDescription = if (aspectLocked) "Unlock proportions" else "Lock proportions",
+                    icon = ChromeGlyph.ASPECT_LOCK.imageVector(),
+                    selected = aspectLocked,
+                    onClick = onToggleAspectLock,
+                )
                 BarIconButton("Delete", ChromeGlyph.DELETE.imageVector(), onDelete)
             }
         }
@@ -198,6 +207,14 @@ private fun BarIconButton(
     contentDescription: String,
     icon: ImageVector,
     onClick: () -> Unit,
+) = BarToggleButton(contentDescription, icon, selected = false, onClick = onClick)
+
+@Composable
+private fun BarToggleButton(
+    contentDescription: String,
+    icon: ImageVector,
+    selected: Boolean,
+    onClick: () -> Unit,
 ) {
     Box(
         contentAlignment = Alignment.Center,
@@ -206,10 +223,19 @@ private fun BarIconButton(
             // Clip before the click, so the feedback is the button's own rounded slot and not the square
             // tap target it is measured by.
             .clip(RoundedCornerShape(8.dp))
+            .then(
+                if (selected) Modifier.background(MaterialTheme.colorScheme.primaryContainer)
+                else Modifier,
+            )
             .semantics { this.contentDescription = contentDescription }
             .clickable(onClick = onClick),
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(SelectionBarIcon))
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else LocalContentColor.current,
+            modifier = Modifier.size(SelectionBarIcon),
+        )
     }
 }
 

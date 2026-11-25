@@ -123,6 +123,7 @@ internal class SelectionGestureController(
     private var resizeAnchorY = 0.0
     private var resizeStartDist = 1.0
     private var resizeAxis = ResizeAxis.BOTH
+    var aspectLocked: Boolean = false
     private var resizeStartPtX = 0.0
     private var resizeStartPtY = 0.0
 
@@ -233,7 +234,7 @@ internal class SelectionGestureController(
             }
             val shape = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
                 as? ParametricShapeElement
-            if (shape != null) {
+            if (shape != null && !aspectLocked) {
                 val hit = vertexHandleAt(shape, box, event.x, event.y)
                 if (hit >= 0) {
                     beginVertexDrag(shape, hit)
@@ -254,7 +255,7 @@ internal class SelectionGestureController(
                 return true
             }
         }
-        // Handle resize (skipped for a single parametric shape whose vertices own corners).
+        // Handle resize (skipped for a single parametric shape unless aspect-lock is active).
         val inBody = insideSelectionBody(
             event.x, event.y,
             box.toViewX(b.left, viewport.scrollX), box.toViewY(b.top, viewport.scrollY),
@@ -276,13 +277,9 @@ internal class SelectionGestureController(
         return false
     }
 
-    /**
-     * Start the resize a touch at ([event]) on one of [b]'s eight handles means; false when it is on none.
-     *
-     * The handles themselves are [handleResizeStart]'s, together with the axis each one scales.
-     */
+    /** Start the resize a touch at ([event]) on one of [b]'s handles means; false when it is on none. */
     private fun beginHandleResize(event: MotionEvent, box: PageBox, b: Bounds, page: Page?): Boolean {
-        val start = handleResizeStart(event, box, b, viewport, selection, page) ?: return false
+        val start = handleResizeStart(event, box, b, viewport, selection, page, aspectLocked) ?: return false
         beginResize(start)
         return true
     }
@@ -563,11 +560,10 @@ internal class SelectionGestureController(
         val x = box.toPtX(event.x, viewport.scrollX)
         val y = box.toPtY(event.y, viewport.scrollY)
         return when (resizeAxis) {
-            ResizeAxis.BOTH -> {
-                val factor = (hypot(x - resizeAnchorX, y - resizeAnchorY) / resizeStartDist)
-                    .coerceIn(DrawingSurfaceDefaults.MIN_RESIZE, DrawingSurfaceDefaults.MAX_RESIZE)
-                factor to factor
-            }
+            ResizeAxis.BOTH -> SelectionResizeMath.proportionalDistanceScale(
+                resizeAnchorX, resizeAnchorY, x, y, resizeStartDist,
+                DrawingSurfaceDefaults.MIN_RESIZE, DrawingSurfaceDefaults.MAX_RESIZE,
+            ).let { it to it }
             ResizeAxis.FREE -> axisScaleFactor(resizeStartPtX, x, resizeAnchorX) to
                 axisScaleFactor(resizeStartPtY, y, resizeAnchorY)
             // A shaft's drag is a similarity, not two factors: `resizeSelect` reads it from `shaftDrag`.
