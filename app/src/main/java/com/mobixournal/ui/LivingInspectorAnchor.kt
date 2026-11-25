@@ -160,6 +160,11 @@ internal fun LivingInspectorAnchor(
     val maxPanelHeight = with(density) {
         (effectiveCanvasSize.height - 2 * marginPx).coerceAtLeast(0).toDp()
     }
+    val maxPanelWidth = with(density) {
+        (effectiveCanvasSize.width - 2 * marginPx).coerceAtLeast(0).toDp()
+    }
+    val resolvedMaxWidth = minOf(maxWidth, maxPanelWidth)
+    val resolvedMinWidth = minOf(minWidth, resolvedMaxWidth)
 
     val rememberedAnchor = remember(sessionKey) { anchorRect }
     var inspectorSize by remember(sessionKey) { mutableStateOf(IntSize.Zero) }
@@ -202,7 +207,7 @@ internal fun LivingInspectorAnchor(
                     )
                 }
             }
-            .widthIn(min = minWidth, max = maxWidth)
+            .widthIn(min = resolvedMinWidth, max = resolvedMaxWidth)
             .heightIn(max = maxPanelHeight)
             .padding(4.dp)
             .then(

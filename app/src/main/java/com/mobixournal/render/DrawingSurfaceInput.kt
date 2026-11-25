@@ -260,6 +260,8 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
     if ((intent == GestureIntent.DRAW || placingPlot) && beginPlacementPress(event, pointerIndex)) return
     if (placingPlot && selection != null) {
         gestures.clearSelection()
+        reportSelectionRect()
+        render()
         return
     }
     session.penOwned = (kind == PointerKind.STYLUS || kind == PointerKind.ERASER_TIP) &&

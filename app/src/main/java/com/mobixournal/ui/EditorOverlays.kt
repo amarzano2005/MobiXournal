@@ -260,6 +260,7 @@ fun BoxScope.EditorOverlays(
                         infoSide = infoSide,
                         bounds = box,
                     )
+                    ui.tool = EditorTool.SELECT
                     // The slot **stays in hand**, as on the window: the graph lands selected, and the press
                     // that means "this graph" is the pick (`beginPlacementPress`), not another placement — so
                     // there is nothing to hand to Select.

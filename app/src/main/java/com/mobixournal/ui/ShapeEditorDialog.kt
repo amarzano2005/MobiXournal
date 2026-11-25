@@ -524,6 +524,7 @@ private fun ShapeNumberInput(
                 kind = LivingKeyboardKind.NUMERIC,
                 initialText = formatted,
                 allowNegative = false,
+                label = label,
             ) { typed ->
                 if (typed.isNotEmpty() && !typed.endsWith(".")) {
                     typed.toDoubleOrNull()?.let(onCommit)

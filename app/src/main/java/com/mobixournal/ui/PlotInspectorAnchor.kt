@@ -210,9 +210,10 @@ fun PlotInspectorAnchor(
                 sessionKey = ui.plotInspectorSession,
                 anchorRect = pane.selectionRect,
                 canvasSizePx = canvasSizePx,
-                minWidth = 320.dp,
-                maxWidth = 360.dp,
+                minWidth = 280.dp,
+                maxWidth = 320.dp,
                 keyboardHeightPx = if (keyboard.isOpen) keyboardHeight else 0,
+                animateSurface = true,
             ) { dragModifier ->
                 PlotInspectorPanel(
                     state = state,
@@ -319,7 +320,7 @@ private fun PlotInspectorHeader(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp),
             )
-            Text("Plot Inspector", style = MaterialTheme.typography.titleSmall)
+            Text("Plot", style = MaterialTheme.typography.titleSmall)
         }
         IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
             Icon(Icons.Outlined.Close, contentDescription = "Close", modifier = Modifier.size(18.dp))
@@ -349,7 +350,7 @@ private fun PlotInspectorBody(
                     xMax = xMax,
                     showCriticalPoints = state.showCriticalPoints,
                     includeDerivative = state.includeDerivative,
-                    previewHeight = 88.dp,
+                    previewHeight = 120.dp,
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 DialogInputsColumn(

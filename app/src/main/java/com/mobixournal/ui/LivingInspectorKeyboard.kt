@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -62,6 +63,8 @@ internal class LivingKeyboardController(
 ) {
     var activeFieldId by mutableStateOf<String?>(null)
         private set
+    var activeLabel by mutableStateOf("")
+        private set
     var kind by mutableStateOf(LivingKeyboardKind.NUMERIC)
         private set
     var field by mutableStateOf(TextFieldValue(""))
@@ -77,9 +80,11 @@ internal class LivingKeyboardController(
         kind: LivingKeyboardKind,
         initialText: String,
         allowNegative: Boolean = true,
+        label: String = "",
         onTextChange: (String) -> Unit,
     ) {
         activeFieldId = fieldId
+        activeLabel = label
         this.kind = kind
         this.allowNegative = allowNegative
         field = TextFieldValue(initialText, TextRange(initialText.length))
@@ -140,6 +145,7 @@ internal fun PlotInspectorAwareField(
                     kind = kind,
                     initialText = value,
                     allowNegative = true,
+                    label = label,
                     onTextChange = onValueChange,
                 )
             },
@@ -190,12 +196,14 @@ internal fun LivingDisplayField(
         scheme.surfaceVariant.copy(alpha = 0.28f)
     }
 
+    val keyShape = RoundedCornerShape(8.dp)
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = keyShape,
         color = containerColor,
         border = BorderStroke(if (active || isError) 1.5.dp else 1.dp, borderColor),
         modifier = modifier
             .bringIntoViewRequester(bringIntoView)
+            .clip(keyShape)
             .semantics { role = Role.Button }
             .clickable(onClick = onClick),
     ) {
@@ -266,6 +274,10 @@ internal fun LivingInspectorKeyboardBar(
             modifier = Modifier.padding(10.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            KeyboardActiveViewer(
+                label = controller.activeLabel,
+                text = valueWithCaret(controller.field.text, controller.field.selection.min),
+            )
             when (controller.kind) {
                 LivingKeyboardKind.NUMERIC -> NumericKeyGrid(
                     allowNegative = controller.allowNegative,
@@ -277,6 +289,43 @@ internal fun LivingInspectorKeyboardBar(
                 onLeft = { controller.moveCaret(-1) },
                 onRight = { controller.moveCaret(1) },
                 onDone = controller::close,
+            )
+        }
+    }
+}
+
+@Composable
+private fun KeyboardActiveViewer(
+    label: String,
+    text: String,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = scheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, scheme.outlineVariant.copy(alpha = 0.6f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (label.isNotEmpty()) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.primary,
+                )
+            }
+            Text(
+                text = text.ifEmpty { "|" },
+                style = MaterialTheme.typography.bodyMedium,
+                color = scheme.onSurface,
+                maxLines = 2,
+                modifier = Modifier.weight(1f),
             )
         }
     }
@@ -349,17 +398,19 @@ private fun KeyboardActionRow(
     onDone: () -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val btnShape = RoundedCornerShape(8.dp)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
-            shape = RoundedCornerShape(8.dp),
+            shape = btnShape,
             color = scheme.surfaceVariant.copy(alpha = 0.55f),
             modifier = Modifier
                 .weight(1f)
                 .height(36.dp)
+                .clip(btnShape)
                 .clickable(onClick = onLeft),
         ) {
             Icon(
@@ -369,11 +420,12 @@ private fun KeyboardActionRow(
             )
         }
         Surface(
-            shape = RoundedCornerShape(8.dp),
+            shape = btnShape,
             color = scheme.surfaceVariant.copy(alpha = 0.55f),
             modifier = Modifier
                 .weight(1f)
                 .height(36.dp)
+                .clip(btnShape)
                 .clickable(onClick = onRight),
         ) {
             Icon(
@@ -383,11 +435,12 @@ private fun KeyboardActionRow(
             )
         }
         Surface(
-            shape = RoundedCornerShape(8.dp),
+            shape = btnShape,
             color = scheme.primary,
             modifier = Modifier
                 .weight(2f)
                 .height(36.dp)
+                .clip(btnShape)
                 .clickable(onClick = onDone),
         ) {
             Row(
@@ -416,11 +469,13 @@ private fun CompactKeyButton(
     modifier: Modifier = Modifier,
 ) {
     val scheme = MaterialTheme.colorScheme
+    val keyShape = RoundedCornerShape(8.dp)
     Surface(
-        shape = RoundedCornerShape(8.dp),
+        shape = keyShape,
         color = if (isAction) scheme.secondaryContainer.copy(alpha = 0.65f) else scheme.surfaceVariant.copy(alpha = 0.45f),
         modifier = modifier
             .height(38.dp)
+            .clip(keyShape)
             .clickable(onClick = onClick),
     ) {
         Column(
