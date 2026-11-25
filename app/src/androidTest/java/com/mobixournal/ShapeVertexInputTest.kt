@@ -15,6 +15,7 @@ import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.Tool
 import com.mobixournal.render.DrawingSurfaceView
 import com.mobixournal.render.ElementBounds
+import com.mobixournal.render.setSelectionAspectLocked
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -81,6 +82,7 @@ class ShapeVertexInputTest {
 
         // Select it with a tap inside the figure (a marquee with no drag picks the topmost element).
         view.selectMode = true
+        view.setSelectionAspectLocked(false)
         val inside = centroid(before)
         tap(view, pageMap().x(inside.first), pageMap().y(inside.second))
 

@@ -123,7 +123,7 @@ internal class SelectionGestureController(
     private var resizeAnchorY = 0.0
     private var resizeStartDist = 1.0
     private var resizeAxis = ResizeAxis.BOTH
-    var aspectLocked: Boolean = false
+    var aspectLocked: Boolean = true
     private var resizeStartPtX = 0.0
     private var resizeStartPtY = 0.0
 

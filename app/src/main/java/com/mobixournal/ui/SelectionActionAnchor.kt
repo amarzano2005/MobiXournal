@@ -69,7 +69,7 @@ fun SelectionActionAnchor(
         return
     }
     val palette = rememberColorPaletteState(settings, onSettingsChange)
-    var aspectLocked by remember(surface) { mutableStateOf(surface?.isSelectionAspectLocked() ?: false) }
+    var aspectLocked by remember(surface) { mutableStateOf(surface?.isSelectionAspectLocked() ?: true) }
     var barSize by remember { mutableStateOf(IntSize.Zero) }
     val measured = barSize.width > 0
     val gapPx = with(LocalDensity.current) { SELECTION_BAR_GAP.roundToPx() }

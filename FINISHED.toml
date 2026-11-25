@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "aspect-lock-glyph-and-default"
+title = "Redesign ASPECT_LOCK glyph and enable aspect lock by default"
+description = "Redesigned ChromeGlyph.ASPECT_LOCK and ASPECT_UNLOCK in mobix-core/design/ChromeGlyphs.kt (outlined 13x17.5 padlock with spaced 5.5u L-brackets), enabled aspectLocked=true by default in SelectionGestureController, SelectionActionAnchor, and EditorActionBars, and updated ShapeVertexInputTest to unlock before vertex deformation. Verified with ChromeGlyphsTest, ChromeGlyphPathsTest, SelectionResizeMathTest, SelectionResizeTest, SourceStructureTest, :desktop:createDistributable, and signed release APK."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "glyph: ChromeGlyphCatalogue 24-unit grid with 2u outlined weight matching selection bar siblings (ChromeGlyphsTest, ChromeGlyphPathsTest); states: BarToggleButton selected/unselected states preserved with default locked state"
+
+[[task]]
 id = "selection-bar-resize-lock-glyphs"
 title = "Remove Align button and add resize-lock open/closed glyphs with separate X/Y side handles"
 description = "Removed AlignMenu and Align & distribute button from both Android SelectionActionBar (EditorActionBars.kt, SelectionActionAnchor.kt) and Desktop SelectionBar (SelectionBar.kt, BAR_BUTTONS updated to 8). Redesigned ChromeGlyph.ASPECT_LOCK and added ChromeGlyph.ASPECT_UNLOCK in ChromeGlyphs.kt with diagonal resize arrows around closed/open padlocks, wired in EditorActionBars.kt. Enabled separate X/Y side handles on locked single ParametricShapeElement in SelectionHandlesPaint.kt and SelectionHandleResize.kt while corners remain proportional. Updated docs/selection.md and docs/selection-actions.md. Verified via ChromeGlyphsTest, ChromeGlyphPathsTest, DesktopSelectionBarTest, SelectionResizeMathTest, SourceStructureTest, DocsGuardTest.everyDocFitsTheLineBudget, :desktop:createDistributable, and scripts/release-apk.sh."

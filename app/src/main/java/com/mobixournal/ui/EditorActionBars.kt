@@ -102,7 +102,7 @@ fun SelectionActionBar(
     onEditTable: () -> Unit = {},
     canEditCircuit: Boolean = false,
     onEditCircuit: () -> Unit = {},
-    aspectLocked: Boolean = false,
+    aspectLocked: Boolean = true,
     onToggleAspectLock: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
