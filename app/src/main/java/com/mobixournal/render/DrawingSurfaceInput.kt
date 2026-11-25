@@ -229,8 +229,8 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
     // A finger laid on the guide manipulates it, whatever the active tool — the pen keeps
     // drawing against it meanwhile, exactly as you'd hold a real setsquare down and rule along it.
     if (kind == PointerKind.FINGER && guideDrag.begin(event, pointerIndex)) return
-    // Double-tap on a living element (a table cell, a plot, a component, a figure) opens its editor.
-    if (tryLivingDoubleTap(event)) return
+    // Record a double-tap candidate on down without swallowing drags; lift opens the editor if un-dragged.
+    recordLivingDoubleTapDown(event)
     // Touching a slider anchored to an active plot adjusts the parameter — never a stroke.
     if (gestures.tryBeginSlide(event)) return
     // Touching a divider line inside an active table resizes that column or row.
@@ -469,6 +469,11 @@ internal fun DrawingSurfaceView.endGesture(upX: Float = placeDownX, upY: Float =
         // what clears the grab-line overlay, which would otherwise stay drawn after the release.
         wasVspacing -> render()
         !wasScrolling && !wasErasing -> commitCurrent()
+    }
+    if (!wasTransforming) {
+        tryFinishLivingDoubleTap(upX, upY)
+    } else {
+        taps.clearPendingLiving()
     }
     // Committing the session closes it too (owner and router flag cleared), so nothing of this
     // gesture reaches the next one.

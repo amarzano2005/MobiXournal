@@ -275,6 +275,7 @@ private fun PlotInspectorPanel(
                 keyboard?.close()
             },
         )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         PlotInspectorBody(
             state = state,

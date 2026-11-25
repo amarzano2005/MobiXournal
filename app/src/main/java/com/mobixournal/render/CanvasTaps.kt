@@ -62,6 +62,10 @@ internal class TapClassifier(
     private var livingY = 0f
     private var livingKey: Any? = null
 
+    private var pendingLivingDownX = 0f
+    private var pendingLivingDownY = 0f
+    private var pendingLivingPayload: Any? = null
+
     /**
      * A single finger has gone down. [armed] is whether this press may become a tap at all — the Hand
      * tool, since every other tool's second tap means something of its own.
@@ -127,5 +131,27 @@ internal class TapClassifier(
         livingY = y
         livingKey = key
         return isDouble
+    }
+
+    /** Record a down on a living element; arms [pendingLivingPayload] only if this is the second tap. */
+    fun livingDown(timeMs: Long, x: Float, y: Float, key: Any?, payload: Any?) {
+        pendingLivingPayload = if (livingTap(timeMs, x, y, key)) {
+            pendingLivingDownX = x
+            pendingLivingDownY = y
+            payload
+        } else {
+            null
+        }
+    }
+
+    /** Consume the pending double-tap on lift if the pointer stayed within [tapSlopPx]. */
+    fun consumePendingLiving(upX: Float, upY: Float, tapSlopPx: Float): Any? {
+        val payload = pendingLivingPayload ?: return null
+        pendingLivingPayload = null
+        return if (hypot(upX - pendingLivingDownX, upY - pendingLivingDownY) <= tapSlopPx) payload else null
+    }
+
+    fun clearPendingLiving() {
+        pendingLivingPayload = null
     }
 }

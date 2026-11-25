@@ -1673,7 +1673,7 @@ fun EditorPaneView(
                     pane = state,
                     ui = ui,
                     canvasSizePx = canvasSizePx,
-                    modifier = Modifier.fillMaxSize().padding(insetPadding),
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
             DialogPresence(ui.editingTableCell != null) {
@@ -1694,7 +1694,7 @@ fun EditorPaneView(
                     onDismiss = { ui.editingMathBlock = null },
                 )
             }
-            ShapeEditorHost(ui, state, canvasSizePx, Modifier.fillMaxSize().padding(insetPadding))
+            ShapeEditorHost(ui, state, canvasSizePx, Modifier.fillMaxSize())
             // The **Manage pages** card (its own file: the flag, the card and its two commands).
             PageRangeHost(ui, state.surface, state.pageCount)
             if (ui.editingCircuit != null) {
@@ -1704,7 +1704,7 @@ fun EditorPaneView(
                     pane = state,
                     ui = ui,
                     canvasSizePx = canvasSizePx,
-                    modifier = Modifier.fillMaxSize().padding(insetPadding),
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
         }

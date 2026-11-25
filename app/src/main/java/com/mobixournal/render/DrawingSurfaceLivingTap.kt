@@ -21,26 +21,50 @@ import android.view.MotionEvent
  * other tool's double-tap already means something of its own (a pen's second tap is a second dot),
  * so a component under the pen is drawn over rather than opened.
  */
-internal fun DrawingSurfaceView.tryLivingDoubleTap(event: MotionEvent): Boolean {
+internal fun DrawingSurfaceView.recordLivingDoubleTapDown(event: MotionEvent) {
     val inSelection = selectMode || lassoMode
     val toolKind = shapeKind
     val isPlotTool = placeKind == PlaceKind.PLOT
-    if (!inSelection && toolKind == null && !isPlotTool) return false
-    val box = layout.pageAt(event.x + scrollX, event.y + scrollY) ?: return false
-    val page = pageAt(box.index) ?: return false
-    val hit = livingEditHit(page, box.toPtX(event.x, scrollX), box.toPtY(event.y, scrollY)) ?: return false
+    if (!inSelection && toolKind == null && !isPlotTool) {
+        taps.clearPendingLiving()
+        return
+    }
+    val box = layout.pageAt(event.x + scrollX, event.y + scrollY) ?: run {
+        taps.clearPendingLiving()
+        return
+    }
+    val page = pageAt(box.index) ?: run {
+        taps.clearPendingLiving()
+        return
+    }
+    val hit = livingEditHit(page, box.toPtX(event.x, scrollX), box.toPtY(event.y, scrollY)) ?: run {
+        taps.clearPendingLiving()
+        return
+    }
     if (!inSelection) {
         val expected = when {
             isPlotTool -> LivingEditFamily.PLOT
             toolKind != null -> livingFamilyOf(toolKind) ?: LivingEditFamily.SHAPE
             else -> null
         }
-        if (expected != null && hit.target.family != expected) return false
+        if (expected != null && hit.target.family != expected) {
+            taps.clearPendingLiving()
+            return
+        }
     }
-    // Where the first tap landed, so the pair is about one element on one page.
     val key = box.index to hit.ref
-    if (!taps.livingTap(event.eventTime, event.x, event.y, key)) return false
-    selection = ActiveSelection(box.index, setOf(hit.ref))
+    taps.livingDown(event.eventTime, event.x, event.y, key, box.index to hit)
+}
+
+/**
+ * If the lift completes an un-dragged double-tap on a living element, select it and open its editor.
+ */
+internal fun DrawingSurfaceView.tryFinishLivingDoubleTap(upX: Float, upY: Float): Boolean {
+    @Suppress("UNCHECKED_CAST")
+    val pair = taps.consumePendingLiving(upX, upY, DrawingSurfaceDefaults.TAP_SLOP_PX) as? Pair<Int, LivingEditHit>
+        ?: return false
+    val (pageIndex, hit) = pair
+    selection = ActiveSelection(pageIndex, setOf(hit.ref))
     onSelectionChanged?.invoke(true)
     reportSelectionRect()
     render()

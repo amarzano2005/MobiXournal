@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "living-double-tap-lift-align"
+title = "Defer living double-tap to lift, align anchor space, and add tab divider"
+description = "Deferred living double-tap to ACTION_UP via TapClassifier.livingDown/consumePendingLiving, removed insetPadding mismatch in EditorRegions, and added HorizontalDivider below Curves/Options tabs in PlotInspectorAnchor."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "material: FloatingSurface + hairline divider; tokens: MaterialTheme.colorScheme without literals; states: double-tap on lift preserves drag-to-move; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
+
+[[task]]
 id = "living-inspector-hierarchy-drag"
 title = "Fix inspector drag, 4-side placement, and 3-level visual hierarchy"
 description = "Fixed LivingInspectorAnchor drag state, added 4-side placement fallback, implemented 3-level visual hierarchy (underline InspectorTabBar, borderless InspectorChip, bordered LivingDisplayField, primary Done), compacted PlotInspectorAnchor (272-288dp x max 330dp), and added anchoredOffsetFallsBackBelowWhenNeitherSideFits test."
