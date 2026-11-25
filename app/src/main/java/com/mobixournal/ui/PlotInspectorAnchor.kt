@@ -267,22 +267,14 @@ private fun PlotInspectorPanel(
             modifier = dragModifier,
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            for (entry in PlotInspectorTab.entries) {
-                FilterChip(
-                    selected = tab == entry,
-                    onClick = {
-                        tab = entry
-                        keyboard?.close()
-                    },
-                    label = { Text(entry.label) },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        }
+        InspectorTabBar(
+            labels = PlotInspectorTab.entries.map { it.label },
+            selectedIndex = tab.ordinal,
+            onSelect = { idx ->
+                tab = PlotInspectorTab.entries[idx]
+                keyboard?.close()
+            },
+        )
 
         PlotInspectorBody(
             state = state,
@@ -342,17 +334,6 @@ private fun PlotInspectorBody(
     ) {
         when (tab) {
             PlotInspectorTab.CURVES -> {
-                val xMin = state.xMin ?: -6.28
-                val xMax = state.xMax?.takeIf { it > xMin } ?: (xMin + 12.56)
-                FunctionPlotPreviewBox(
-                    curves = state.activeCurves,
-                    xMin = xMin,
-                    xMax = xMax,
-                    showCriticalPoints = state.showCriticalPoints,
-                    includeDerivative = state.includeDerivative,
-                    previewHeight = 120.dp,
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 DialogInputsColumn(
                     modifier = Modifier.weight(1f, fill = false),
                     modeTab = state.modeTab,

@@ -372,6 +372,14 @@ internal fun DialogInputsColumn(
 
 @Composable
 private fun ModeSelectorPill(modeTab: Int, onModeTabChange: (Int) -> Unit) {
+    if (LocalLivingKeyboard.current != null) {
+        InspectorTabBar(
+            labels = listOf("Cartesian y=f(x)", "Parametric {x, y}"),
+            selectedIndex = modeTab,
+            onSelect = onModeTabChange,
+        )
+        return
+    }
     Surface(
         shape = RoundedCornerShape(50),
         color = rememberToolbarColor(),
@@ -524,25 +532,32 @@ private fun CurveRow(
                 }
             }
         }
+        val inInspector = LocalLivingKeyboard.current != null
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FilterChip(
-                selected = curve.lineStyle == LineStyle.PLAIN,
-                onClick = { curve.lineStyle = LineStyle.PLAIN },
-                label = { Text("Solid", style = MaterialTheme.typography.bodySmall) },
+            val styles = listOf(
+                LineStyle.PLAIN to "Solid",
+                LineStyle.DASHED to "Dashed",
+                LineStyle.DOTTED to "Dotted",
             )
-            FilterChip(
-                selected = curve.lineStyle == LineStyle.DASHED,
-                onClick = { curve.lineStyle = LineStyle.DASHED },
-                label = { Text("Dashed", style = MaterialTheme.typography.bodySmall) },
-            )
-            FilterChip(
-                selected = curve.lineStyle == LineStyle.DOTTED,
-                onClick = { curve.lineStyle = LineStyle.DOTTED },
-                label = { Text("Dotted", style = MaterialTheme.typography.bodySmall) },
-            )
+            for ((style, label) in styles) {
+                if (inInspector) {
+                    InspectorChip(
+                        label = label,
+                        selected = curve.lineStyle == style,
+                        onClick = { curve.lineStyle = style },
+                        modifier = Modifier.weight(1f),
+                    )
+                } else {
+                    FilterChip(
+                        selected = curve.lineStyle == style,
+                        onClick = { curve.lineStyle = style },
+                        label = { Text(label, style = MaterialTheme.typography.bodySmall) },
+                    )
+                }
+            }
         }
     }
 }

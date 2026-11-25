@@ -9,6 +9,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -94,11 +95,20 @@ internal fun PlotShadeInputs(state: PlotShadeState) {
         modifier = Modifier.liquidGlassContentSize(),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        FilterChip(
-            selected = state.on,
-            onClick = { state.toggle(!state.on) },
-            label = { Text("Shade integral area") },
-        )
+        if (LocalLivingKeyboard.current != null) {
+            InspectorChip(
+                label = "Shade integral area",
+                selected = state.on,
+                onClick = { state.toggle(!state.on) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            FilterChip(
+                selected = state.on,
+                onClick = { state.toggle(!state.on) },
+                label = { Text("Shade integral area") },
+            )
+        }
         AnimatedVisibility(
             visible = state.on,
             enter = fadeIn(tween(180)) + expandVertically(),

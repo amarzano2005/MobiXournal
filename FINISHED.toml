@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "living-inspector-unify"
+title = "Unify inspector chips/tabs, inset padding, and clean Plot popup"
+description = "Unified InspectorChip/InspectorTabBar (8dp clipped before clickable) across PlotInspectorAnchor and ShapeEditorDialog, removed redundant Plot mini-preview, and applied insetPadding to Plot/Shape/Circuit anchored inspectors in EditorRegions."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "material: FloatingSurface + unified InspectorChip/InspectorTabBar; tokens: MaterialTheme.colorScheme without literals; states: 8dp clip before clickable; parity: clean live canvas editing without redundant preview; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
+
+[[task]]
 id = "living-inspector-polish-2"
 title = "Fix plot deselection, keyboard viewer, popup bounds, and clipped ripples"
 description = "Fixed Plot outside-tap deselection and post-placement SELECT switch, added KeyboardActiveViewer above LivingInspectorKeyboardBar, clamped LivingInspectorAnchor width, updated Plot popup to 280-320dp + spring + framed 120dp preview + Plot title, and clipped 8dp rounded ripples before clickable."

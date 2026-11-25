@@ -232,19 +232,11 @@ private fun ShapeTabRow(
     selected: ShapeInspectorTab,
     onSelect: (ShapeInspectorTab) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        for (entry in ShapeInspectorTab.entries) {
-            FilterChip(
-                selected = selected == entry,
-                onClick = { onSelect(entry) },
-                label = { Text(entry.label) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
+    InspectorTabBar(
+        labels = ShapeInspectorTab.entries.map { it.label },
+        selectedIndex = selected.ordinal,
+        onSelect = { idx -> onSelect(ShapeInspectorTab.entries[idx]) },
+    )
 }
 
 @Composable
@@ -270,10 +262,10 @@ private fun ShapeGeometryTab(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             for (index in shape.vertices.indices) {
-                FilterChip(
+                InspectorChip(
+                    label = vertexLabel(index),
                     selected = index == selectedIndex,
                     onClick = { onSelectIndex(index) },
-                    label = { Text(vertexLabel(index)) },
                 )
             }
         }
@@ -321,16 +313,16 @@ private fun ShapeGeometryTab(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        FilterChip(
+        InspectorChip(
+            label = "Lengths",
             selected = shape.showSideLengths,
             onClick = { onUpdate(shape.copy(showSideLengths = !shape.showSideLengths)) },
-            label = { Text("Lengths") },
             modifier = Modifier.weight(1f),
         )
-        FilterChip(
+        InspectorChip(
+            label = "Angles",
             selected = shape.showAngles,
             onClick = { onUpdate(shape.copy(showAngles = !shape.showAngles)) },
-            label = { Text("Angles") },
             modifier = Modifier.weight(1f),
         )
     }
@@ -456,10 +448,10 @@ private fun ShapeStyleTab(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text("Fill colour", style = MaterialTheme.typography.labelMedium)
-        FilterChip(
+        InspectorChip(
+            label = "None",
             selected = shape.fillColor == null,
             onClick = { onUpdate(shape.copy(fillColor = null)) },
-            label = { Text("None") },
         )
     }
     ShapeColorStrip(

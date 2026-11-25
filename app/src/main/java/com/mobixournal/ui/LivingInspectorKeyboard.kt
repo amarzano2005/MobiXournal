@@ -116,6 +116,70 @@ internal class LivingKeyboardController(
 internal val LocalLivingKeyboard = compositionLocalOf<LivingKeyboardController?> { null }
 
 /**
+ * Unified compact chip for anchored inspectors: clips to `8.dp` before `clickable` so
+ * ripples and hover states strictly follow the rounded geometry.
+ */
+@Composable
+internal fun InspectorChip(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(8.dp)
+    Surface(
+        shape = shape,
+        color = if (selected) scheme.primaryContainer.copy(alpha = 0.45f) else scheme.surfaceVariant.copy(alpha = 0.25f),
+        border = BorderStroke(1.dp, if (selected) scheme.primary else scheme.outlineVariant.copy(alpha = 0.7f)),
+        modifier = modifier
+            .height(32.dp)
+            .clip(shape)
+            .semantics { role = Role.Button }
+            .clickable(onClick = onClick),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = if (selected) scheme.primary else scheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+/**
+ * Single-row segmented tab bar for anchored inspectors, sharing one material and clipped geometry.
+ */
+@Composable
+internal fun InspectorTabBar(
+    labels: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        labels.forEachIndexed { index, label ->
+            InspectorChip(
+                label = label,
+                selected = index == selectedIndex,
+                onClick = { onSelect(index) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/**
  * Text field for plot inputs: uses [LivingDisplayField] (with docked in-app keyboard) inside
  * [PlotInspectorAnchor] and falls back to [OutlinedTextField] inside the modal creation dialog.
  */
