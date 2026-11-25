@@ -22,10 +22,16 @@ import android.view.MotionEvent
  * so a component under the pen is drawn over rather than opened.
  */
 internal fun DrawingSurfaceView.tryLivingDoubleTap(event: MotionEvent): Boolean {
-    if (!selectMode && !lassoMode) return false
+    val inSelection = selectMode || lassoMode
+    val toolKind = shapeKind
+    if (!inSelection && toolKind == null) return false
     val box = layout.pageAt(event.x + scrollX, event.y + scrollY) ?: return false
     val page = pageAt(box.index) ?: return false
     val hit = livingEditHit(page, box.toPtX(event.x, scrollX), box.toPtY(event.y, scrollY)) ?: return false
+    if (!inSelection && toolKind != null) {
+        val expected = livingFamilyOf(toolKind) ?: LivingEditFamily.SHAPE
+        if (hit.target.family != expected) return false
+    }
     // Where the first tap landed, so the pair is about one element on one page.
     val key = box.index to hit.ref
     if (!taps.livingTap(event.eventTime, event.x, event.y, key)) return false

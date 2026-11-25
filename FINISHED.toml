@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "double-tap-living-figure-in-figure-tool"
+title = "Open living editor on double-tap while figure tool is active"
+description = "Updated DrawingSurfaceLivingTap.kt on Android so tryLivingDoubleTap opens the matching living editor when shapeKind != null and hit.target.family matches the active tool family, and updated SelectionGesture.kt (placementPress) on Desktop so the first click records TapTracker.isSecond and the second click opens onEditLiving without requiring a third click. Updated docs/mobix-living-entities.md; verified with SourceStructureTest, LivingEdit/CanvasTaps tests, DesktopSelectionTest, :desktop:createDistributable, check-doc-sync.py, and signed release APK via scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "parity: double-tap/double-click opens matching living editors while a figure/placement tool is active on both Android and Desktop; docs: updated docs/mobix-living-entities.md; tests: verified SourceStructureTest, LivingEdit, CanvasTaps, DesktopSelectionTest, and signed release APK."
+
+[[task]]
 id = "unify-proportional-corner-resize-and-shape-reclassification-across-shells"
 title = "Unify proportional corner resize and shape reclassification across shells"
 description = "Centralized ResizeAxis and corner/edge aspect-lock scale math in mobix-core/src/main/java/com/mobixournal/render/SelectionResizeMath.kt, shared by DesktopSelection.kt, SelectionResize.kt, SelectionHandleResize.kt, and SelectionGestureController.kt. Added ChromeGlyph.ASPECT_LOCK in ChromeGlyphs.kt and a Lock/Unlock proportions BarToggleButton on Android SelectionActionBar (EditorActionBars.kt / SelectionActionAnchor.kt / DrawingSurfaceSelection.kt / SelectionHandlesPaint.kt) supporting proportional 4-corner scaling on ParametricShapeElement. Updated SelectionOps.affineXY to preserve SQUARE/RECTANGLE on uniform scaling (sx == sy) and call ParametricShapes.reclassifiedKind on non-uniform scaling, and preserved StrokePoint telemetry via p.copy(...) in affineXY, rotate, and restyle. Updated docs/selection.md and docs/mobix-living-entities.md; verified with SelectionResizeMathTest, DesktopSelectionTest, SourceStructureTest, UI guards, :desktop:createDistributable, and signed release APK via scripts/release-apk.sh."
