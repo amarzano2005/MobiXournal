@@ -27,6 +27,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -153,18 +154,20 @@ fun PlotInspectorAnchor(
     val surface = pane.surface
 
     val state = rememberPlotInspectorState(plot, ui.plotInspectorSession)
-    val echo = remember(ui.plotInspectorSession) { PlotInputEchoState() }
+    val keyboard = remember(ui.plotInspectorSession) { LivingKeyboardController() }
+    var keyboardHeight by remember { mutableIntStateOf(0) }
 
-    // The inspector keeps its own offset inside a full-size layer so the echo cell can sit at the
-    // canvas' bottom edge while the inspector stays anchored beside the plot.
+    // The inspector keeps its own offset inside a full-size layer so the docked in-app keyboard
+    // can sit at the canvas' bottom edge while the inspector stays anchored above it.
     Box(modifier = modifier.fillMaxSize()) {
-        CompositionLocalProvider(LocalPlotInputEcho provides echo) {
+        CompositionLocalProvider(LocalLivingKeyboard provides keyboard) {
             LivingInspectorAnchor(
                 sessionKey = ui.plotInspectorSession,
                 anchorRect = pane.selectionRect,
                 canvasSizePx = canvasSizePx,
                 minWidth = 320.dp,
                 maxWidth = 360.dp,
+                keyboardHeightPx = if (keyboard.isOpen) keyboardHeight else 0,
             ) { dragModifier ->
                 PlotInspectorPanel(
                     state = state,
@@ -191,12 +194,14 @@ fun PlotInspectorAnchor(
             }
         }
 
-        PlotInputEchoBar(
-            state = echo,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        )
+        if (keyboard.isOpen) {
+            LivingInspectorKeyboardBar(
+                controller = keyboard,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .onSizeChanged { keyboardHeight = it.height },
+            )
+        }
     }
 }
 

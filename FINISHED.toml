@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "living-inspector-keyboards"
+title = "Add docked in-app keyboards for shape and plot inspectors"
+description = "Added LivingDisplayField and LivingInspectorKeyboardBar (Numeric/Formula) in LivingInspectorKeyboard.kt, wired ShapeEditorHost and PlotInspectorAnchor (removing PlotInputEchoBar), updated edgeLabel to A-B format, and verified LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "material: FloatingSurface for docked keyboards; tokens: MaterialTheme.colorScheme without literals; parity: Desktop InspectorLane vs Android LivingInspectorAnchor + docked in-app keyboards; tests: LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
+
+[[task]]
 id = "shape-anchored-inspector"
 title = "Convert shape editor into compact anchored inspector"
 description = "Replaced ShapeEditorDialog with compact anchored ShapeInspectorPanel on LivingInspectorAnchor, added Geometry/Style tabs, interactive ShapeMiniDiagram with A/B/C labels and highlighted active edge, geometric Edge AB (pt) / Angle ∠A (°) inputs, ShapeInspectorHelpersTest, and updated docs/interface-contract.md."

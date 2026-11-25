@@ -108,20 +108,22 @@ internal fun PlotShadeInputs(state: PlotShadeState) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedTextField(
+                PlotInspectorAwareField(
+                    fieldId = "plot_shade_from",
+                    label = "shade from",
                     value = state.fromText,
                     onValueChange = state::editFrom,
-                    label = { Text("shade from") },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f).plotInputEcho("shade from", state.fromText),
+                    kind = LivingKeyboardKind.NUMERIC,
+                    modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                PlotInspectorAwareField(
+                    fieldId = "plot_shade_to",
+                    label = "shade to",
                     value = state.toText,
                     onValueChange = state::editTo,
-                    label = { Text("shade to") },
-                    singleLine = true,
+                    kind = LivingKeyboardKind.NUMERIC,
                     isError = !state.ok,
-                    modifier = Modifier.weight(1f).plotInputEcho("shade to", state.toText),
+                    modifier = Modifier.weight(1f),
                 )
             }
         }

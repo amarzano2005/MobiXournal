@@ -448,20 +448,22 @@ private fun RangeInputs(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OutlinedTextField(
+        PlotInspectorAwareField(
+            fieldId = "plot_min",
+            label = minLabel,
             value = xMinText,
             onValueChange = onXMinChange,
-            label = { Text(minLabel) },
-            singleLine = true,
-            modifier = Modifier.weight(1f).plotInputEcho(minLabel, xMinText),
+            kind = LivingKeyboardKind.NUMERIC,
+            modifier = Modifier.weight(1f),
         )
-        OutlinedTextField(
+        PlotInspectorAwareField(
+            fieldId = "plot_max",
+            label = maxLabel,
             value = xMaxText,
             onValueChange = onXMaxChange,
-            label = { Text(maxLabel) },
-            singleLine = true,
+            kind = LivingKeyboardKind.NUMERIC,
             isError = !rangeOk,
-            modifier = Modifier.weight(1f).plotInputEcho(maxLabel, xMaxText),
+            modifier = Modifier.weight(1f),
         )
     }
 }
@@ -507,13 +509,14 @@ private fun CurveRow(
         ) {
             ColorCircle(color = curve.color, onSelect = { curve.color = it })
             val fieldLabel = "f${index + 1}(x)"
-            OutlinedTextField(
+            PlotInspectorAwareField(
+                fieldId = "plot_curve_$index",
+                label = fieldLabel,
                 value = curve.source,
                 onValueChange = { curve.source = it },
-                label = { Text(fieldLabel) },
-                singleLine = true,
+                kind = LivingKeyboardKind.FORMULA,
                 isError = compiled == null,
-                modifier = Modifier.weight(1f).plotInputEcho(fieldLabel, curve.source),
+                modifier = Modifier.weight(1f),
             )
             if (canDelete) {
                 IconButton(onClick = onDelete) {
@@ -606,19 +609,21 @@ private fun ParametricInputs(
     onYChange: (String) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        OutlinedTextField(
+        PlotInspectorAwareField(
+            fieldId = "plot_param_x",
+            label = "x(t)",
             value = paramX,
             onValueChange = onXChange,
-            label = { Text("x(t)") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().plotInputEcho("x(t)", paramX),
+            kind = LivingKeyboardKind.FORMULA,
+            modifier = Modifier.fillMaxWidth(),
         )
-        OutlinedTextField(
+        PlotInspectorAwareField(
+            fieldId = "plot_param_y",
+            label = "y(t)",
             value = paramY,
             onValueChange = onYChange,
-            label = { Text("y(t)") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth().plotInputEcho("y(t)", paramY),
+            kind = LivingKeyboardKind.FORMULA,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

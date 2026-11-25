@@ -14,9 +14,9 @@ class ShapeInspectorHelpersTest {
     fun vertexEdgeAndAngleLabelsFollowGeometricNotation() {
         assertEquals("A", vertexLabel(0))
         assertEquals("C", vertexLabel(2))
-        assertEquals("AB", edgeLabel(0, 3))
-        assertEquals("BC", edgeLabel(1, 3))
-        assertEquals("CA", edgeLabel(2, 3))
+        assertEquals("A-B", edgeLabel(0, 3))
+        assertEquals("B-C", edgeLabel(1, 3))
+        assertEquals("C-A", edgeLabel(2, 3))
         assertEquals("∠A", angleLabel(0))
         assertEquals("∠B", angleLabel(1))
     }

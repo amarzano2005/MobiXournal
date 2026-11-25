@@ -43,4 +43,25 @@ class LivingInspectorAnchorTest {
         // maxY = 500 - 280 - 8 = 212
         assertEquals(IntOffset(x = 640, y = 212), clamped)
     }
+
+    @Test
+    fun livingKeyboardControllerEditsMovesCaretAndCloses() {
+        var latest = ""
+        val controller = LivingKeyboardController()
+        controller.open(
+            fieldId = "edge_0",
+            kind = LivingKeyboardKind.NUMERIC,
+            initialText = "12",
+            allowNegative = false,
+            onTextChange = { latest = it },
+        )
+        controller.applyKey(CircuitKey.Ch("."))
+        controller.applyKey(CircuitKey.Ch("5"))
+        assertEquals("12.5", latest)
+        controller.moveCaret(-1)
+        controller.applyKey(CircuitKey.Backspace)
+        assertEquals("125", latest)
+        controller.close()
+        assertEquals(false, controller.isOpen)
+    }
 }

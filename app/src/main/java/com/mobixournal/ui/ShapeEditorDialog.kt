@@ -27,10 +27,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,8 +43,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -81,25 +80,40 @@ fun ShapeEditorHost(
     val surface = pane.surface
     val session = ui.shapeInspectorSession
     val onDismiss = { ui.editingShape = null }
+    val keyboard = remember(session) {
+        LivingKeyboardController { _, next -> next.filter { it.isDigit() || it == '.' }.take(7) }
+    }
+    var keyboardHeight by remember { mutableIntStateOf(0) }
 
     Box(modifier = modifier.fillMaxSize()) {
-        LivingInspectorAnchor(
-            sessionKey = session,
-            anchorRect = pane.selectionRect,
-            canvasSizePx = canvasSizePx,
-            minWidth = 280.dp,
-            maxWidth = 320.dp,
-            animateSurface = true,
-        ) { dragModifier ->
-            ShapeInspectorPanel(
-                shape = shape,
-                session = session,
-                dragModifier = dragModifier,
-                onApply = { updated ->
-                    surface?.replaceShapeElement(shape, updated)
-                    ui.editingShape = updated
-                },
-                onDismiss = onDismiss,
+        CompositionLocalProvider(LocalLivingKeyboard provides keyboard) {
+            LivingInspectorAnchor(
+                sessionKey = session,
+                anchorRect = pane.selectionRect,
+                canvasSizePx = canvasSizePx,
+                minWidth = 280.dp,
+                maxWidth = 320.dp,
+                keyboardHeightPx = if (keyboard.isOpen) keyboardHeight else 0,
+                animateSurface = true,
+            ) { dragModifier ->
+                ShapeInspectorPanel(
+                    shape = shape,
+                    session = session,
+                    dragModifier = dragModifier,
+                    onApply = { updated ->
+                        surface?.replaceShapeElement(shape, updated)
+                        ui.editingShape = updated
+                    },
+                    onDismiss = onDismiss,
+                )
+            }
+        }
+        if (keyboard.isOpen) {
+            LivingInspectorKeyboardBar(
+                controller = keyboard,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .onSizeChanged { keyboardHeight = it.height },
             )
         }
     }
@@ -113,10 +127,10 @@ private fun ShapeInspectorPanel(
     onApply: (ParametricShapeElement) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val keyboard = LocalLivingKeyboard.current
     var tab by remember(session) { mutableStateOf(ShapeInspectorTab.GEOMETRY) }
     var selectedIndex by remember(session) { mutableIntStateOf(0) }
     var editVersion by remember(session) { mutableIntStateOf(0) }
-    var activeField by remember(session) { mutableStateOf<String?>(null) }
     val safeIndex = selectedIndex.coerceIn(0, (shape.vertices.size - 1).coerceAtLeast(0))
 
     Column(
@@ -128,7 +142,10 @@ private fun ShapeInspectorPanel(
             onDismiss = onDismiss,
             modifier = dragModifier,
         )
-        ShapeTabRow(selected = tab, onSelect = { tab = it })
+        ShapeTabRow(selected = tab, onSelect = {
+            tab = it
+            keyboard?.close()
+        })
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         Column(
@@ -143,12 +160,12 @@ private fun ShapeInspectorPanel(
                     shape = shape,
                     selectedIndex = safeIndex,
                     editVersion = editVersion,
-                    activeField = activeField,
+                    activeField = keyboard?.activeFieldId,
                     onSelectIndex = {
                         selectedIndex = it
-                        activeField = null
+                        keyboard?.close()
                     },
-                    onFocusField = { activeField = it },
+                    onFocusField = { _ -> },
                     onUpdate = { next ->
                         editVersion++
                         onApply(next)
@@ -157,8 +174,8 @@ private fun ShapeInspectorPanel(
                 ShapeInspectorTab.STYLE -> ShapeStyleTab(
                     shape = shape,
                     editVersion = editVersion,
-                    activeField = activeField,
-                    onFocusField = { activeField = it },
+                    activeField = keyboard?.activeFieldId,
+                    onFocusField = { _ -> },
                     onUpdate = { next ->
                         editVersion++
                         onApply(next)
@@ -486,22 +503,28 @@ private fun ShapeNumberInput(
     onCommit: (Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var text by remember(syncKey) { mutableStateOf(formatMeasure(value)) }
-    LaunchedEffect(syncKey, value, isEditing) {
-        if (!isEditing) text = formatMeasure(value)
-    }
-    OutlinedTextField(
-        value = text,
-        onValueChange = { typed ->
+    val keyboard = LocalLivingKeyboard.current
+    val fieldId = "${label}_$syncKey"
+    val active = keyboard?.activeFieldId == fieldId
+    val formatted = formatMeasure(value)
+
+    LivingDisplayField(
+        label = label,
+        value = if (active) keyboard?.field?.text.orEmpty() else formatted,
+        active = active,
+        caretAt = if (active) keyboard?.field?.selection?.min else null,
+        suffix = suffix,
+        onClick = {
             onActivate()
-            val cleaned = typed.filter { it.isDigit() || it == '.' }.take(7)
-            text = cleaned
-            cleaned.toDoubleOrNull()?.let(onCommit)
+            keyboard?.open(
+                fieldId = fieldId,
+                kind = LivingKeyboardKind.NUMERIC,
+                initialText = formatted,
+                allowNegative = false,
+            ) { typed ->
+                typed.toDoubleOrNull()?.let(onCommit)
+            }
         },
-        label = { Text(label) },
-        suffix = { Text(suffix) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
         modifier = modifier,
     )
 }
@@ -509,12 +532,12 @@ private fun ShapeNumberInput(
 /** Vertex label (`0 -> "A"`, `1 -> "B"`, ...). */
 internal fun vertexLabel(index: Int): String = ('A' + index.coerceAtLeast(0)).toString()
 
-/** Edge label between [index] and the next vertex (`0` of `3` -> `"AB"`, `2` of `3` -> `"CA"`). */
+/** Edge label between [index] and the next vertex (`0` of `3` -> `"A-B"`, `2` of `3` -> `"C-A"`). */
 internal fun edgeLabel(index: Int, vertexCount: Int): String {
     if (vertexCount <= 0) return ""
     val i = index.mod(vertexCount)
     val next = (i + 1) % vertexCount
-    return "${vertexLabel(i)}${vertexLabel(next)}"
+    return "${vertexLabel(i)}-${vertexLabel(next)}"
 }
 
 /** Interior angle label (`0 -> "∠A"`). */
