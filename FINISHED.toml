@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "living-editor-generalization"
+title = "Generalize living-element editor rule and keyboard avoidance"
+description = "Extracted LivingInspectorAnchor with universal IME/custom-keyboard clamping, migrated PlotInspectorAnchor and CircuitInspectorAnchor (with circuitInspectorSession), added verticalScroll to LatexDialog, added LivingInspectorAnchorTest, and documented the living-element editor rule in docs/interface-contract.md and .agents/skills/new-living-element/SKILL.md."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-25
+completed = 2026-11-25
+tags = []
+design = "material: FloatingSurface and FloatingDialog preserved; tokens: WindowInsets.ime + existing gap/margin/width tokens; parity: Desktop InspectorLane vs Android LivingInspectorAnchor/FloatingDialog; docs: interface-contract.md and new-living-element/SKILL.md updated; tests: LivingInspectorAnchorTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest"
+
+[[task]]
 id = "per-figure-aspect-lock-and-setting"
 title = "Persist aspect lock per figure and add default lock setting"
 description = "Added aspectLocked: Boolean = true to ParametricShapeElement and MobixShapeCodec, wired defaultFigureAspectLock into AppSettings/AppSettingsBackup/FiguresSection (Android) and DesktopSettings/FigureChoices/FiguresSettings/FigureShape (Desktop), synced SelectionGestureController/DrawingSurfaceSelection/SelectionActionAnchor per selected figure, and added codec round-trip test in MobixLivingCodecTest. Verified with MobixLivingCodecTest, SelectionResizeMathTest, SettingsBackupGuardTest, SettingsCopyParityTest, SettingsWriteGuardTest, SourceStructureTest, SelectionResizeTest, DesktopShapeRecognitionTest, ChromeGlyphsTest, :desktop:createDistributable, and signed release APK."

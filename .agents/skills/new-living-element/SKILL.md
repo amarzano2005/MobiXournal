@@ -51,7 +51,11 @@ only wire editors, placement, and gestures around them.
    - **Android (`app/AGENTS.md`)**: register placement via `EditorTool` /
      `PlaceKind` and `DialogPresence` (not `LivingSlot`); respect `ToolbarMenu`,
      gesture routing (`DrawingSurfaceInput.kt` / `PdfLongPress.kt`), and one
-     selection owner per pane.
+     selection owner per pane. For the element editor, follow
+     [interface-contract.md](../../../docs/interface-contract.md) §1: use
+     `LivingInspectorAnchor` for contextual/visual inspectors (handles IME and
+     custom-keyboard clamping) or `DialogPresence` + `FloatingDialog` with
+     `verticalScroll` for structured/IME-heavy forms.
    - **Desktop (`desktop/AGENTS.md`)**: add `LivingSlot` arms in all 5 files
      (`PendingPlacement.kt`, `LivingSlots.kt`, `LivingGesture.kt`,
      `PlacementPick.kt`, `InspectorPanel.kt`); update `DesktopSelectionBarTest`

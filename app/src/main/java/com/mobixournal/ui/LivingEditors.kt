@@ -16,7 +16,7 @@ fun EditorUiState.openLivingEditor(target: LivingEditTarget) {
         is LivingEditTarget.TableCell ->
             editingTableCell = EditingTableCell(target.table, target.row, target.col)
         is LivingEditTarget.Plot -> openPlotInspector(target.plot)
-        is LivingEditTarget.Circuit -> editingCircuit = target.circuit
+        is LivingEditTarget.Circuit -> openCircuitInspector(target.circuit)
         is LivingEditTarget.Shape -> editingShape = target.shape
         is LivingEditTarget.MathBlock -> editingMathBlock = target.block
     }

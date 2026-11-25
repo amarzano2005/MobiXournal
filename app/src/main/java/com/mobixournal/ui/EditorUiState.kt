@@ -97,6 +97,11 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     /** The existing [CircuitElement] being edited in place, or null when none is. */
     var editingCircuit by mutableStateOf<com.mobixournal.format.model.CircuitElement?>(null)
     /**
+     * Which **open** of the circuit inspector this is — bumped by [openCircuitInspector], never by an edit.
+     */
+    var circuitInspectorSession by mutableStateOf(0)
+        private set
+    /**
      * The existing [ParametricShapeElement] whose **Edit shape** panel is open, or null when none is.
      *
      * Only the readout flags live in that panel — the geometry is edited on the canvas, by dragging
@@ -243,6 +248,12 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     fun openPlotInspector(plot: com.mobixournal.format.model.PlotElement) {
         editingPlot = plot
         plotInspectorSession++
+    }
+
+    /** Open the anchored circuit inspector on [circuit] as a **fresh** session (new state, anchored anew). */
+    fun openCircuitInspector(circuit: com.mobixournal.format.model.CircuitElement) {
+        editingCircuit = circuit
+        circuitInspectorSession++
     }
 
     /** The pane the toolbar and overlays drive. */

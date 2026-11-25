@@ -51,7 +51,8 @@ import com.mobixournal.render.replacePlotElement
 import com.mobixournal.ui.theme.FloatingSurface
 
 /**
- * Pure positioning helper for the anchored function plot inspector.
+ * Pure positioning helper for the anchored function plot inspector (delegates to
+ * [anchoredInspectorOffset]).
  */
 internal fun plotInspectorOffset(
     selectionLeft: Float?,
@@ -62,62 +63,16 @@ internal fun plotInspectorOffset(
     canvasSize: IntSize,
     gapPx: Int,
     marginPx: Int,
-): IntOffset {
-    if (selectionLeft == null || selectionRight == null || selectionTop == null || inspectorSize.width <= 0) {
-        val cx = ((canvasSize.width - inspectorSize.width) / 2).coerceAtLeast(marginPx)
-        val cy = ((canvasSize.height - inspectorSize.height) / 2).coerceAtLeast(marginPx)
-        return IntOffset(cx, cy)
-    }
-
-    val preferredRightX = (selectionRight + gapPx).toInt()
-    val fitsRight = preferredRightX + inspectorSize.width <= canvasSize.width - marginPx
-
-    val preferredLeftX = (selectionLeft - gapPx - inspectorSize.width).toInt()
-    val fitsLeft = preferredLeftX >= marginPx
-
-    val x = when {
-        fitsRight -> preferredRightX
-        fitsLeft -> preferredLeftX
-        else -> {
-            val spaceRight = canvasSize.width - selectionRight
-            val spaceLeft = selectionLeft
-            if (spaceRight >= spaceLeft) {
-                (canvasSize.width - inspectorSize.width - marginPx).coerceAtLeast(marginPx)
-            } else {
-                marginPx
-            }
-        }
-    }
-
-    val maxY = (canvasSize.height - inspectorSize.height - marginPx).coerceAtLeast(marginPx)
-    val y = selectionTop.toInt().coerceIn(marginPx, maxY)
-
-    return IntOffset(x, y)
-}
-
-/**
- * Where a **freely dragged** inspector goes: [start] moved by [delta], brought back inside the canvas.
- *
- * A drag works on the panel's **absolute** position, never on a delta re-measured from the anchor
- * every frame. That distinction is what made the old inspector feel broken: a delta added to an
- * anchor that was itself already clamped at an edge reproduced the same clamped position, so the
- * panel "wouldn't move"; and every re-anchor — an Apply replacing the element with its edited
- * copy, the panel growing a curve row, the viewport resizing — pulled it back out from under the
- * hand. Once a drag has taken the position, the position is the panel's own.
- */
-internal fun draggedInspectorOffset(
-    start: IntOffset,
-    delta: Offset,
-    inspectorSize: IntSize,
-    canvasSize: IntSize,
-): IntOffset {
-    val maxX = (canvasSize.width - inspectorSize.width).coerceAtLeast(0)
-    val maxY = (canvasSize.height - inspectorSize.height).coerceAtLeast(0)
-    return IntOffset(
-        (start.x + delta.x.roundToInt()).coerceIn(0, maxX),
-        (start.y + delta.y.roundToInt()).coerceIn(0, maxY),
-    )
-}
+): IntOffset = anchoredInspectorOffset(
+    selectionLeft = selectionLeft,
+    selectionTop = selectionTop,
+    selectionRight = selectionRight,
+    selectionBottom = selectionBottom,
+    inspectorSize = inspectorSize,
+    canvasSize = canvasSize,
+    gapPx = gapPx,
+    marginPx = marginPx,
+)
 
 /**
  * Mutable editing state backing the anchored plot inspector.
@@ -186,73 +141,6 @@ internal fun rememberPlotInspectorState(plot: PlotElement, session: Int = 0): Pl
     }
 }
 
-/**
- * Where the inspector sits and how it is moved: the panel's own offset (null until it has been
- * measured, which is also when it starts being drawn) plus the two callbacks that own it.
- */
-private class InspectorPlacement(
-    val offset: IntOffset?,
-    /** Hand to the surface: the first size it reports becomes the placement's basis. */
-    val measured: (IntSize) -> Unit,
-    /** Hand to the drag handle: an absolute move of the panel, bounded by the canvas. */
-    val dragBy: (Offset) -> Unit,
-)
-
-/**
- * The inspector's placement, taken **once per open** ([session]) and then owned by the panel.
- *
- * The position is settled on the first measured frame — beside [anchorRect], or centred when the
- * editor was opened without a selection — and after that only a drag changes it. Re-deriving it from
- * the anchor every frame is exactly what made the panel unusable before: an Apply replaces the
- * element with its edited copy, the surface grows a curve row, the viewport resizes, and each of
- * those recomputed the anchor and teleported the panel out from under the finger.
- */
-@Composable
-private fun rememberInspectorPlacement(
-    session: Int,
-    anchorRect: RectF?,
-    canvasSizePx: IntSize,
-    gapPx: Int,
-    marginPx: Int,
-): InspectorPlacement {
-    var inspectorSize by remember(session) { mutableStateOf(IntSize.Zero) }
-    var placement by remember(session) { mutableStateOf<IntOffset?>(null) }
-
-    return InspectorPlacement(
-        offset = placement,
-        measured = { size ->
-            inspectorSize = size
-            if (placement == null) {
-                placement = plotInspectorOffset(
-                    selectionLeft = anchorRect?.left,
-                    selectionTop = anchorRect?.top,
-                    selectionRight = anchorRect?.right,
-                    selectionBottom = anchorRect?.bottom,
-                    inspectorSize = size,
-                    canvasSize = canvasSizePx,
-                    gapPx = gapPx,
-                    marginPx = marginPx,
-                )
-            }
-        },
-        dragBy = { delta ->
-            // Only a placed panel can be dragged: before the first measurement it is not drawn yet,
-            // and moving it from an invented origin would just be a jump.
-            placement?.let { current ->
-                placement = draggedInspectorOffset(
-                    start = current,
-                    delta = delta,
-                    inspectorSize = inspectorSize,
-                    canvasSize = canvasSizePx,
-                )
-            }
-        },
-    )
-}
-
-/**
- * The anchored micro-inspector for an existing living plot on the canvas.
- */
 @Composable
 fun PlotInspectorAnchor(
     pane: PaneState,
@@ -263,29 +151,6 @@ fun PlotInspectorAnchor(
 ) {
     val plot = ui.editingPlot ?: return
     val surface = pane.surface
-    val rect = pane.selectionRect
-
-    val gapPx = with(LocalDensity.current) { 12.dp.roundToPx() }
-    val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
-
-    // The panel is never drawn taller than the canvas it floats in. Without this cap the panel's
-    // height came only from its content, so on a phone — where the room beside the plot is short —
-    // the bottom of it (the report-side chips, then Apply) simply fell past the canvas edge and
-    // could not be reached at all, while the body's own fixed ceiling hid the overflow.
-    val maxPanelHeight = with(LocalDensity.current) {
-        (canvasSizePx.height - 2 * marginPx).coerceAtLeast(0).toDp()
-    }
-
-    // The anchor is read **once per open**: the panel belongs beside the plot the editor was opened on,
-    // not wherever the selection happens to have wandered since.
-    val anchorRect = remember(ui.plotInspectorSession) { rect }
-    val placement = rememberInspectorPlacement(
-        session = ui.plotInspectorSession,
-        anchorRect = anchorRect,
-        canvasSizePx = canvasSizePx,
-        gapPx = gapPx,
-        marginPx = marginPx,
-    )
 
     val state = rememberPlotInspectorState(plot, ui.plotInspectorSession)
     val echo = remember(ui.plotInspectorSession) { PlotInputEchoState() }
@@ -294,21 +159,16 @@ fun PlotInspectorAnchor(
     // canvas' bottom edge while the inspector stays anchored beside the plot.
     Box(modifier = modifier.fillMaxSize()) {
         CompositionLocalProvider(LocalPlotInputEcho provides echo) {
-            FloatingSurface(
-                modifier = Modifier
-                    // Drawn only once the panel knows where it goes, so it never flashes in the
-                    // middle of the canvas and then hops to its anchor.
-                    .alpha(if (placement.offset == null) 0f else 1f)
-                    .offset { placement.offset ?: IntOffset.Zero }
-                    .onSizeChanged(placement.measured)
-                    .widthIn(min = 320.dp, max = 360.dp)
-                    .heightIn(max = maxPanelHeight)
-                    .padding(4.dp),
-            ) {
+            LivingInspectorAnchor(
+                sessionKey = ui.plotInspectorSession,
+                anchorRect = pane.selectionRect,
+                canvasSizePx = canvasSizePx,
+                minWidth = 320.dp,
+                maxWidth = 360.dp,
+            ) { dragModifier ->
                 PlotInspectorPanel(
                     state = state,
-                    placement = placement,
-                    canvasSizePx = canvasSizePx,
+                    dragModifier = dragModifier,
                     onDismiss = onDismiss,
                     onApply = {
                         val xMin = state.xMin ?: return@PlotInspectorPanel
@@ -350,8 +210,7 @@ fun PlotInspectorAnchor(
 @Composable
 private fun PlotInspectorPanel(
     state: PlotInspectorState,
-    placement: InspectorPlacement,
-    canvasSizePx: IntSize,
+    dragModifier: Modifier,
     onDismiss: () -> Unit,
     onApply: () -> Unit,
 ) {
@@ -361,12 +220,7 @@ private fun PlotInspectorPanel(
     ) {
         PlotInspectorHeader(
             onDismiss = onDismiss,
-            modifier = Modifier.pointerInput(canvasSizePx) {
-                detectDragGestures { change, dragAmount ->
-                    change.consume()
-                    placement.dragBy(dragAmount)
-                }
-            },
+            modifier = dragModifier,
         )
 
         PlotInspectorBody(

@@ -84,13 +84,14 @@ fun CircuitInspectorAnchor(
 ) {
     val circuit = ui.editingCircuit ?: return
     val surface = pane.surface
+    val session = ui.circuitInspectorSession
 
-    var field by remember(circuit.id ?: circuit.hashCode()) {
+    var field by remember(session) {
         mutableStateOf(TextFieldValue(circuit.value ?: "", TextRange((circuit.value ?: "").length)))
     }
-    var rotation by remember(circuit.id ?: circuit.hashCode()) { mutableDoubleStateOf(circuit.rotation) }
-    var labelSide by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(circuit.labelSide) }
-    var keyboardOpen by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(false) }
+    var rotation by remember(session) { mutableDoubleStateOf(circuit.rotation) }
+    var labelSide by remember(session) { mutableStateOf(circuit.labelSide) }
+    var keyboardOpen by remember(session) { mutableStateOf(false) }
     var keyboardHeight by remember { mutableStateOf(0) }
 
     /** The element as the inspector currently reads it — what every control below applies. */
@@ -107,37 +108,43 @@ fun CircuitInspectorAnchor(
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        CircuitInspectorSurface(
-            circuit = circuit,
-            selectionRect = pane.selectionRect,
-            canvasSize = IntSize(
-                canvasSizePx.width,
-                (canvasSizePx.height - if (keyboardOpen) keyboardHeight else 0).coerceAtLeast(0),
-            ),
-            field = field,
-            keyboardOpen = keyboardOpen,
-            onOpenKeyboard = { keyboardOpen = true },
-            labelSide = labelSide,
-            onLabelSideChange = { side ->
-                labelSide = side
-                apply()
-            },
-            rotation = rotation,
-            onRotate = {
-                rotation = (rotation + 90.0) % 360.0
-                apply()
-            },
-            onStraighten = {
-                val straight = (round(rotation / 90.0) * 90.0) % 360.0
-                rotation = if (straight < 0.0) straight + 360.0 else straight
-                apply()
-            },
-            onDismiss = onDismiss,
-            onSave = {
-                apply()
-                onDismiss()
-            },
-        )
+        LivingInspectorAnchor(
+            sessionKey = session,
+            anchorRect = pane.selectionRect,
+            canvasSizePx = canvasSizePx,
+            minWidth = 240.dp,
+            maxWidth = 290.dp,
+            keyboardHeightPx = if (keyboardOpen) keyboardHeight else 0,
+            animateSurface = true,
+        ) { dragModifier ->
+            CircuitInspectorContent(
+                circuit = circuit,
+                field = field,
+                keyboardOpen = keyboardOpen,
+                onOpenKeyboard = { keyboardOpen = true },
+                labelSide = labelSide,
+                onLabelSideChange = { side ->
+                    labelSide = side
+                    apply()
+                },
+                rotation = rotation,
+                onRotate = {
+                    rotation = (rotation + 90.0) % 360.0
+                    apply()
+                },
+                onStraighten = {
+                    val straight = (round(rotation / 90.0) * 90.0) % 360.0
+                    rotation = if (straight < 0.0) straight + 360.0 else straight
+                    apply()
+                },
+                onDismiss = onDismiss,
+                onSave = {
+                    apply()
+                    onDismiss()
+                },
+                dragModifier = dragModifier,
+            )
+        }
         if (keyboardOpen) {
             CircuitValueKeyboard(
                 field = field,
@@ -161,93 +168,6 @@ fun CircuitInspectorAnchor(
     }
 }
 
-/**
- * The inspector itself: a floating panel anchored beside [circuit]'s selection box and kept inside
- * [canvasSize] as the user drags it.
- */
-@Composable
-private fun CircuitInspectorSurface(
-    circuit: CircuitElement,
-    selectionRect: android.graphics.RectF?,
-    canvasSize: IntSize,
-    field: TextFieldValue,
-    keyboardOpen: Boolean,
-    onOpenKeyboard: () -> Unit,
-    labelSide: CircuitLabelSide,
-    onLabelSideChange: (CircuitLabelSide) -> Unit,
-    rotation: Double,
-    onRotate: () -> Unit,
-    onStraighten: () -> Unit,
-    onDismiss: () -> Unit,
-    onSave: () -> Unit,
-) {
-    var inspectorSize by remember { mutableStateOf(IntSize.Zero) }
-    val gapPx = with(LocalDensity.current) { 12.dp.roundToPx() }
-    val marginPx = with(LocalDensity.current) { 8.dp.roundToPx() }
-
-    val initialAnchorRect = remember(circuit.id ?: circuit.hashCode()) { selectionRect }
-    val effectiveRect = initialAnchorRect ?: selectionRect
-
-    var dragDelta by remember(circuit.id ?: circuit.hashCode()) { mutableStateOf(Offset.Zero) }
-
-    val baseOffset = plotInspectorOffset(
-        selectionLeft = effectiveRect?.left,
-        selectionTop = effectiveRect?.top,
-        selectionRight = effectiveRect?.right,
-        selectionBottom = effectiveRect?.bottom,
-        inspectorSize = inspectorSize,
-        canvasSize = canvasSize,
-        gapPx = gapPx,
-        marginPx = marginPx,
-    )
-    val finalOffset = clampInspectorOffset(baseOffset, dragDelta, canvasSize, inspectorSize, marginPx)
-
-    FloatingSurface(
-        modifier = Modifier
-            .offset { finalOffset }
-            .widthIn(min = 240.dp, max = 290.dp)
-            .padding(4.dp)
-            .liquidGlassSpringAnimation(
-                expanded = !LocalFloatingSurfaceClosing.current,
-                origin = TransformOrigin(0.5f, 0.5f),
-            )
-            .onSizeChanged { inspectorSize = it },
-    ) {
-        CircuitInspectorContent(
-            circuit = circuit,
-            field = field,
-            keyboardOpen = keyboardOpen,
-            onOpenKeyboard = onOpenKeyboard,
-            labelSide = labelSide,
-            onLabelSideChange = onLabelSideChange,
-            rotation = rotation,
-            onRotate = onRotate,
-            onStraighten = onStraighten,
-            onDismiss = onDismiss,
-            onSave = onSave,
-            onDrag = { dragDelta += it },
-        )
-    }
-}
-
-/** The inspector's place: its anchored offset plus wherever the user dragged it, kept in the canvas. */
-private fun clampInspectorOffset(
-    base: IntOffset,
-    drag: Offset,
-    canvasSize: IntSize,
-    inspectorSize: IntSize,
-    marginPx: Int,
-): IntOffset = IntOffset(
-    x = (base.x + drag.x.roundToInt()).coerceIn(
-        marginPx,
-        maxOf(marginPx, canvasSize.width - inspectorSize.width - marginPx),
-    ),
-    y = (base.y + drag.y.roundToInt()).coerceIn(
-        marginPx,
-        maxOf(marginPx, canvasSize.height - inspectorSize.height - marginPx),
-    ),
-)
-
 @Composable
 private fun CircuitInspectorContent(
     circuit: CircuitElement,
@@ -261,7 +181,7 @@ private fun CircuitInspectorContent(
     onStraighten: () -> Unit,
     onDismiss: () -> Unit,
     onSave: () -> Unit,
-    onDrag: (Offset) -> Unit,
+    dragModifier: Modifier,
 ) {
     Column(
         modifier = Modifier.padding(12.dp),
@@ -270,7 +190,7 @@ private fun CircuitInspectorContent(
         CircuitInspectorHeader(
             symbol = circuit.symbol,
             onDismiss = onDismiss,
-            onDrag = onDrag,
+            dragModifier = dragModifier,
         )
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
         CircuitValueDisplay(
@@ -378,7 +298,7 @@ internal fun valueWithCaret(value: String, caretAt: Int?): String {
 private fun CircuitInspectorHeader(
     symbol: String,
     onDismiss: () -> Unit,
-    onDrag: (Offset) -> Unit,
+    dragModifier: Modifier,
 ) {
     val prettySymbol = symbol.replace("_", " ").lowercase().replaceFirstChar { it.uppercase() }
     Row(
@@ -390,12 +310,7 @@ private fun CircuitInspectorHeader(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .weight(1f)
-                .pointerInput(Unit) {
-                    detectDragGestures { change, dragAmount ->
-                        change.consume()
-                        onDrag(dragAmount)
-                    }
-                },
+                .then(dragModifier),
         ) {
             Icon(
                 imageVector = Icons.Default.DragIndicator,
