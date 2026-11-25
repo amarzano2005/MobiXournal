@@ -73,7 +73,7 @@ emulator_debug = false
 [[task]]
 id = "promote-circles-and-ellipses-to-living-parametric-figures"
 title = "Promote circles and ellipses to living parametric figures"
-description = "Extend the living figure model to support circles and ellipses (centre + rx/ry + rotation) in mobix-core, exposing cardinal N/S/E/W resize grips in SelectionGestureController.kt and LivingGrips.kt, numerical radius/diameter fields in ShapeEditorDialog.kt and ShapeInspector.kt, and anchor pins in FigurePins.kt. Update docs/mobix-living-entities.md and docs/mobix-element-fields.md, and verify with ./gradlew :mobix-core:test :desktop:test :app:testDebugUnitTest."
+description = "Extend the living figure model to support circles and ellipses (centre + rx/ry + rotation) in mobix-core, updating MobixShapeCodec.kt and spec/schema/elements/parametricShape.schema.json, ElementHitTester.kt (oval interior/boundary hit-testing and closestPointOnOutline for rotate stem), oval selection outlines in SelectionHandlesPaint.kt and SelectionOverlay.kt, cardinal N/S/E/W resize grips in SelectionGestureController.kt and LivingGrips.kt, numerical radius/diameter fields in ShapeEditorDialog.kt and ShapeInspector.kt, and anchor pins in FigurePins.kt. Update docs/mobix-living-entities.md and docs/mobix-element-fields.md, and verify with ./gradlew :mobix-core:test :desktop:test :app:testDebugUnitTest."
 status = "active"
 level = "task"
 category = "feature"
@@ -81,7 +81,23 @@ urgency = "high"
 order = 13
 created = 2026-11-24
 tags = []
-targets = ["mobix-core/src/main/java/com/mobixournal/format/model/Living.kt", "mobix-core/src/main/java/com/mobixournal/render/ParametricShapes.kt", "mobix-core/src/main/java/com/mobixournal/render/ShapeInk.kt", "app/src/main/java/com/mobixournal/render/DrawingSurfaceFigures.kt"]
+targets = ["mobix-core/src/main/java/com/mobixournal/format/model/Living.kt", "mobix-core/src/main/java/com/mobixournal/render/ParametricShapes.kt", "mobix-core/src/main/java/com/mobixournal/render/ShapeInk.kt", "mobix-core/src/main/java/com/mobixournal/render/ElementHitTester.kt", "mobix-core/src/main/java/com/mobixournal/format/mobix/MobixShapeCodec.kt", "app/src/main/java/com/mobixournal/render/DrawingSurfaceFigures.kt", "app/src/main/java/com/mobixournal/render/SelectionHandlesPaint.kt", "desktop/src/main/java/com/mobixournal/desktop/sheet/SelectionOverlay.kt", "spec/schema/elements/parametricShape.schema.json"]
+reviewed = 2026-11-25
+rebuild = true
+emulator_debug = false
+
+[[task]]
+id = "unify-proportional-corner-resize-and-shape-reclassification-across-shells"
+title = "Unify proportional corner resize and shape reclassification across shells"
+description = "Centralize corner/edge resize handle axis and aspect-locked scale-factor math in mobix-core (shared by SelectionResize.kt / SelectionHandleResize.kt and DesktopSelection.kt) so corner drags support uniform proportional scaling (sx == sy) consistently across shells (Shift-lock on Desktop plus an explicit aspect-lock toggle on Android's selection bar, and proportional 8-handle box resize for ParametricShapeElement). Update SelectionOps.affineXY to preserve SQUARE/RECTANGLE when sx == sy, call ParametricShapes.reclassifiedKind when non-uniform scaling breaks equal sides or 90-degree angles, and preserve StrokePoint telemetry (pressure, tilt, azimuth, dtMs, unknown) via p.copy(...) in affineXY, rotate, and restyle. Update docs/selection.md and docs/mobix-living-entities.md; verify via ./gradlew :mobix-core:test --tests '*Selection*' --tests '*ParametricShapes*' :app:testDebugUnitTest :desktop:test."
+status = "active"
+level = "task"
+category = "feature"
+urgency = "high"
+order = 14
+created = 2026-11-25
+tags = ["geometry", "selection", "parity"]
+targets = ["mobix-core/src/main/java/com/mobixournal/render/SelectionOps.kt", "mobix-core/src/main/java/com/mobixournal/render/ParametricShapes.kt", "app/src/main/java/com/mobixournal/render/SelectionResize.kt", "app/src/main/java/com/mobixournal/render/SelectionHandleResize.kt", "desktop/src/main/java/com/mobixournal/desktop/sheet/DesktopSelection.kt"]
 rebuild = true
 emulator_debug = false
 
@@ -823,7 +839,7 @@ created = 2026-11-11
 tags = ["stem", "math", "numeric", "contract"]
 epic = "mobix-stem-semantic-core"
 depends_on = ["stem-numeric-accuracy-corpus"]
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1010,7 +1026,7 @@ created = 2026-11-11
 tags = ["stem", "plot", "trace", "test"]
 epic = "mobix-stem-interactive-notebook"
 depends_on = ["stem-plot-tangent-tool", "stem-plot-integral-handles"]
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1159,7 +1175,7 @@ created = 2026-11-11
 tags = ["stem", "code", "render"]
 epic = "mobix-stem-semantic-core"
 depends_on = ["stem-code-block-model"]
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1251,7 +1267,7 @@ created = 2026-11-11
 tags = ["stem", "circuit", "schema", "connector"]
 epic = "mobix-stem-dynamic-engineering"
 reviewed = 2026-11-19
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1308,7 +1324,7 @@ created = 2026-11-11
 tags = ["stem", "circuit", "export", "connector"]
 epic = "mobix-stem-dynamic-engineering"
 depends_on = ["stem-connector-router"]
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1385,7 +1401,7 @@ created = 2026-11-11
 tags = ["stem", "measurement", "schema"]
 epic = "mobix-stem-dynamic-engineering"
 reviewed = 2026-11-19
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1461,7 +1477,7 @@ created = 2026-11-11
 tags = ["stem", "measurement", "export"]
 epic = "mobix-stem-dynamic-engineering"
 depends_on = ["stem-measurement-calibration", "stem-measurement-angles-areas"]
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1496,7 +1512,7 @@ created = 2026-11-11
 tags = ["stem", "geometry", "schema"]
 epic = "mobix-stem-dynamic-engineering"
 depends_on = ["stem-unit-table"]
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1625,7 +1641,7 @@ created = 2026-11-11
 tags = ["stem", "dataset", "schema"]
 epic = "mobix-stem-interactive-notebook"
 depends_on = ["stem-dataset-csv-import", "stem-unit-table"]
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1812,7 +1828,7 @@ created = 2026-11-11
 tags = ["stem", "linalg", "schema", "export"]
 epic = "mobix-stem-dynamic-engineering"
 depends_on = ["stem-linalg-solve", "stem-conversion-report-model", "stem-table-csv-export"]
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1866,7 +1882,7 @@ created = 2026-11-11
 tags = ["stem", "text", "schema"]
 epic = "mobix-stem-semantic-core"
 reviewed = 2026-11-19
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
@@ -1977,7 +1993,7 @@ created = 2026-11-11
 tags = ["stem", "study", "schema"]
 epic = "mobix-stem-interactive-notebook"
 reviewed = 2026-11-19
-rebuild = true
+rebuild = false
 emulator_debug = false
 
 [[task]]
