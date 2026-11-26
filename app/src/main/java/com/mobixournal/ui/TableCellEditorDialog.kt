@@ -47,6 +47,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,6 +82,7 @@ import com.mobixournal.format.model.TableAlign
 import com.mobixournal.format.model.TableCell
 import com.mobixournal.render.replaceTableElement
 import com.mobixournal.render.setActiveTableCellHighlight
+import com.mobixournal.render.singleSelectedTable
 import com.mobixournal.ui.theme.rememberClosingArgument
 
 private enum class TableInspectorTab(val label: String) {
@@ -126,6 +128,16 @@ fun TableEditorHost(
     DisposableEffect(pane.surface, liveTable, state.currentRow, state.currentCol) {
         pane.surface?.setActiveTableCellHighlight(liveTable, state.currentRow, state.currentCol)
         onDispose { pane.surface?.setActiveTableCellHighlight(null, 0, 0) }
+    }
+
+    LaunchedEffect(pane.selectionLiveTick) {
+        val live = pane.surface?.singleSelectedTable() ?: return@LaunchedEffect
+        if (live != liveTable && (live.id == null || live.id == liveTable.id)) {
+            liveTable = live
+            state.colWidths = live.colWidths
+            state.rowHeights = live.rowHeights
+            ui.editingTableCell = EditingTableCell(live, state.currentRow, state.currentCol)
+        }
     }
 
     Box(modifier = modifier.fillMaxSize()) {

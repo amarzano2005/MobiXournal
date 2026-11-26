@@ -629,7 +629,7 @@ fun DrawingSurfaceView.selectionScreenRect(): android.graphics.RectF? {
 /** Emit [onSelectionRectChanged] if the selection box moved since the last report. */
 internal fun DrawingSurfaceView.reportSelectionRect() {
     val rect = selectionScreenRect()
-    if (rect != selectionReports.strokes) {
+    if (rect != selectionReports.strokes || gestures.transforming) {
         selectionReports.strokes = rect
         onSelectionRectChanged?.invoke(rect)
     }

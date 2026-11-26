@@ -1399,7 +1399,7 @@ private fun DrawingSurfaceView.bindTo(state: PaneState) {
     }
     onScrollChanged = { y, total, vp, x -> state.scrollY = y; state.contentHeight = total; state.viewportHeight = vp; state.scrollX = x }
     onSelectionChanged = { s -> state.hasSelection = s }
-    onSelectionRectChanged = { r -> state.selectionRect = r }
+    onSelectionRectChanged = { r -> state.selectionRect = r; state.selectionLiveTick++ }
     onTextSelectionChanged = { s -> state.hasTextSelection = s }
     onTextSelectionReport = { r ->
         state.textSelectionRect = r?.union

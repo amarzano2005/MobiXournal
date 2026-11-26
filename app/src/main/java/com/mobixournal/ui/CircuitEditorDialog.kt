@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +61,7 @@ import com.mobixournal.design.DesignTokens
 import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.CircuitLabelSide
 import com.mobixournal.render.replaceCircuitElement
+import com.mobixournal.render.singleSelectedCircuit
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.FloatingSurface
 import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
@@ -99,6 +101,12 @@ fun CircuitInspectorAnchor(
     var keyboardOpen by remember(session) { mutableStateOf(false) }
     var keyboardHeight by remember { mutableStateOf(0) }
 
+    LaunchedEffect(pane.selectionLiveTick) {
+        val live = surface?.singleSelectedCircuit() ?: return@LaunchedEffect
+        val cur = ui.editingCircuit ?: return@LaunchedEffect
+        if (live != cur && (live.id == null || live.id == cur.id)) { ui.editingCircuit = live; rotation = live.rotation }
+    }
+
     /** The element as the inspector currently reads it — what every control below applies. */
     fun edited() = circuit.copy(
         value = field.text.ifBlank { null },
@@ -133,20 +141,14 @@ fun CircuitInspectorAnchor(
                     apply()
                 },
                 rotation = rotation,
-                onRotate = {
-                    rotation = (rotation + 90.0) % 360.0
-                    apply()
-                },
+                onRotate = { rotation = (rotation + 90.0) % 360.0; apply() },
                 onStraighten = {
                     val straight = (round(rotation / 90.0) * 90.0) % 360.0
                     rotation = if (straight < 0.0) straight + 360.0 else straight
                     apply()
                 },
                 onDismiss = onDismiss,
-                onSave = {
-                    apply()
-                    onDismiss()
-                },
+                onSave = { apply(); onDismiss() },
                 dragModifier = dragModifier,
             )
         }

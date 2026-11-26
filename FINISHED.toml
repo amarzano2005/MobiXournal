@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "inspector-live-canvas-sync"
+title = "Sync live canvas vertex, rotation, and table divider edits back into open inspectors"
+description = "Emitted selection updates throughout gestures.transforming in DrawingSurfaceSelection.reportSelectionRect; added PaneState.selectionLiveTick wired via EditorRegions.kt; added LaunchedEffect(pane.selectionLiveTick) live sync inside ShapeEditorHost (ShapeEditorDialog.kt), CircuitInspectorAnchor (CircuitEditorDialog.kt), and TableEditorHost (TableCellEditorDialog.kt) without bumping inspector session keys; updated docs/mobix-living-entities.md. Verified via ShapeInspectorHelpersTest, TableCellEditorDialogTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: unchanged FloatingSurface inspector panels; tokens: unchanged; glyph: unchanged; states: canvas vertex/rotation/divider edits stream into open inspector previews and numeric readouts in real time without altering panel anchor/session; copy: unchanged English; parity: Android UI parity with canvas-live element state; docs: docs/mobix-living-entities.md updated; tests: ShapeInspectorHelpersTest, TableCellEditorDialogTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest green"
+
+[[task]]
 id = "living-conics-visible-autoscroll"
 title = "Promote circles/ellipses to living parametric shapes and anchor drag auto-scroll to visible canvas bounds"
 description = "Promoted CIRCLE and ELLIPSE to living ParametricShapeElement with 4 cardinal vertices [N,E,S,W], smooth ShapeInk synthesis, exact rotated ElementBounds, elliptic interior hit-testing, Lock rectangular box vs Unlock curve-hugging selection + 4 cardinal handles, and live Rx/Ry/Make circle controls on Android (ShapeEditorDialog.kt) and Desktop (ShapeInspector.kt, SelectionOverlay.kt, LivingGrips.kt); anchored ScrollGesture drag auto-scroll to visible safe canvas bounds (viewport insets) and dragged selection bounds (CanvasScroll.kt, DrawingSurfaceView.kt, DrawingSurfaceInput.kt, DrawingSurfaceConstants.kt); updated docs/mobix-living-entities.md and tests. Verified via :mobix-core:test (all tests), :app:testDebugUnitTest (ScrollGestureTest, ShapeInspectorHelpersTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest), :desktop:createDistributable, and scripts/release-apk.sh."

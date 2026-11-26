@@ -36,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +61,7 @@ import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.ShapeVertex
 import com.mobixournal.render.ParametricShapes
 import com.mobixournal.render.replaceShapeElement
+import com.mobixournal.render.singleSelectedShape
 import com.mobixournal.ui.theme.rememberClosingArgument
 import kotlin.math.hypot
 import kotlin.math.roundToInt
@@ -88,6 +90,11 @@ fun ShapeEditorHost(
     val surface = pane.surface
     val session = ui.shapeInspectorSession
     val onDismiss = { ui.editingShape = null }
+    LaunchedEffect(pane.selectionLiveTick) {
+        val live = surface?.singleSelectedShape() ?: return@LaunchedEffect
+        val cur = ui.editingShape ?: return@LaunchedEffect
+        if (live != cur && (live.id == null || live.id == cur.id)) ui.editingShape = live
+    }
     val keyboard = remember(session) {
         LivingKeyboardController { _, next -> next.filter { it.isDigit() || it == '.' }.take(7) }
     }
@@ -419,17 +426,9 @@ private fun ShapeConicGeometryTab(
 private fun ConicMiniDiagram(shape: ParametricShapeElement) {
     val scheme = MaterialTheme.colorScheme
     val outline = remember(shape.vertices) { ParametricShapes.conicOutlinePoints(shape, steps = 48) }
-    Canvas(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(92.dp),
-    ) {
-        val pts = normalizePolygonForPreview(
-            vertices = outline,
-            width = size.width,
-            height = size.height,
-            padding = 18.dp.toPx(),
-        )
+    Canvas(modifier = Modifier.fillMaxWidth().height(92.dp)) {
+        val pad = 18.dp.toPx()
+        val pts = normalizePolygonForPreview(outline, size.width, size.height, pad)
         if (pts.size < 3) return@Canvas
         val path = Path().apply {
             moveTo(pts[0].x, pts[0].y)
@@ -437,13 +436,7 @@ private fun ConicMiniDiagram(shape: ParametricShapeElement) {
             close()
         }
         drawPath(path = path, color = scheme.primary.copy(alpha = 0.75f), style = Stroke(width = 1.8.dp.toPx()))
-        val cardinal = normalizePolygonForPreview(
-            vertices = shape.vertices,
-            width = size.width,
-            height = size.height,
-            padding = 18.dp.toPx(),
-        )
-        for (c in cardinal) {
+        for (c in normalizePolygonForPreview(shape.vertices, size.width, size.height, pad)) {
             drawCircle(color = scheme.primary, radius = 3.2.dp.toPx(), center = c)
         }
     }

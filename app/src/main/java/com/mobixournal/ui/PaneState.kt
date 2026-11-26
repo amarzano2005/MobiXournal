@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.mobixournal.render.DrawingSurfaceView
@@ -55,6 +56,8 @@ class PaneState {
      * contextual action bar next to what is selected.
      */
     var selectionRect by mutableStateOf<android.graphics.RectF?>(null)
+    /** Monotonic tick bumped whenever a selection box or live canvas transform updates. */
+    var selectionLiveTick by mutableIntStateOf(0)
     /** Whether there is an active text selection (caret inside a text box). */
     var hasTextSelection by mutableStateOf(false)
     /**
