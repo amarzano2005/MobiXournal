@@ -5,6 +5,7 @@ import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.Page
 import com.mobixournal.render.CircuitSnapping
+import com.mobixournal.render.ElementBounds
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.SelectionTester
 import kotlin.math.hypot
@@ -43,8 +44,21 @@ internal fun pinnedElementAt(page: Page, x: Double, y: Double, radiusPt: Double)
  * One call, because the two answers have to be asked in that order: a part lying over another part is
  * picked as ink first, and only empty paper near a pin falls through to the magnet's reach.
  */
-internal fun pickForDrag(page: Page, x: Double, y: Double, radiusPt: Double): ElementRef? =
-    SelectionTester.pickTopmost(page, x, y) ?: pinnedElementAt(page, x, y, radiusPt)
+/** The ink pick radius for a click on desktop, in screen pixels (capped at [ElementBounds.TAP_PAD]). */
+internal const val PICK_PX = 4f
+
+/** Converts [PICK_PX] to page points at [pxPerPt], clamped to `[0.5, ElementBounds.TAP_PAD]`. */
+internal fun desktopPickPadPt(pxPerPt: Float): Double =
+    (PICK_PX / pxPerPt).toDouble().coerceIn(0.5, ElementBounds.TAP_PAD)
+
+internal fun pickForDrag(
+    page: Page,
+    x: Double,
+    y: Double,
+    radiusPt: Double,
+    padPt: Double = ElementBounds.TAP_PAD,
+): ElementRef? =
+    SelectionTester.pickTopmost(page, x, y, padPt) ?: pinnedElementAt(page, x, y, radiusPt)
 
 /**
  * Whether a press at ([x], [y]) lands on a **pin** of [element] — the grab that must *move* the part.

@@ -3,6 +3,7 @@ import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.ink.pagePointOf
 import com.mobixournal.desktop.shell.DesktopTab
 import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.desktopPickPadPt
 import com.mobixournal.desktop.tools.pickForDrag
 import com.mobixournal.desktop.tools.pressesOwnPin
 
@@ -151,8 +152,7 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     val pxPerPt = viewport.zoom * density
     val tol = (HANDLE_PX / pxPerPt).toDouble()
     val gap = (ROTATE_GAP_PX / pxPerPt).toDouble()
-    val live = tab.selection
-    val page = runCatching { tab.document.page(tab.page) }.getOrNull()
+    val live = tab.selection; val page = runCatching { tab.document.page(tab.page) }.getOrNull()
     // A press on a **compatible pin** is the join the mark promises (`joinSelectionToPin`, the tablet's press):
     // asked before the grips and before the pick, because the mark is the finer target than the ink under it.
     if (live != null && page != null &&
@@ -161,8 +161,7 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     // A **grip** on the selected element — a figure's corner, a table's divider — is found here and acted on
     // below the double-click: it is the finer control the tablet puts first, and a press a hair off the ink
     // should bend the figure rather than carry the whole selection.
-    val living = live?.takeIf { it.refs.size == 1 }?.let { selectedLivingElement(tab) }
-    val grip = living?.let { gripAt(it, x0, y0, tol) }
+    val living = live?.takeIf { it.refs.size == 1 }?.let { selectedLivingElement(tab) }; val grip = living?.let { gripAt(it, x0, y0, tol) }
     val singleEl = live?.let { sel -> page?.let { singleElementOf(it, sel) } }
     val isLiveImage = singleEl is ImageElement
     // The eight handles of the tablet, and the turn is an image's to lose (its model carries no rotation).
@@ -176,7 +175,7 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     )
     // The ink's picker first, then the **pins**: a part is grabbed by its end as readily as by its middle,
     // which is where the hand aims when two parts have to be joined (`PinPress`).
-    val picked = page?.let { pickForDrag(it, x0, y0, tol) }
+    val picked = page?.let { pickForDrag(it, x0, y0, tol, desktopPickPadPt(pxPerPt)) }
     val grabbed = when {
         handle == SelectionHandle.NONE || handle == SelectionHandle.ROTATE -> handle
         else -> {
@@ -322,7 +321,7 @@ private suspend fun AwaitPointerEventScope.traceRegion(
                 val traced = region.value
                 region.value = null
                 if (!cancelled && traced != null) {
-                    tab.selection = finishedSelection(traced, traced.catches(tab.document.page(tab.page)))
+                    val page = tab.document.page(tab.page); tab.selection = finishedSelection(traced, traced.catches(page), page)
                 }
                 break
             }

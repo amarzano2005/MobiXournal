@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-tight-selection-closest-pick"
+title = "Tighten desktop selection bounds and pick closest stroke on click"
+description = "Added StrokeHitTester.distance and ElementHitTester.hitDistance so SelectionTester.pickTopmost prefers the closest hit (breaking ties by topmost); added zoom-scaled desktopPickPadPt (PICK_PX=4f) in PinPress/SelectionGesture; tightened finishedSelection to SelectionTester.boundsOf on marquee/lasso release; updated SelectionTest, DesktopSelectionTest, docs/selection.md, and refreshed :desktop:createDistributable."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "parity: desktop marquee/lasso tightens to SelectionTester.boundsOf like Android; tests: DesktopSelectionTest, SelectionTest, mobix-core:test, SourceStructureTest"
+
+[[task]]
 id = "xopp-package-label-clarity"
 title = "Clarify Xournal++ package format labels across Android and Desktop"
 description = "Updated SaveFormat.ZIPPED labels in EditorExportSheet (badge .xopp, title Xournal++ package, subtitle PDF embedded inside), EditorDialogs (title Xournal++ package, subtitle PDF embedded inside), and DesktopSettingValues (Xournal++ package (.xopp)). Verified SourceStructureTest, PackageStructureTest, :desktop:createDistributable, and scripts/release-apk.sh."

@@ -36,10 +36,22 @@ object ElementHitTester {
         x: Double,
         y: Double,
         padPt: Double = ElementBounds.TAP_PAD,
-    ): Boolean {
-        if (!ElementBounds.isHitTestable(element)) return false
-        if (!ElementBounds.of(element).expand(padPt).contains(x, y)) return false
-        return when (element) {
+    ): Boolean = hitDistance(element, x, y, padPt) != null
+
+    /**
+     * Distance in page points from ([x], [y]) to [element]'s ink when it hits within [padPt] pt, or `null`
+     * when it misses. Closed interiors and non-stroke boxes report `0.0`; open strokes report their true
+     * ink-edge distance so [SelectionTester.pickTopmost] can prefer a direct hit over a nearby stroke.
+     */
+    fun hitDistance(
+        element: Element,
+        x: Double,
+        y: Double,
+        padPt: Double = ElementBounds.TAP_PAD,
+    ): Double? {
+        if (!ElementBounds.isHitTestable(element)) return null
+        if (!ElementBounds.of(element).expand(padPt).contains(x, y)) return null
+        val hit = when (element) {
             is ParametricShapeElement -> {
                 if (ParametricShapes.isConic(element)) {
                     ParametricShapes.conicContains(element, x, y, padPt + element.strokeWidth / 2.0)
@@ -51,9 +63,12 @@ object ElementHitTester {
             is Stroke -> {
                 if (isClosedFigureStroke(element)) {
                     val poly = element.points.map { Vec2(it.x, it.y) }
-                    containsInPolygon(poly, x, y, padPt) || StrokeHitTester.hits(element, x, y, padPt)
+                    if (containsInPolygon(poly, x, y, padPt)) return 0.0
+                    val d = StrokeHitTester.distance(element, x, y)
+                    return if (d <= padPt) d else null
                 } else {
-                    StrokeHitTester.hits(element, x, y, padPt)
+                    val d = StrokeHitTester.distance(element, x, y)
+                    return if (d <= padPt) d else null
                 }
             }
             is TableElement,
@@ -65,6 +80,7 @@ object ElementHitTester {
             is CircuitElement -> true
             is RawElement -> false
         }
+        return if (hit) 0.0 else null
     }
 
     /**

@@ -200,6 +200,20 @@ class DesktopSelectionTest {
     }
 
     @Test
+    fun `finishedSelection tightens an oversized trace to the caught ink bounds`() {
+        val stroke = bar(100.0, 100.0)
+        val doc = DocumentLoader.load(notebook())
+        try {
+            val page = doc.page(0).withElements(listOf(stroke))
+            val ref = ElementRef(0, page.layers[0].elements.lastIndex)
+            val sel = finishedSelection(rectRegion(10.0, 10.0, 400.0, 400.0), setOf(ref), page)!!
+            assertEquals(ElementBounds.of(stroke), sel.bounds)
+        } finally {
+            doc.close()
+        }
+    }
+
+    @Test
     fun `the strips offer both marquee tools in one slot`() {
         assertEquals(SelectionTool.MARQUEE, selectionToolOf(DesktopTool.MARQUEE))
         assertEquals(SelectionTool.LASSO, selectionToolOf(DesktopTool.LASSO))
@@ -242,7 +256,7 @@ class DesktopSelectionTest {
             assertEquals(128.0, ElementBounds.of(moved).left, 1e-6)
             assertEquals(128.0, ElementBounds.of(moved).top, 1e-6)
             assertEquals("the other bar stayed", 398.0, ElementBounds.of(elements(tab.document.page(0)).last()).left, 1e-6)
-            assertEquals("the outline followed the ink", 110.0, tab.selection!!.bounds.left, 1e-6)
+            assertEquals("the outline followed the ink", 128.0, tab.selection!!.bounds.left, 1e-6)
 
             // Move, resize and turn are one undo step each — not one per pointer sample.
             assertTrue("the move is undoable", tab.undo())
@@ -330,8 +344,10 @@ class DesktopSelectionTest {
             pen(scene, PointerEventType.Release, 80f, 80f, 1_064L, pressed = false)
             val selection = tab.selection
             assertNotNull("the loop caught the bar", selection)
-            assertTrue("a lasso is a polygon, not a rectangle", selection!!.region is SelectionRegion.Polygon)
-            assertEquals("it caught the bar and nothing else", 1, selection.refs.size)
+            assertEquals("it caught the bar and nothing else", 1, selection!!.refs.size)
+            val ref = selection.refs.single()
+            val caughtEl = tab.document.page(0).layers[ref.layerIndex].elements[ref.elementIndex]
+            assertEquals("the finished box tightens to the caught bar", ElementBounds.of(caughtEl), selection.bounds)
         } finally {
             scene.close()
             tab.document.close()

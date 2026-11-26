@@ -71,6 +71,20 @@ class SelectionTest {
         assertEquals(ElementRef(0, 1), SelectionTester.pickTopmost(pg, 25.0, 25.0))
     }
 
+    @Test fun pickTopmostPrefersDirectStrokeHitOverNearbyLaterStroke() {
+        val direct = Stroke(
+            Tool.PEN, 0xFF000000.toInt(), "round",
+            listOf(StrokePoint(10.0, 10.0, 2.0), StrokePoint(50.0, 10.0, 2.0)), false,
+        )
+        val nearbyLater = Stroke(
+            Tool.PEN, 0xFF000000.toInt(), "round",
+            listOf(StrokePoint(10.0, 13.0, 2.0), StrokePoint(50.0, 13.0, 2.0)), false,
+        )
+        val pg = page(Layer(listOf(direct, nearbyLater)))
+        assertEquals(ElementRef(0, 0), SelectionTester.pickTopmost(pg, 30.0, 10.0))
+        assertEquals(ElementRef(0, 1), SelectionTester.pickTopmost(pg, 30.0, 13.0))
+    }
+
     @Test fun pickTopmostMissReturnsNull() {
         assertNull(SelectionTester.pickTopmost(p, 500.0, 500.0))
     }

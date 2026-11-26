@@ -218,8 +218,10 @@ closely isn't dropped for landing a hair outside. Both containment tests also sw
 active layer** (`onlyLayer`, resolved from `resolvedActiveLayer` by `SelectionGestureController`),
 matching desktop Xournal++'s current-layer selection so a marquee never grabs ink the user isn't
 editing; with no layer chosen yet the sweep falls back to the whole page. (A single **tap** pick is
-still page-wide — `pickTopmost` sweeps every layer — but it judges a stroke by its ink, which is how a tap
-evades the empty half of a diagonal's box.) **How far a lasso was traced** is measured by the
+still page-wide — `pickTopmost` sweeps every layer, prefers the closest hit within its tolerance, and
+breaks ties by topmost — and it judges a stroke by its ink, which is how a tap evades the empty half
+of a diagonal's box; on desktop, `PICK_PX` scales the click radius with zoom and `finishedSelection`
+tightens a completed marquee or lasso to `SelectionTester.boundsOf`.) **How far a lasso was traced** is measured by the
 **extent of the traced path**, not by the gap from its first point to its last (`lassoExtentPx`): a
 lasso closing back onto — or beside — its own start leaves that gap at zero, and reading it as the
 drag distance made a real lasso look like a tap, so it picked the topmost element under the pen (or

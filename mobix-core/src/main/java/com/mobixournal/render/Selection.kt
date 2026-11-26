@@ -148,32 +148,41 @@ object SelectionTester {
      * Delegates geometry hit-testing to [ElementHitTester]: closed figures hit from their boundary
      * through their true interior area, while open strokes hit along their stroke segments.
      */
-    fun pickTopmost(page: Page, x: Double, y: Double): ElementRef? = pickTopmost(page, x, y) { true }
+    fun pickTopmost(page: Page, x: Double, y: Double, padPt: Double = TAP_PAD): ElementRef? =
+        pickTopmost(page, x, y, padPt) { true }
 
     /**
      * [pickTopmost] restricted to the elements [matches] accepts — what a top-bar element tool asks
      * before it places anything: the object of its own family under the point is selected, and only
      * paper that holds none of them takes a new one (`render/PlacementPick.kt` on the tablet).
      *
-     * The answer is the **topmost matching** element, so a closed figure lying over another is the one
-     * a press picks, exactly as a plain tap picks.
+     * Prefers the closest hit to ([x], [y]) and breaks ties by **topmost** (last-drawn) element, so a
+     * direct click on a stroke beats a nearby stroke drawn later, while overlapping ink still picks the
+     * topmost one.
      */
     fun pickTopmost(
         page: Page,
         x: Double,
         y: Double,
+        padPt: Double = TAP_PAD,
         matches: (Element) -> Boolean,
     ): ElementRef? {
+        var bestRef: ElementRef? = null
+        var bestDist = Double.POSITIVE_INFINITY
         for (li in page.layers.indices.reversed()) {
             val elements = page.layers[li].elements
             for (ei in elements.indices.reversed()) {
                 val el = elements[ei]
                 if (!matches(el)) continue
-                if (!ElementHitTester.hits(el, x, y, TAP_PAD)) continue
-                return ElementRef(li, ei)
+                val d = ElementHitTester.hitDistance(el, x, y, padPt) ?: continue
+                if (d < bestDist) {
+                    bestDist = d
+                    bestRef = ElementRef(li, ei)
+                    if (d == 0.0) return bestRef
+                }
             }
         }
-        return null
+        return bestRef
     }
 
     /** The union of the bounds of every element in [refs] on [page], or null if the set is empty. */

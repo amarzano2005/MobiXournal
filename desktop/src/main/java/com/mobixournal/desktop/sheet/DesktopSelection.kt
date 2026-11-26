@@ -11,6 +11,8 @@ import com.mobixournal.render.shaftTurn
 import com.mobixournal.render.ElementRef
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
+import com.mobixournal.render.SelectionTester
+import com.mobixournal.render.rectRegion
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.roundToInt
@@ -313,6 +315,14 @@ internal enum class SelectionTool { MARQUEE, LASSO }
 /** True when the press starts a fresh region rather than acting on the live one. */
 fun SelectionHandle.startsRegion(): Boolean = this == SelectionHandle.NONE
 
-/** The selection a finished trace means: `null` when it caught nothing, so no empty outline is left behind. */
-fun finishedSelection(region: SelectionRegion, caught: Set<ElementRef>): PageSelection? =
-    if (caught.isEmpty()) null else PageSelection(region, caught)
+/**
+ * The selection a finished trace means: `null` when it caught nothing, so no empty outline is left behind.
+ * When [page] is given, the region tightens to the union of the caught elements' bounds (`SelectionTester.boundsOf`),
+ * matching click-selection and Android instead of keeping an oversized marquee/lasso box.
+ */
+fun finishedSelection(region: SelectionRegion, caught: Set<ElementRef>, page: Page? = null): PageSelection? {
+    if (caught.isEmpty()) return null
+    val tight = page?.let { SelectionTester.boundsOf(it, caught) }
+    val fitted = if (tight != null) rectRegion(tight.left, tight.top, tight.right, tight.bottom) else region
+    return PageSelection(fitted, caught)
+}

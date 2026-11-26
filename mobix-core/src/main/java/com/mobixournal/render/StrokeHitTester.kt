@@ -32,24 +32,30 @@ object StrokeHitTester {
      * @param radius Eraser disc radius in points.
      * @return true if eraser touches any segment of the stroke.
      */
-    fun hits(stroke: Stroke, px: Double, py: Double, radius: Double): Boolean {
+    fun hits(stroke: Stroke, px: Double, py: Double, radius: Double): Boolean =
+        distance(stroke, px, py) <= radius
+
+    /**
+     * Shortest distance in page points from ([px], [py]) to [stroke]'s rendered ink (segment distance
+     * minus half-width, clamped to 0), or [Double.POSITIVE_INFINITY] if [stroke] has no points.
+     */
+    fun distance(stroke: Stroke, px: Double, py: Double): Double {
         val pts = stroke.points
-        if (pts.isEmpty()) return false
+        if (pts.isEmpty()) return Double.POSITIVE_INFINITY
         if (pts.size == 1) {
-            val reach = radius + pts[0].width / 2.0
-            return distSq(px, py, pts[0].x, pts[0].y) <= reach * reach
+            val d = sqrt(distSq(px, py, pts[0].x, pts[0].y)) - pts[0].width / 2.0
+            return d.coerceAtLeast(0.0)
         }
+        var best = Double.POSITIVE_INFINITY
         for (i in 1 until pts.size) {
             val a = pts[i - 1]
             val b = pts[i]
-            val reach = radius + maxOf(a.width, b.width) / 2.0
-            if (px < minOf(a.x, b.x) - reach || px > maxOf(a.x, b.x) + reach ||
-                py < minOf(a.y, b.y) - reach || py > maxOf(a.y, b.y) + reach) {
-                continue
-            }
-            if (pointSegmentDistanceSq(px, py, a.x, a.y, b.x, b.y) <= reach * reach) return true
+            val halfW = maxOf(a.width, b.width) / 2.0
+            val d = pointSegmentDistance(px, py, a.x, a.y, b.x, b.y) - halfW
+            if (d <= 0.0) return 0.0
+            if (d < best) best = d
         }
-        return false
+        return best
     }
 
     private fun pointSegmentDistanceSq(px: Double, py: Double, ax: Double, ay: Double, bx: Double, by: Double): Double {
