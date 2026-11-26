@@ -187,7 +187,7 @@ enum class DesktopNewDocumentFormat(
 ) {
     MOBIX("MobiXournal (.mobix)", ".mobix"),
     XOPP("Xournal++ (.xopp)", ".xopp"),
-    ZIPPED("Xournal++ package (.xopp, zipped)", ".xopp"),
+    ZIPPED("Xournal++ package (.xopp)", ".xopp"),
     ;
 
     /** The container a tab opened on this answer carries until Save As names another. */

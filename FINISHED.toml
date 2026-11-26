@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "xopp-package-label-clarity"
+title = "Clarify Xournal++ package format labels across Android and Desktop"
+description = "Updated SaveFormat.ZIPPED labels in EditorExportSheet (badge .xopp, title Xournal++ package, subtitle PDF embedded inside), EditorDialogs (title Xournal++ package, subtitle PDF embedded inside), and DesktopSettingValues (Xournal++ package (.xopp)). Verified SourceStructureTest, PackageStructureTest, :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "chore"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: existing SaveAsFormatRow, FormatOption, and SettingsSelect preserved; states: unchanged enabled/selected states; copy: English UI copy updated to Xournal++ package and PDF embedded inside across Android and Desktop"
+
+[[task]]
 id = "mobix-stored-precompressed-assets"
 title = "Store pre-compressed media assets uncompressed in .mobix archives"
 description = "Added MobixFormat.PRECOMPRESSED_ASSET_EXTENSIONS/shouldStoreUncompressed and streaming MobixPayload.crc32AndSize; wired ZipEntry.STORED for pre-compressed assets/ entries across MobixContainer.save and MobixIncrementalSaver.repack/MobixZip.Writer.putStored while keeping JSON/WAV DEFLATED; updated docs/mobix-schema-spec.md and unit tests in MobixContainerTest and MobixIncrementalSaveTest; also moved chromeAnimating, lastReportedPage, and viewport reporting extensions out of DrawingSurfaceView to satisfy SourceStructureTest and PackageStructureTest. Verified :mobix-core:test, guards, render tests, :desktop:createDistributable, and scripts/release-apk.sh."

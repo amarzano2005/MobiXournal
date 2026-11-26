@@ -300,9 +300,9 @@ internal fun SaveAsDrilldownView(
             onClick = { onPickFormat(SaveFormat.ORIGINAL) },
         )
         SaveAsFormatRow(
-            badge = "ZIP",
-            title = "Zipped Xournal++",
-            subtitle = "Portable · PDF embedded inside",
+            badge = ".xopp",
+            title = "Xournal++ package",
+            subtitle = "PDF embedded inside",
             accent = accent,
             ink = ink,
             enabled = !isReadOnly,

@@ -17,8 +17,10 @@ extension you keep until you say otherwise.
 ## `.xopp`: the file Xournal++ reads
 
 `.xopp` is the interchange format. A notebook from desktop Xournal++ opens in either shell without a
-conversion step, and goes back to Xournal++ the same way. Leave a file alone and the round trip gives the
-same bytes back; the [contract page](xopp-bridge.md) lists what "same" covers.
+conversion step, and goes back to Xournal++ the same way — either as standard **Xournal++** (any PDF
+background stays linked by path) or as **Xournal++ package** (the PDF is embedded inside the `.xopp`
+file). Leave a file alone and the round trip gives the same bytes back; the
+[contract page](xopp-bridge.md) lists what "same" covers.
 
 ## `.mobix`: the format that keeps things editable
 

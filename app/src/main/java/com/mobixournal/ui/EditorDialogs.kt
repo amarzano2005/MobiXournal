@@ -115,8 +115,8 @@ fun SaveAsDialog(
                 )
                 FormatOption(
                     selected = picked == SaveFormat.ZIPPED,
-                    title = "Zipped (single .xopp)",
-                    subtitle = "One portable Xournal++ file with the PDF embedded inside.",
+                    title = "Xournal++ package",
+                    subtitle = "PDF embedded inside",
                     onClick = { picked = SaveFormat.ZIPPED },
                 )
             }
