@@ -77,6 +77,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -118,6 +119,7 @@ import com.mobixournal.ui.theme.frameClosingEdge
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.floatingRim
 import com.mobixournal.ui.theme.rememberCanvasChromeColors
+import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberClosingArgument
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
@@ -184,12 +186,9 @@ fun EditorTopBar(
     // A caller with no settings to read has nowhere to put a second row, so its tabs stay in the
     // title slot; the editor itself gives them a strip of their own under the tools.
     val tabsInline = settings == null || onSettingsChange == null
-    val tabsUnderTheTools = !tabsInline
     val stripTabs = paneTabs.firstOrNull { it.focused } ?: tabs
-    // No `shadowElevation`: a band on the tablet closes on its own edge instead of casting onto the
-    // band beside it, and that edge stops where the rail's lane begins (`frameClosingEdge`, whose KDoc
-    // and `docs/interface-contract.md` own the rule) so both arms close on one continuous corner.
     val laneEdge = if (settings == null || ui.fullPage) 0.dp else SideToolbarModernTotalWidth
+    val docBandColor = rememberChromeColor().copy(alpha = if (isDark) 0.28f else 0.45f)
     Surface(
         color = glassColor,
         modifier = modifier.fillMaxWidth(),
@@ -198,217 +197,61 @@ fun EditorTopBar(
             Column {
                 TopAppBar(
                     navigationIcon = {
-                    // The leading slot is exactly the rail's lane wide ([SideToolbarModernTotalWidth]), so the
-                    // dock starts on the line the canvas starts on; in the standalone style the active tool
-                    // indicator is this slot's own pill, at a fixed width so the dock cannot drift.
-                        if (settings != null && railOnLeft && !ui.fullPage) {
-                            if (!INDICATOR_AS_DOCK_CAP &&
-                                onSettingsChange != null &&
-                                standaloneIndicatorSlot(railOnLeft) == IndicatorSlot.LEADING
-                            ) {
-                                StandaloneToolIndicator(
-                                    ui = ui,
-                                    styleCallbacks = rememberToolbarStyleCallbacks(
-                                        ui = ui,
-                                        surface = pane.surface,
-                                        settings = settings,
-                                        onSettingsChange = onSettingsChange,
-                                    ),
-                                    modifier = Modifier,
-                                )
-                            } else {
-                                Spacer(Modifier.width(SideToolbarModernTotalWidth))
-                            }
+                        if (settings != null && !railOnLeft && !ui.fullPage) {
+                            Spacer(Modifier.width(4.dp))
                         }
                     },
-                title = {
-                    if (!tabsInline) {
-                        TopBarToolsRow(
+                    title = {
+                        if (splitView && paneTabs.size >= 2) {
+                            SplitTabRow(
+                                tabs = paneTabs,
+                                fraction = ui.splitFraction,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        } else {
+                            TabStrip(stripTabs, modifier = Modifier.fillMaxWidth())
+                        }
+                    },
+                    modifier = Modifier
+                        .background(docBandColor)
+                        .stableStatusBarsPadding()
+                        .height(HEADER_DOC_ROW_HEIGHT),
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                    ),
+                    actions = {
+                        EditorDocumentActions(
                             ui = ui,
                             pane = pane,
+                            stripTabs = stripTabs,
                             settings = settings,
                             onSettingsChange = onSettingsChange,
+                            onOpen = onOpen,
+                            onNewTab = onNewTab,
+                            onSave = onSave,
+                            onImportPdf = onImportPdf,
+                            onExportPagePng = onExportPagePng,
+                            onExportPageSvg = onExportPageSvg,
+                            onSavePortableCopy = onSavePortableCopy,
+                            onShare = onShare,
+                            onSaveAsFormat = onSaveAsFormat,
+                            splitView = splitView,
+                            onToggleSplitView = onToggleSplitView,
                         )
-                    } else {
-                        TabStrip(stripTabs, modifier = Modifier.fillMaxWidth())
-                    }
-                },
-                // The bar pads itself by the status-bar inset and then stands its own row of tools under it,
-                // so the glass slab — not the window background — is what the clock and the notch sit on.
-                modifier = Modifier
-                    .stableStatusBarsPadding()
-                    .height(TOP_BAR_ROW_HEIGHT),
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                ),
-                actions = {
-                val glassColor = rememberGlassSurfaceColor()
-                val hairlineColor = ModernTheme.hairlineBorder(isDark)
-
-                val chromePolicy = com.mobixournal.ui.theme.LocalChromeLayoutPolicy.current
-                NavigationCapsule(ui)
-                if (chromePolicy.showInlineSearchWhenClosed || pane.searchOpen) SearchControls(pane)
-                if (chromePolicy.showInlineSplitView) Surface(
-                    shape = CircleShape,
-                    color = glassColor,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 4.dp,
-                    modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
-                ) {
-                    IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            Icons.Outlined.VerticalSplit,
-                            contentDescription = if (splitView) "Close split view" else "Split view",
-                            // The chrome's ink like the undo/redo pair beside it (white on the dark
-                            // glass, near-black on the light one): the grey read as disabled.
-                            tint = if (splitView) MaterialTheme.colorScheme.primary else rememberChromeInk(),
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
-                Surface(
-                    shape = ModernTheme.capsuleShape,
-                    color = glassColor,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 4.dp,
-                    modifier = Modifier.padding(horizontal = 4.dp).floatingRim(ModernTheme.capsuleCornerRadiusDp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        val chromeInk = rememberChromeInk()
-                        val undoEnabled = !pane.isReadOnly && pane.canUndo
-                        val redoEnabled = !pane.isReadOnly && pane.canRedo
-                        IconButton(onClick = { pane.surface?.undo() }, enabled = undoEnabled, modifier = Modifier.size(36.dp)) {
-                            Icon(
-                                ChromeGlyph.UNDO.imageVector(),
-                                contentDescription = "Undo",
-                                tint = if (undoEnabled) chromeInk else chromeInk.copy(alpha = 0.38f),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        IconButton(onClick = { pane.surface?.redo() }, enabled = redoEnabled, modifier = Modifier.size(36.dp)) {
-                            Icon(
-                                ChromeGlyph.REDO.imageVector(),
-                                contentDescription = "Redo",
-                                tint = if (redoEnabled) chromeInk else chromeInk.copy(alpha = 0.38f),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    }
-                }
-                QuickPdfExport(ui, pane)
-                Surface(
-                    shape = CircleShape,
-                    color = glassColor,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 4.dp,
-                    modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
-                ) {
-                    // Off when the file already holds the page: the same rule as the window's header, so the
-                    // control that can be pressed is the control that has something to write — and while a
-                    // write is running it says so itself, with a turning arc in the floppy's place
-                    // (`SaveControl`, the tablet's half of `SavingSpin`).
-                    SaveControl(enabled = !pane.isReadOnly && stripTabs.canSave, onSave = onSave)
-                }
-                EditorOverflowMenu(
-                    ui = ui,
-                    pane = pane,
-                    stripTabs = stripTabs,
-                    settings = settings,
-                    onSettingsChange = onSettingsChange,
-                    onOpen = onOpen,
-                    onNewTab = onNewTab,
-                    onSave = onSave,
-                    onImportPdf = onImportPdf,
-                    onExportPagePng = onExportPagePng,
-                    onExportPageSvg = onExportPageSvg,
-                    onSavePortableCopy = onSavePortableCopy, onShare = onShare, onSaveAsFormat = onSaveAsFormat,
+                    },
                 )
-                if (settings != null && !railOnLeft && !ui.fullPage) {
-                    Spacer(Modifier.width(SideToolbarModernTotalWidth))
-                }
-            },
-        )
-
-            // The tabs' row — the same slab, one row down, and no line between the two: nothing divides
-            // them but their own content (see the note on the header's edges above). Its chips keep the
-            // starting line they had as a band of their own — the rail's lane
-            // ([SideToolbarModernTotalWidth]) plus their 8dp lead-in, on whichever side the rail takes —
-            // so they still stand over the canvas rather than over the rail, and still line up with the
-            // figures' dock above them.
-            //
-            // In split view the row is cut into one lane per pane instead ([SplitTabRow]): both halves
-            // keep their own tabs, badge and "+", so a chip and an add belong visibly to the sheet under
-            // them. The rail's lane is still padded out here — not the 8dp lead-in, which each lane
-            // carries itself — so the lanes' total width is exactly the canvas row's and a lane starts on
-            // its pane's own left edge.
-            if (tabsUnderTheTools) {
-                if (splitView && paneTabs.size >= 2) {
-                    SplitTabRow(
-                        tabs = paneTabs,
-                        fraction = ui.splitFraction,
-                        modifier = Modifier.fillMaxWidth(),
-                        startInset = if (railOnLeft) SideToolbarModernTotalWidth else 0.dp,
-                        endInset = if (railOnLeft) 0.dp else SideToolbarModernTotalWidth,
-                    )
-                } else {
-                    TabStrip(
-                        stripTabs,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(
-                                start = TAB_STRIP_LEAD_IN + if (railOnLeft) SideToolbarModernTotalWidth else 0.dp,
-                                end = TAB_STRIP_LEAD_IN + if (railOnLeft) 0.dp else SideToolbarModernTotalWidth,
-                            ),
+                if (!tabsInline && !ui.fullPage) {
+                    EditorToolsStripRow(
+                        ui = ui,
+                        pane = pane,
+                        settings = settings!!,
+                        onSettingsChange = onSettingsChange!!,
+                        audio = audio,
+                        railOnLeft = railOnLeft,
                     )
                 }
             }
         }
-
-            if (settings != null && !ui.fullPage) {
-                val alignCorner = if (railOnLeft) Alignment.BottomStart else Alignment.BottomEnd
-                TopBarAudioCapsule(
-                    audio = audio,
-                    ui = ui,
-                    pane = pane,
-                    settings = settings,
-                    onSettingsChange = onSettingsChange,
-                    vertical = tabsUnderTheTools,
-                    modifier = Modifier
-                        .align(alignCorner)
-                        .padding(bottom = if (tabsUnderTheTools) 2.dp else 4.dp),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TopBarAudioCapsule(
-    audio: AudioUiState,
-    ui: EditorUiState,
-    pane: PaneState,
-    settings: AppSettings?,
-    onSettingsChange: ((AppSettings) -> Unit)?,
-    vertical: Boolean = true,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier.width(SideToolbarModernTotalWidth),
-        contentAlignment = Alignment.Center,
-    ) {
-        AudioMiniCapsule(
-            audio = audio,
-            tool = ui.tool,
-            vertical = vertical,
-            onTool = { newTool ->
-                if (settings != null && onSettingsChange != null) {
-                    pane.surface?.activateTool(newTool, ui, settings, onSettingsChange)
-                } else {
-                    ui.tool = newTool
-                    pane.surface?.applyTool(newTool)
-                }
-            },
-        )
     }
 }
 
@@ -469,7 +312,7 @@ private fun SearchIndexingDialog(
 }
 
 @Composable
-private fun SearchControls(pane: PaneState) {
+internal fun SearchControls(pane: PaneState) {
     fun apply(status: SearchStatus) {
         pane.searchCurrent = status.current
         pane.searchTotal = status.total
@@ -478,26 +321,16 @@ private fun SearchControls(pane: PaneState) {
     // The chrome's ink, like the rest of the top bar's glyphs — the grey read as a disabled control.
     val searchIconTint = rememberChromeInk()
     if (!pane.searchOpen) {
-        val glassColor = rememberGlassSurfaceColor()
-        val hairlineColor = ModernTheme.hairlineBorder(isDark)
-        Surface(
-            shape = CircleShape,
-            color = glassColor,
-            tonalElevation = 0.dp,
-            shadowElevation = 4.dp,
-            modifier = Modifier.padding(horizontal = 2.dp).floatingRim(18.dp),
+        IconButton(
+            onClick = { pane.searchOpen = true },
+            modifier = Modifier.size(36.dp),
         ) {
-            IconButton(
-                onClick = { pane.searchOpen = true },
-                modifier = Modifier.size(36.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.Search,
-                    contentDescription = "Search",
-                    tint = searchIconTint,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            Icon(
+                Icons.Outlined.Search,
+                contentDescription = "Search",
+                tint = searchIconTint,
+                modifier = Modifier.size(20.dp),
+            )
         }
         return
     }
@@ -857,140 +690,152 @@ fun TopBarToolsRow(
             trapezoidKind = settings.trapezoidKind,
         )
     }
-    val standaloneIndicator = @Composable {
-        StandaloneToolIndicator(
-            ui = ui,
-            styleCallbacks = styleCallbacks,
-            triangleKind = settings.triangleKind,
-            trapezoidKind = settings.trapezoidKind,
-        )
+
+    val density = LocalDensity.current
+    var availableWidthDp by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    val collapsed = shouldCollapseTopBar(availableWidthDp, items.size)
+
+    val renderItem = @Composable { item: RailItem ->
+        val single = singleToolForTopBarId(item.id)
+        if (single != null) {
+            CompactSingleToolButton(
+                tool = single,
+                active = ui.tool == single,
+                onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
+            )
+        } else if (item.id == "triangle" || item.id == "trapezoid") {
+            val triangle = item.id == "triangle"
+            val tool = if (triangle) EditorTool.TRIANGLE else EditorTool.TRAPEZOID
+            val kindLabels = if (triangle) {
+                TriangleKind.values().map { it.label }
+            } else {
+                TrapezoidKind.values().map { it.label }
+            }
+            val kind = if (triangle) settings.triangleKind.ordinal else settings.trapezoidKind.ordinal
+            CompactShapeKindButton(
+                tool = tool,
+                active = ui.tool == tool,
+                heading = if (triangle) "Triangle" else "Trapezoid",
+                kinds = kindLabels,
+                kindIcons = if (triangle) {
+                    TriangleKind.values().map(::triangleKindIcon)
+                } else {
+                    TrapezoidKind.values().map(::trapezoidKindIcon)
+                },
+                selectedKind = kind,
+                editableKind = if (triangle) TriangleKind.SCALENE.ordinal else TrapezoidKind.SCALENE.ordinal,
+                onSelectKind = { index ->
+                    val updated = if (triangle) {
+                        settings.copy(triangleKind = TriangleKind.values()[index])
+                    } else {
+                        settings.copy(trapezoidKind = TrapezoidKind.values()[index])
+                    }
+                    onSettingsChange(updated)
+                    surface?.activateTool(tool, ui, updated, onSettingsChange)
+                },
+                showEditor = ui.tool == tool &&
+                    (if (triangle) settings.triangleKind == TriangleKind.SCALENE
+                    else settings.trapezoidKind == TrapezoidKind.SCALENE),
+                editorHint = if (triangle) "Customize scalene angles" else "Customize scalene angles (trapezoid)",
+                onEditKind = {
+                    if (triangle) ui.showScaleneAnglesDialog = true else ui.showTrapezoidAnglesDialog = true
+                },
+                onClick = { surface?.activateTool(tool, ui, settings, onSettingsChange) },
+            )
+        } else if (item.id == "polygons") {
+            PolygonSlotButton(
+                active = ui.tool == EditorTool.POLYGON,
+                sides = settings.polygonSides,
+                onPick = { sides ->
+                    val updated = settings.copy(polygonSides = sides)
+                    onSettingsChange(updated)
+                    surface?.activateTool(EditorTool.POLYGON, ui, updated, onSettingsChange)
+                },
+                onClick = { surface?.activateTool(EditorTool.POLYGON, ui, settings, onSettingsChange) },
+            )
+        } else if (item.id == "guides") {
+            CompactGuidePopupButton(
+                kind = settings.guideKind,
+                onKind = {
+                    onSettingsChange(settings.copy(guideKind = it, guidePose = null))
+                    pane.surface?.placeGuide(it)
+                },
+            )
+        } else {
+            val group = secondaryToolGroup(item.id)
+            if (group != null) {
+                CompactTopBarToolButton(
+                    group = group,
+                    members = group.tools,
+                    selected = group.selected(settings.toolGroupSelections),
+                    active = ui.tool in group.tools,
+                    onTool = { tool -> surface?.activateTool(tool, ui, settings, onSettingsChange) },
+                    onPick = { picked ->
+                        val base = settings.copy(
+                            toolGroupSelections = group.withSelection(settings.toolGroupSelections, picked),
+                        )
+                        surface?.activateTool(picked, ui, base, onSettingsChange)
+                    },
+                    triangleKind = settings.triangleKind,
+                    trapezoidKind = settings.trapezoidKind,
+                )
+            }
+        }
     }
 
     val toolsRow = @Composable {
         Row(
-            // In the backup style the cap is flush with the dock's edge, so the air at that end belongs to
-            // the tools row; with the indicator outside the dock this same padding is what gives air.
             modifier = Modifier
                 .padding(horizontal = 6.dp)
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            for (item in items) {
-                val single = singleToolForTopBarId(item.id)
-                if (single != null) {
-                    CompactSingleToolButton(
-                        tool = single,
-                        active = ui.tool == single,
-                        onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
-                    )
-                } else if (item.id == "triangle" || item.id == "trapezoid") {
-                    val triangle = item.id == "triangle"
-                    val tool = if (triangle) EditorTool.TRIANGLE else EditorTool.TRAPEZOID
-                    val kindLabels = if (triangle) {
-                        TriangleKind.values().map { it.label }
-                    } else {
-                        TrapezoidKind.values().map { it.label }
+            if (collapsed) {
+                for (entry in compactTopBarEntries(items)) {
+                    when (entry) {
+                        is CompactTopBarEntry.Single -> renderItem(entry.item)
+                        is CompactTopBarEntry.Group -> {
+                            val group = entry.group
+                            CompactTopBarToolButton(
+                                group = group,
+                                members = group.tools,
+                                selected = group.selected(settings.toolGroupSelections),
+                                active = ui.tool in group.tools,
+                                onTool = { tool -> surface?.activateTool(tool, ui, settings, onSettingsChange) },
+                                onPick = { picked ->
+                                    val base = settings.copy(
+                                        toolGroupSelections = group.withSelection(settings.toolGroupSelections, picked),
+                                    )
+                                    surface?.activateTool(picked, ui, base, onSettingsChange)
+                                },
+                                triangleKind = settings.triangleKind,
+                                trapezoidKind = settings.trapezoidKind,
+                            )
+                        }
                     }
-                    val kind = if (triangle) settings.triangleKind.ordinal else settings.trapezoidKind.ordinal
-                    CompactShapeKindButton(
-                        tool = tool,
-                        active = ui.tool == tool,
-                        heading = if (triangle) "Triangle" else "Trapezoid",
-                        kinds = kindLabels,
-                        kindIcons = if (triangle) {
-                            TriangleKind.values().map(::triangleKindIcon)
-                        } else {
-                            TrapezoidKind.values().map(::trapezoidKindIcon)
-                        },
-                        selectedKind = kind,
-                        editableKind = if (triangle) TriangleKind.SCALENE.ordinal else TrapezoidKind.SCALENE.ordinal,
-                        onSelectKind = { index ->
-                            val updated = if (triangle) {
-                                settings.copy(triangleKind = TriangleKind.values()[index])
-                            } else {
-                                settings.copy(trapezoidKind = TrapezoidKind.values()[index])
-                            }
-                            onSettingsChange(updated)
-                            surface?.activateTool(tool, ui, updated, onSettingsChange)
-                        },
-                        // The scalene variant is the one with angles to set, so while it is the live one the
-                        // button keeps its pencil: one tap reopens the dialog instead of digging into a menu.
-                        showEditor = ui.tool == tool &&
-                            (if (triangle) settings.triangleKind == TriangleKind.SCALENE
-                            else settings.trapezoidKind == TrapezoidKind.SCALENE),
-                        editorHint = if (triangle) "Customize scalene angles" else "Customize scalene angles (trapezoid)",
-                        onEditKind = {
-                            if (triangle) ui.showScaleneAnglesDialog = true else ui.showTrapezoidAnglesDialog = true
-                        },
-                        onClick = { surface?.activateTool(tool, ui, settings, onSettingsChange) },
-                    )
-                } else {
-                    // The polygon is one tool with a side count, so its button opens that count rather
-                    // than a list of members: see [PolygonSlotButton].
-                    if (item.id == "polygons") {
-                        PolygonSlotButton(
-                            active = ui.tool == EditorTool.POLYGON,
-                            sides = settings.polygonSides,
-                            onPick = { sides ->
-                                val updated = settings.copy(polygonSides = sides)
-                                onSettingsChange(updated)
-                                surface?.activateTool(EditorTool.POLYGON, ui, updated, onSettingsChange)
-                            },
-                            onClick = { surface?.activateTool(EditorTool.POLYGON, ui, settings, onSettingsChange) },
-                        )
-                        continue
-                    }
-                    val group = secondaryToolGroup(item.id)
-                    if (group != null) {
-                        CompactTopBarToolButton(
-                            group = group,
-                            members = group.tools,
-                            selected = group.selected(settings.toolGroupSelections),
-                            active = ui.tool in group.tools,
-                            onTool = { tool ->
-                                surface?.activateTool(tool, ui, settings, onSettingsChange)
-                            },
-                            onPick = { picked ->
-                                val base = settings.copy(
-                                    toolGroupSelections = group.withSelection(settings.toolGroupSelections, picked),
-                                )
-                                surface?.activateTool(picked, ui, base, onSettingsChange)
-                            },
-                            triangleKind = settings.triangleKind,
-                            trapezoidKind = settings.trapezoidKind,
-                        )
-                    } else if (item.id == "guides") {
-                        CompactGuidePopupButton(
-                            kind = settings.guideKind,
-                            onKind = {
-                                onSettingsChange(settings.copy(guideKind = it, guidePose = null))
-                                pane.surface?.placeGuide(it)
-                            },
-                        )
-                    }
+                }
+            } else {
+                for (item in items) {
+                    renderItem(item)
                 }
             }
         }
     }
 
-    val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
-    val hairlineColor = ModernTheme.hairlineBorder(isDark)
-
     val dock = @Composable {
         Surface(
             shape = ModernTheme.capsuleShape,
             color = glassColor,
             tonalElevation = 0.dp,
             shadowElevation = 6.dp,
-            modifier = modifier
+            modifier = Modifier
                 .wrapContentWidth()
                 .height(TOP_BAR_DOCK_HEIGHT)
                 .floatingRim(ModernTheme.capsuleCornerRadiusDp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                // The rule stands between the preview and the figures, at whichever end the preview is.
                 if (INDICATOR_AS_DOCK_CAP) {
                     if (railOnLeft) {
                         indicator()
@@ -1006,32 +851,24 @@ fun TopBarToolsRow(
                         indicator()
                     }
                 } else if (items.isNotEmpty()) {
-                    // The figures alone, so the tools row's own 6dp carries both ends where the cap used
-                    // to own one of them — and the rule stands at the preview's end of them.
-                    if (railOnLeft) TopBarToolDivider()
                     toolsRow()
-                    if (!railOnLeft) TopBarToolDivider()
                 }
             }
         }
     }
 
-    if (INDICATOR_AS_DOCK_CAP) {
-        // The backup style keeps the indicator inside the dock, so the dock is always worth drawing.
-        dock()
-    } else if (standaloneIndicatorSlot(railOnLeft) == IndicatorSlot.LEADING) {
-        // Leading slot: EditorTopBar draws the indicator there, so all that is left here is the dock —
-        // and a dock with no figures in it is nothing at all.
-        if (items.isNotEmpty()) dock()
-    } else {
-        // Trailing the dock: still the end nearest the Main Toolbar, with the gap that says the two are
-        // separate surfaces.
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(TOP_BAR_INDICATOR_GAP),
-        ) {
-            if (items.isNotEmpty()) dock()
-            standaloneIndicator()
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .onSizeChanged {
+                if (it.width > 0) availableWidthDp = with(density) { it.width.toDp().value }
+            },
+        contentAlignment = if (railOnLeft) Alignment.CenterStart else Alignment.CenterEnd,
+    ) {
+        if (INDICATOR_AS_DOCK_CAP) {
+            dock()
+        } else if (items.isNotEmpty()) {
+            dock()
         }
     }
 }

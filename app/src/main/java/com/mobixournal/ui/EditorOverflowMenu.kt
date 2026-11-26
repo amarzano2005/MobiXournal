@@ -312,28 +312,21 @@ private fun OverflowTriggerButton(
     expanded: Boolean,
     onClick: () -> Unit,
 ) {
-    val glassColor = rememberGlassSurfaceColor()
     val tint = if (expanded) MaterialTheme.colorScheme.primary else rememberChromeInk()
-    Surface(
-        shape = CircleShape,
-        color = glassColor,
-        tonalElevation = 0.dp,
-        shadowElevation = 4.dp,
+    val container = if (expanded) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+    IconButton(
+        onClick = onClick,
         modifier = Modifier
-            .padding(horizontal = 2.dp)
-            .floatingRim(18.dp),
+            .size(36.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(container),
     ) {
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier.size(36.dp),
-        ) {
-            Icon(
-                ChromeGlyph.MENU.imageVector(),
-                contentDescription = "Menu",
-                tint = tint,
-                modifier = Modifier.size(20.dp),
-            )
-        }
+        Icon(
+            ChromeGlyph.MENU.imageVector(),
+            contentDescription = "Menu",
+            tint = tint,
+            modifier = Modifier.size(20.dp),
+        )
     }
 }
 

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobile-editor-two-row-l-frame-chrome"
+title = "Separate mobile editor document header and STEM dock with seamless L-frame"
+description = "Added CompactTopBarGrouping.kt, EditorHeaderRows.kt, ChromeCornerFillet.kt, and CompactTopBarGroupingTest.kt; updated TopBarIndicator (INDICATOR_AS_DOCK_CAP=false, Style A ring), PageListPanel, DocumentNavigationPanel, QuickPdfExport, EditorOverflowMenu, EditorRegions, ChromeGeometryGuardTest, docs/chrome.md, and docs/interface-contract.md; verified unit tests, UI guards, androidTest compile, desktop distributable, and signed release APK (app/build/outputs/apk/release/MobiXournal-2.4.0.apk)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: naked Row 1 header controls and seamless L-frame fillet via ChromeCornerFillet; tokens: DesignTokens and rememberChromeColor/ModernTheme only; glyph: ToolIconSize kept across TopBarToolsRow and StandaloneToolIndicator; states: primaryContainer/primary active plates with clipped shapes; docs: updated chrome.md (295 lines) and interface-contract.md; tests: CompactTopBarGroupingTest, UI guards, androidTest compile, signed release APK"
+
+[[task]]
 id = "desktop-tight-selection-closest-pick"
 title = "Tighten desktop selection bounds and pick closest stroke on click"
 description = "Added StrokeHitTester.distance and ElementHitTester.hitDistance so SelectionTester.pickTopmost prefers the closest hit (breaking ties by topmost); added zoom-scaled desktopPickPadPt (PICK_PX=4f) in PinPress/SelectionGesture; tightened finishedSelection to SelectionTester.boundsOf on marquee/lasso release; updated SelectionTest, DesktopSelectionTest, docs/selection.md, and refreshed :desktop:createDistributable."

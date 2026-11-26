@@ -43,9 +43,12 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.collectLatest
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -95,11 +98,12 @@ internal fun EditorUiState.closeNavigation() {
 internal fun BookmarkSegment(ui: EditorUiState) {
     val selected = ui.pageListOpen && ui.navigationTab == NavigationTab.BOOKMARKS
     val interaction = remember { MutableInteractionSource() }
-    // A bare target rather than an `IconButton`, because Material's button always draws its own ripple.
-    // The name and the role move to the target so a screen reader still reads one button, not two.
+    val container = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     Box(
         modifier = Modifier
             .size(ContentsRowLayout.ACTION_DP.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(container)
             .clickable(interactionSource = interaction, indication = null) {
                 ui.toggleNavigation(NavigationTab.BOOKMARKS)
             }
@@ -195,6 +199,12 @@ internal fun DocumentNavigationWorkspace(
                         toolbar = toolbar,
                     )
                 }
+                ChromeCornerFillet(
+                    railOnLeft = railOnLeft,
+                    railProgressProvider = { railProgress.value },
+                    laneProgressProvider = { laneProgress.value },
+                    railFullPx = railFullPx,
+                )
             }
         }
     }

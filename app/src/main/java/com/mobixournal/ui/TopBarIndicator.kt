@@ -38,7 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
-import com.mobixournal.ui.theme.floatingRim
+import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import androidx.compose.runtime.Composable
@@ -52,6 +52,7 @@ import com.mobixournal.render.TriangleKind
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -107,7 +108,7 @@ internal fun topBarCapShape(capOnLeft: Boolean): RoundedCornerShape {
  * Both styles stay live code — the branch is compiled either way, so the backup cannot rot — and the
  * choice is a constant rather than a user setting, as asked: flip it and rebuild for the old look.
  */
-internal val INDICATOR_AS_DOCK_CAP = true
+internal val INDICATOR_AS_DOCK_CAP = false
 
 /**
  * The air between the standalone indicator and the dock it was cut out of — read here (where the pill
@@ -332,26 +333,72 @@ internal fun StandaloneToolIndicator(
     trapezoidKind: TrapezoidKind = TrapezoidKind.ISOSCELES,
     modifier: Modifier = Modifier,
 ) {
-    val glassColor = rememberGlassSurfaceColor()
+    val isHighlighter = ui.tool == EditorTool.HIGHLIGHTER
+    val effectiveColor = if (isHighlighter) ui.highlighterColor else ui.color
+    val hasColorAndSize = ui.tool !in NON_INKING_TOOLS
+    val sizeLabel = sizeLetterFor(ui.width, styleCallbacks.widthSlots)
+    val ringColor = if (hasColorAndSize) Color(effectiveColor) else ModernTheme.hairlineBorder(chromeIsDark())
+    val badgeBg = rememberGlassSurfaceColor().compositeOver(rememberChromeColor())
 
-    Surface(
-        shape = ModernTheme.capsuleShape,
-        color = glassColor,
-        tonalElevation = 0.dp,
-        shadowElevation = 6.dp,
+    Box(
         modifier = modifier
             .width(TOP_BAR_INDICATOR_WIDTH)
-            .height(TOP_BAR_DOCK_HEIGHT)
-            .floatingRim(ModernTheme.capsuleCornerRadiusDp),
+            .height(TOP_BAR_DOCK_HEIGHT),
+        contentAlignment = Alignment.Center,
     ) {
-        ToolIndicatorFace(
-            ui = ui,
-            styleCallbacks = styleCallbacks,
-            triangleKind = triangleKind,
-            trapezoidKind = trapezoidKind,
-            modifier = Modifier.fillMaxSize(),
-            horizontalPadding = TOP_BAR_FACE_PADDING_TIGHT,
-        )
+        ColorSizePopup(styleCallbacks) { open ->
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .semantics {
+                        contentDescription = if (hasColorAndSize) {
+                            "Active tool: ${ui.tool.label}, colour ${colorDisplayName(effectiveColor)}, size $sizeLabel"
+                        } else {
+                            "Active tool: ${ui.tool.label}"
+                        }
+                    },
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .align(Alignment.Center)
+                        .clip(CircleShape)
+                        .border(2.dp, ringColor, CircleShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = open,
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = toolDisplayIcon(ui.tool, triangleKind, trapezoidKind),
+                        contentDescription = null,
+                        tint = rememberChromeInk(),
+                        modifier = Modifier.size(ToolIconSize),
+                    )
+                }
+                if (hasColorAndSize) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .background(badgeBg, CircleShape)
+                            .border(1.dp, ringColor, CircleShape)
+                            .padding(horizontal = 4.dp, vertical = 0.5.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = sizeLabel,
+                            fontSize = 9.sp,
+                            lineHeight = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ringColor,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 

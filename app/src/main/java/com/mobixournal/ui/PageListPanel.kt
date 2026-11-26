@@ -142,71 +142,42 @@ internal fun actedPages(picked: Set<Int>, currentPage: Int, pageCount: Int): Set
  */
 @Composable
 internal fun NavigationCapsule(ui: EditorUiState) {
-    Surface(
-        shape = ModernTheme.capsuleShape,
-        color = rememberGlassSurfaceColor(),
-        tonalElevation = 0.dp,
-        shadowElevation = 4.dp,
-        modifier = Modifier
-            .padding(horizontal = 2.dp)
-            .floatingRim(ModernTheme.capsuleCornerRadiusDp),
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            PageListSegment(
-                open = ui.pageListOpen && ui.navigationTab == NavigationTab.PAGES,
-                onClick = { ui.toggleNavigation(NavigationTab.PAGES) },
-            )
-            // The rule takes no air of its own: each half already keeps its own inset, so the hairline
-            // falls midway between the words and the ribbon instead of opening a second gap beside them.
-            TopBarToolDivider(air = 0.dp)
-            BookmarkSegment(ui)
-        }
+        PageListSegment(
+            open = ui.pageListOpen && ui.navigationTab == NavigationTab.PAGES,
+            onClick = { ui.toggleNavigation(NavigationTab.PAGES) },
+        )
+        BookmarkSegment(ui)
     }
 }
 
 /**
- * The navigation capsule's **page-list half**: its glyph, the words *Page list*, and the flag it holds.
- *
- * One tap drops the lateral page list down the rail's edge, the next takes it away. It stands beside the
- * search because the two are the same errand — looking *through* the document rather than at the sheet in
- * front of you. It wears the accent while its lane is up, so the word says where the list went, and it takes
- * **no press indication**: the ripple was a second light flashing beside the accent that already marks the
- * open state (the tool indicator's face sets that precedent). It is deliberately **not** a row
- * in the Pages menu: that menu is a list of things to do to a page, and the overview is not one of them.
- *
- * A **half with its name**, not a bare glyph: a page list is a place to go rather than a one-off action,
- * and the word is what tells a reader who has never opened it what the lane is for.
+ * The navigation header's **page-list button**: clean glyph on the header band (no capsule), tinted
+ * with the accent and a subtle active-slot plate while the pages lane is open.
  */
 @Composable
 internal fun PageListSegment(open: Boolean, onClick: () -> Unit) {
-    val compact = LocalConfiguration.current.screenWidthDp < DocumentNavigationLayout.COMPACT_WIDTH_DP
-    // The flag still reaches a screen reader, and the half **wears the accent while its lane is up**, so the
-    // word and the lane agree on which view is open.
     val tint = if (open) MaterialTheme.colorScheme.primary else rememberChromeInk()
-    // **No press indication.** The ripple was a light flashing beside the accent that already marks the open
-    // state; the half says what it has to say in the ink, not in a flash (the tool indicator's face, which
-    // reports the live stroke, takes no indication either).
+    val container = if (open) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     val interaction = remember { MutableInteractionSource() }
-    Row(
+    Box(
         modifier = Modifier
+            .size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(container)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
-            .semantics { contentDescription = "Page list"; selected = open }
-            .then(
-                if (compact) Modifier.size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp)
-                else Modifier.height(DocumentNavigationLayout.PAGE_CONTROL_DP.dp).padding(horizontal = 10.dp),
-            ),
-        verticalAlignment = Alignment.CenterVertically,
+            .semantics { contentDescription = "Page list"; selected = open },
+        contentAlignment = Alignment.Center,
     ) {
         Icon(
             Icons.Outlined.ViewList,
             contentDescription = null,
             tint = tint,
-            modifier = Modifier.size(18.dp),
+            modifier = Modifier.size(20.dp),
         )
-        if (!compact) {
-            Spacer(Modifier.width(6.dp))
-            Text("Page list", style = MaterialTheme.typography.labelLarge, color = tint)
-        }
     }
 }
 
