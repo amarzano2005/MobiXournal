@@ -123,19 +123,20 @@ internal object DrawingSurfaceDefaults {
      * Size (dp) of the edge bands (top, bottom, left, right) that auto-scroll the page while a selection
      * is dragged into them — compact enough not to trigger near casual margins.
      */
-    const val DRAG_AUTOSCROLL_EDGE_DP = 64f
+    /** Inner safe margin (dp) inside visible chrome bounds for continuous drag edge panning. */
+    const val DRAG_AUTOSCROLL_EDGE_DP = 28f
 
-    /** Fallback per-frame step (dp) kept for callers without explicit time-based speeds. */
+    /** Fallback per-frame step (dp) kept for callers without explicit viewport-relative speed. */
     const val DRAG_AUTOSCROLL_STEP_DP = 6f
 
-    /** Minimum auto-scroll speed (dp/sec) upon entering a visible edge band. */
-    const val DRAG_AUTOSCROLL_MIN_SPEED_DP_PER_SEC = 160f
+    /** Base viewport percentage per second for continuous edge panning (matches Xournal++ edgePanSpeed). */
+    const val DRAG_AUTOSCROLL_BASE_PCT_PER_SEC = 20f
 
-    /** Maximum auto-scroll speed (dp/sec) at the outer border of a visible edge band. */
-    const val DRAG_AUTOSCROLL_MAX_SPEED_DP_PER_SEC = 840f
+    /** Maximum speed multiplier at full overshoot (matches Xournal++ edgePanMaxMult). */
+    const val DRAG_AUTOSCROLL_MAX_MULT = 5f
 
-    /** Brief hold delay (ms) inside the visible edge band before auto-scroll starts. */
-    const val DRAG_AUTOSCROLL_DELAY_MS = 20L
+    /** Hold delay (ms) before edge panning starts (0 because speed ramps smoothly from zero). */
+    const val DRAG_AUTOSCROLL_DELAY_MS = 0L
     const val MIN_RESIZE = 0.05        // clamp on the live uniform-resize factor
     const val MAX_RESIZE = 20.0
     const val PASTE_OFFSET_PT = 12.0   // paste/duplicate nudge so copies don't hide the original

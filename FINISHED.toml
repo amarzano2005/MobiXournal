@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "xournalpp-continuous-edge-pan"
+title = "Adopt Xournal++-style continuous edge panning adapted for tablet chrome bounds"
+description = "Implemented computeAxisPanSpeed and live DragBounds continuous edge panning in CanvasScroll.kt with DrawingSurfaceConstants.kt parameters (28dp inner safe margin, 20%/s base, 5x max); wired liveSelectionBounds in DrawingSurfaceView.kt and reordered moveSelect before updateDrag in DrawingSurfaceInput.kt; updated ScrollGestureTest.kt and docs/interface-contract.md. Verified via ScrollGestureTest, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: unchanged chrome surfaces; tokens: unchanged; glyph: unchanged; states: zero-jump continuous edge pan from 0 proportional to overshoot inside visible safe bounds; copy: unchanged English; parity: matches Xournal++ EditSelection::handleEdgePan adapted for Android tablet edge insets; docs: docs/interface-contract.md updated; tests: ScrollGestureTest, SourceStructureTest, ColorContractGuardTest green"
+
+[[task]]
 id = "inspector-live-canvas-sync"
 title = "Sync live canvas vertex, rotation, and table divider edits back into open inspectors"
 description = "Emitted selection updates throughout gestures.transforming in DrawingSurfaceSelection.reportSelectionRect; added PaneState.selectionLiveTick wired via EditorRegions.kt; added LaunchedEffect(pane.selectionLiveTick) live sync inside ShapeEditorHost (ShapeEditorDialog.kt), CircuitInspectorAnchor (CircuitEditorDialog.kt), and TableEditorHost (TableCellEditorDialog.kt) without bumping inspector session keys; updated docs/mobix-living-entities.md. Verified via ShapeInspectorHelpersTest, TableCellEditorDialogTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and scripts/release-apk.sh."

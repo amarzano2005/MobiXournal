@@ -69,9 +69,9 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
                 CanvasGesture.RESIZE -> gestures.resizeSelect(event)
                 CanvasGesture.ROTATE -> gestures.rotateSelect(event)
                 CanvasGesture.MOVE -> {
+                    gestures.moveSelect(event)
                     val r = selectionScreenRect()
                     scroll.updateDrag(event.x, event.y, r?.left ?: event.x, r?.top ?: event.y, r?.right ?: event.x, r?.bottom ?: event.y)
-                    gestures.moveSelect(event)
                 }
                 CanvasGesture.VERTICAL_SPACE -> vspace.move(event.y)
                 CanvasGesture.BAND -> {

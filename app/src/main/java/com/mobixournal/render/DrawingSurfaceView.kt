@@ -654,7 +654,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         render = { render() },
         postFrame = { choreographer.postFrameCallback(autoScrollCallback) },
         removeFrame = { choreographer.removeFrameCallback(autoScrollCallback) },
-        safeLeftPx = { viewport.insetLeftPx }, safeTopPx = { viewport.insetTopPx }, safeRightPx = { viewport.insetRightPx }, safeBottomPx = { viewport.insetBottomPx },
+        safeLeftPx = { viewport.insetLeftPx }, safeTopPx = { viewport.insetTopPx }, safeRightPx = { viewport.insetRightPx }, safeBottomPx = { viewport.insetBottomPx }, liveSelectionBounds = { if (gestures.moving) selectionScreenRect()?.let { DragBounds(it.left, it.top, it.right, it.bottom) } else null },
     )
 
     /** The auto-scroll frame: the loop itself lives in [ScrollGesture], this is only its clock. */

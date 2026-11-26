@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import kotlin.math.pow
 
 /**
  * Scrolling as an object: the pan delta, the pinch, the hold that keeps a two-finger tap a tap, and the
@@ -67,9 +66,7 @@ class ScrollGestureTest {
         render = { repaints++ },
         postFrame = { framePosted++ },
         removeFrame = { frameRemoved++ },
-        minSpeedPxPerSec = { 100f },
-        maxSpeedPxPerSec = { 500f },
-        delayMs = 120L,
+        delayMs = 0L,
         nowMs = { clockMs },
     )
 
@@ -170,36 +167,25 @@ class ScrollGestureTest {
     }
 
     @Test
-    fun `auto-scroll waits delayMs then scrolls progressively with dt`() {
-        scroll.updateDrag(500f, 775f) // 25px inside 50px bottom edge (t = 0.5)
-
-        // Before delayMs elapses: reposts without scrolling
-        clockMs += 60L
-        scroll.autoScrollFrame()
-        assertTrue("waits hold delay before scrolling", pans.isEmpty())
-        assertEquals(2, framePosted)
-
-        // After delayMs elapses: speed = 100 + 400 * 0.5^1.3 ≈ 262.45 px/s -> * 0.016 ≈ 4.199 px
-        val expectedMidSpeed = 100f + 400f * (0.5).pow(1.3).toFloat()
-        clockMs += 70L
+    fun `continuous Xournalpp edge pan scales from zero with selection overshoot and handles large boxes`() {
+        // Visible inner height is [50, 750] (visLen = 700). A 100px box overshooting by 50px -> frac = 0.5 -> speed = 700 * 0.2 * 5 * 0.5 = 350 px/s
+        scroll.updateDrag(viewX = 500f, viewY = 760f, boundsLeft = 400f, boundsTop = 700f, boundsRight = 600f, boundsBottom = 800f)
         scroll.autoScrollFrame()
         assertEquals(0f, pans.single().first, 0f)
-        assertEquals(expectedMidSpeed * 0.016f, pans.single().second, 1e-3f)
-        assertEquals("the selection rides the scrolling page", 500f to 775f, drags.single())
-        assertEquals(3, framePosted)
+        assertEquals(350f * 0.016f, pans.single().second, 1e-2f)
+        assertEquals("the selection rides the scrolling page", 500f to 760f, drags.single())
+        assertEquals(2, framePosted)
 
-        // Deeper penetration at extreme edge (t = 1.0 -> speed = 500 px/s) after 20ms dt -> 10.0 px
-        scroll.updateDrag(500f, 800f)
-        clockMs += 20L
-        scroll.autoScrollFrame()
-        assertEquals(500f * 0.020f, pans.last().second, 1e-3f)
+        // Large selection (bboxLen 900 > visLen 700): 10% center deadzone (center=400, half=350) -> no scroll near center
+        assertEquals(0f, computeAxisPanSpeed(50f, 750f, ptrPos = 410f, bMin = 0f, bMax = 900f, margin = 50f, basePctPerSec = 20f, maxMult = 5f), 1e-4f)
+        // Pointer pushed toward bottom of large selection scrolls down proportionally
+        assertTrue(computeAxisPanSpeed(50f, 750f, ptrPos = 600f, bMin = 0f, bMax = 900f, margin = 50f, basePctPerSec = 20f, maxMult = 5f) > 0f)
     }
 
     @Test
     fun `a frame that cannot scroll any further stops the loop`() {
         scroll.updateDrag(500f, 790f)
         canScroll = false
-        clockMs += 150L
 
         scroll.autoScrollFrame()
         assertTrue("nothing was dragged into a pinned page", drags.isEmpty())
@@ -211,7 +197,8 @@ class ScrollGestureTest {
     }
 
     @Test
-    fun `safe insets and dragged bounds trigger auto-scroll at visible edge`() {
+    fun `safe insets and dragged bounds trigger auto-scroll at visible inner edge`() {
+        var live: DragBounds? = DragBounds(400f, 70f, 600f, 200f)
         val insetScroll = ScrollGesture(
             scrollBy = { dx, dy -> pans += dx to dy; true },
             zoomAbout = { _, _, _ -> },
@@ -226,22 +213,22 @@ class ScrollGestureTest {
             render = { repaints++ },
             postFrame = { framePosted++ },
             removeFrame = { frameRemoved++ },
-            minSpeedPxPerSec = { 100f },
-            maxSpeedPxPerSec = { 500f },
             delayMs = 0L,
             nowMs = { clockMs },
             safeLeftPx = { 80f },
             safeTopPx = { 100f },
             safeRightPx = { 0f },
             safeBottomPx = { 0f },
+            liveSelectionBounds = { live },
         )
-        // Pointer at y=130 is inside visTop+edge (100+50=150) even though well below view top 0
-        insetScroll.updateDrag(viewX = 500f, viewY = 130f)
+        // visTop = safeTopPx(100) + edgePx(50) = 150; selection top=70 overshoots above -> scrolls up
+        insetScroll.updateDrag(viewX = 500f, viewY = 130f, boundsLeft = 400f, boundsTop = 70f, boundsRight = 600f, boundsBottom = 200f)
         insetScroll.autoScrollFrame()
         assertTrue("top safe inset band scrolls up", pans.last().second < 0f)
 
-        // Pointer in middle, but dragged element's right edge crosses visible right edge (1000)
+        // Live bounds moved to right visible inner edge (visRight = 1000 - 50 = 950)
         pans.clear()
+        live = DragBounds(400f, 350f, 995f, 450f)
         insetScroll.updateDrag(viewX = 500f, viewY = 400f, boundsLeft = 400f, boundsTop = 350f, boundsRight = 995f, boundsBottom = 450f)
         insetScroll.autoScrollFrame()
         assertTrue("dragged element edge pushes scroll right", pans.last().first > 0f)

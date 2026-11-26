@@ -22,7 +22,57 @@
 package com.mobixournal.render
 
 import kotlin.math.abs
-import kotlin.math.pow
+
+/** View-px bounding box of a dragged selection, re-read live on each auto-scroll frame. */
+internal data class DragBounds(val left: Float, val top: Float, val right: Float, val bottom: Float)
+
+/**
+ * Xournal++-style continuous edge panning speed (px/s) along a single axis:
+ * zero while inside `[visMin, visMax]`, continuous linear ramp from zero proportional to the
+ * overshoot fraction (with a ramp floor so tiny items don't jump), or pointer-offset control
+ * when the dragged selection is larger than the visible viewport.
+ */
+internal fun computeAxisPanSpeed(
+    visMin: Float,
+    visMax: Float,
+    ptrPos: Float,
+    bMin: Float,
+    bMax: Float,
+    margin: Float,
+    basePctPerSec: Float,
+    maxMult: Float,
+): Float {
+    val visLen = (visMax - visMin).coerceAtLeast(1f)
+    val bboxLen = (bMax - bMin).coerceAtLeast(0f)
+    val dir: Int
+    val frac: Float
+    when {
+        bboxLen < 1f -> {
+            val denom = margin.coerceAtLeast(24f)
+            when {
+                ptrPos > visMax -> { dir = 1; frac = ((ptrPos - visMax) / denom).coerceIn(0f, 1f) }
+                ptrPos < visMin -> { dir = -1; frac = ((visMin - ptrPos) / denom).coerceIn(0f, 1f) }
+                else -> return 0f
+            }
+        }
+        bboxLen > visLen -> {
+            val half = visLen * 0.5f
+            val diff = ptrPos - (visMin + half)
+            if (abs(diff) <= 0.1f * half) return 0f
+            dir = if (diff > 0f) 1 else -1
+            frac = (abs(diff) / half).coerceIn(0f, 1f)
+        }
+        else -> {
+            val denom = maxOf(bboxLen, margin * 1.5f)
+            when {
+                bMax > visMax && bMin >= visMin -> { dir = 1; frac = ((bMax - visMax) / denom).coerceIn(0f, 1f) }
+                bMin < visMin && bMax <= visMax -> { dir = -1; frac = ((visMin - bMin) / denom).coerceIn(0f, 1f) }
+                else -> return 0f
+            }
+        }
+    }
+    return dir * visLen * (basePctPerSec / 100f) * (maxMult * frac)
+}
 
 /**
  * The four things scrolling asks of the momentum driver — an interface so that this object, and the
@@ -66,18 +116,15 @@ internal class ScrollGesture(
     private val postFrame: () -> Unit,
     /** Drop a scheduled frame (the drag left the band, or the gesture ended). */
     private val removeFrame: () -> Unit,
-    private val minSpeedPxPerSec: () -> Float = {
-        stepPx() * (DrawingSurfaceDefaults.DRAG_AUTOSCROLL_MIN_SPEED_DP_PER_SEC / DrawingSurfaceDefaults.DRAG_AUTOSCROLL_STEP_DP)
-    },
-    private val maxSpeedPxPerSec: () -> Float = {
-        stepPx() * (DrawingSurfaceDefaults.DRAG_AUTOSCROLL_MAX_SPEED_DP_PER_SEC / DrawingSurfaceDefaults.DRAG_AUTOSCROLL_STEP_DP)
-    },
     private val delayMs: Long = DrawingSurfaceDefaults.DRAG_AUTOSCROLL_DELAY_MS,
     private val nowMs: () -> Long = { System.nanoTime() / 1_000_000L },
     private val safeLeftPx: () -> Float = { 0f },
     private val safeTopPx: () -> Float = { 0f },
     private val safeRightPx: () -> Float = { 0f },
     private val safeBottomPx: () -> Float = { 0f },
+    private val liveSelectionBounds: () -> DragBounds? = { null },
+    private val basePctPerSec: Float = DrawingSurfaceDefaults.DRAG_AUTOSCROLL_BASE_PCT_PER_SEC,
+    private val maxMult: Float = DrawingSurfaceDefaults.DRAG_AUTOSCROLL_MAX_MULT,
 ) {
 
     /**
@@ -191,22 +238,15 @@ internal class ScrollGesture(
         dragBoundsT = boundsTop
         dragBoundsR = boundsRight
         dragBoundsB = boundsBottom
-        val edge = edgePx()
-        val visL = safeLeftPx()
-        val visT = safeTopPx()
-        val visR = (viewWidth() - safeRightPx()).coerceAtLeast(visL + 1f)
-        val visB = (viewHeight() - safeBottomPx()).coerceAtLeast(visT + 1f)
-        val elemMargin = edge * 0.25f
-        val nextX = when {
-            viewX > visR - edge || boundsRight > visR - elemMargin -> 1
-            viewX < visL + edge || boundsLeft < visL + elemMargin -> -1
-            else -> 0
-        }
-        val nextY = when {
-            viewY > visB - edge || boundsBottom > visB - elemMargin -> 1
-            viewY < visT + edge || boundsTop < visT + elemMargin -> -1
-            else -> 0
-        }
+        val margin = edgePx()
+        val visL = safeLeftPx() + margin
+        val visT = safeTopPx() + margin
+        val visR = (viewWidth() - safeRightPx() - margin).coerceAtLeast(visL + 1f)
+        val visB = (viewHeight() - safeBottomPx() - margin).coerceAtLeast(visT + 1f)
+        val sx = computeAxisPanSpeed(visL, visR, viewX, boundsLeft, boundsRight, margin, basePctPerSec, maxMult)
+        val sy = computeAxisPanSpeed(visT, visB, viewY, boundsTop, boundsBottom, margin, basePctPerSec, maxMult)
+        val nextX = if (sx > 0f) 1 else if (sx < 0f) -1 else 0
+        val nextY = if (sy > 0f) 1 else if (sy < 0f) -1 else 0
         if (nextX == dirX && nextY == dirY) return
         val wasIdle = dirX == 0 && dirY == 0
         dirX = nextX
@@ -235,8 +275,8 @@ internal class ScrollGesture(
     }
 
     /**
-     * One auto-scroll frame: waits [delayMs] after entering an edge band, then scrolls smoothly
-     * based on real elapsed frame time (`dt`) and quadratic edge penetration, re-applying the drag.
+     * One auto-scroll frame: re-reads live selection bounds, computes continuous Xournal++-style
+     * edge pan speed for elapsed `dt`, scrolls viewport, re-applies drag, and reposts.
      */
     fun autoScrollFrame() {
         posted = false
@@ -248,43 +288,26 @@ internal class ScrollGesture(
         }
         val dtSec = if (lastFrameTimeMs == 0L) 0.016f else ((now - lastFrameTimeMs).coerceIn(1L, 50L) / 1000f)
         lastFrameTimeMs = now
-        val edge = edgePx().coerceAtLeast(1f)
-        val visL = safeLeftPx()
-        val visT = safeTopPx()
-        val visR = (viewWidth() - safeRightPx()).coerceAtLeast(visL + 1f)
-        val visB = (viewHeight() - safeBottomPx()).coerceAtLeast(visT + 1f)
-        val minS = minSpeedPxPerSec()
-        val maxS = maxSpeedPxPerSec()
-        val dx = axisAutoScrollStep(dirX, dragX, dragBoundsL, dragBoundsR, visL, visR, edge, minS, maxS, dtSec)
-        val dy = axisAutoScrollStep(dirY, dragY, dragBoundsT, dragBoundsB, visT, visB, edge, minS, maxS, dtSec)
-        if (!scrollBy(dx, dy)) {
+        liveSelectionBounds()?.let { live ->
+            dragBoundsL = live.left; dragBoundsT = live.top; dragBoundsR = live.right; dragBoundsB = live.bottom
+        }
+        val margin = edgePx()
+        val visL = safeLeftPx() + margin
+        val visT = safeTopPx() + margin
+        val visR = (viewWidth() - safeRightPx() - margin).coerceAtLeast(visL + 1f)
+        val visB = (viewHeight() - safeBottomPx() - margin).coerceAtLeast(visT + 1f)
+        val sx = computeAxisPanSpeed(visL, visR, dragX, dragBoundsL, dragBoundsR, margin, basePctPerSec, maxMult)
+        val sy = computeAxisPanSpeed(visT, visB, dragY, dragBoundsT, dragBoundsB, margin, basePctPerSec, maxMult)
+        if (sx == 0f && sy == 0f) {
+            stopAutoScroll()
+            return
+        }
+        if (!scrollBy(sx * dtSec, sy * dtSec)) {
             stopAutoScroll() // pinned at a bound in both axes: nothing left to scroll into
             return
         }
         dragAt(dragX, dragY)
         postAutoScroll()
-    }
-
-    private fun axisAutoScrollStep(
-        dir: Int,
-        pos: Float,
-        bMin: Float,
-        bMax: Float,
-        visMin: Float,
-        visMax: Float,
-        edge: Float,
-        minSpeed: Float,
-        maxSpeed: Float,
-        dtSec: Float,
-    ): Float {
-        if (dir == 0) return 0f
-        val ptrDist = if (dir > 0) (visMax - pos).coerceAtLeast(0f) else (pos - visMin).coerceAtLeast(0f)
-        val ptrT = ((edge - ptrDist) / edge).coerceIn(0f, 1f)
-        val elemDist = if (dir > 0) (visMax - bMax).coerceAtLeast(0f) else (bMin - visMin).coerceAtLeast(0f)
-        val elemT = ((edge * 0.25f - elemDist) / edge).coerceIn(0f, 1f)
-        val t = maxOf(ptrT, elemT)
-        val speed = minSpeed + (maxSpeed - minSpeed) * t.toDouble().pow(1.3).toFloat()
-        return dir * speed * dtSec
     }
 
     private fun postAutoScroll() {
