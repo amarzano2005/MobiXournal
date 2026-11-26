@@ -1,10 +1,14 @@
 package com.mobixournal.render
 
+import com.mobixournal.format.model.CircuitElement
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.ShapeVertex
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
+import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.Tool
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -100,5 +104,31 @@ class SelectionResizeMathTest {
         assertEquals(4.0, restyled.points[0].width, 1e-6)
         assertEquals(0.6f, restyled.points[0].pressure)
         assertEquals(0.3f, restyled.points[1].tilt)
+    }
+
+    @Test
+    fun supportsAspectLockToggleFollowsElementFamilyRule() {
+        val shape = ParametricShapeElement(
+            shape = ParametricShapes.SQUARE,
+            vertices = listOf(ShapeVertex(0.0, 0.0), ShapeVertex(10.0, 0.0), ShapeVertex(10.0, 10.0)),
+            strokeColor = 0,
+        )
+        val stroke = Stroke(tool = Tool.PEN, color = 0, capStyle = null, uniformWidth = false, points = emptyList())
+        val image = ImageElement(0.0, 0.0, 10.0, 10.0, ByteArray(0))
+        val table = TableElement(0.0, 0.0, listOf(50.0), listOf(30.0))
+        val plot = PlotElement(0.0, 0.0, 100.0, 80.0, emptyList())
+        val circuit = CircuitElement("resistor", 10.0, 10.0)
+        val math = MathBlockElement(0.0, 0.0, 40.0, 20.0, "x^2")
+
+        assertTrue(SelectionResizeMath.supportsAspectLockToggle(listOf(shape), isShaft = false))
+        assertTrue(SelectionResizeMath.supportsAspectLockToggle(listOf(stroke), isShaft = false))
+        assertFalse(SelectionResizeMath.supportsAspectLockToggle(listOf(stroke), isShaft = true))
+        assertFalse(SelectionResizeMath.supportsAspectLockToggle(listOf(image)))
+        assertFalse(SelectionResizeMath.supportsAspectLockToggle(listOf(table)))
+        assertFalse(SelectionResizeMath.supportsAspectLockToggle(listOf(plot)))
+        assertFalse(SelectionResizeMath.supportsAspectLockToggle(listOf(circuit)))
+        assertFalse(SelectionResizeMath.supportsAspectLockToggle(listOf(math)))
+        assertFalse(SelectionResizeMath.supportsAspectLockToggle(listOf(shape, stroke)))
+        assertFalse(SelectionResizeMath.supportsAspectLockToggle(emptyList()))
     }
 }

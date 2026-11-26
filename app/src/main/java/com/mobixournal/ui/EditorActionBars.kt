@@ -102,6 +102,7 @@ fun SelectionActionBar(
     onEditTable: () -> Unit = {},
     canEditCircuit: Boolean = false,
     onEditCircuit: () -> Unit = {},
+    canToggleAspectLock: Boolean = false,
     aspectLocked: Boolean = true,
     onToggleAspectLock: () -> Unit = {},
     modifier: Modifier = Modifier,
@@ -144,12 +145,14 @@ fun SelectionActionBar(
                 BarIconButton("Duplicate", ChromeGlyph.DUPLICATE.imageVector(), onDuplicate)
                 RecolorMenu(onRecolor, palette)
                 ReWidthMenu(widthSlots, onReWidth)
-                BarToggleButton(
-                    contentDescription = if (aspectLocked) "Unlock proportions" else "Lock proportions",
-                    icon = (if (aspectLocked) ChromeGlyph.ASPECT_LOCK else ChromeGlyph.ASPECT_UNLOCK).imageVector(),
-                    selected = aspectLocked,
-                    onClick = onToggleAspectLock,
-                )
+                if (canToggleAspectLock) {
+                    BarToggleButton(
+                        contentDescription = if (aspectLocked) "Unlock proportions" else "Lock proportions",
+                        icon = (if (aspectLocked) ChromeGlyph.ASPECT_LOCK else ChromeGlyph.ASPECT_UNLOCK).imageVector(),
+                        selected = aspectLocked,
+                        onClick = onToggleAspectLock,
+                    )
+                }
                 BarIconButton("Delete", ChromeGlyph.DELETE.imageVector(), onDelete)
             }
         }

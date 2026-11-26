@@ -81,7 +81,13 @@ internal fun handleResizeStart(
             }
         }
     }
-    if (isSingleShape && !aspectLocked) return null
+    val selectedElements = if (selection != null && page != null) {
+        selection.refs.mapNotNull { ref ->
+            page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+        }
+    } else emptyList()
+    val suppressEdgeHandles = aspectLocked && SelectionResizeMath.supportsAspectLockToggle(selectedElements, isShaft = false)
+    if (isSingleShape || suppressEdgeHandles) return null
     // Edge-midpoint handles stretch one axis only — the out-of-proportion resize. The anchor is the
     // opposite edge's midpoint, so the far edge stays pinned while this one follows the pointer: pull
     // the right edge out and the element gets wider without getting taller.

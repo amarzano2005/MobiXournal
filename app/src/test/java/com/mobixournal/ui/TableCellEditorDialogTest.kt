@@ -269,4 +269,15 @@ class TableCellEditorDialogTest {
         assertEquals(listOf(70.0, 70.0, 70.0), live.colWidths)
         assertEquals(listOf(35.0, 35.0), live.rowHeights)
     }
+
+    @Test
+    fun stateMoveByClampsWithinTableGridBounds() {
+        val state = TableCellEditorState(sampleTable(), initialFocus = 0 to 1)
+        state.moveBy(1, 1)
+        assertEquals(1 to 2, state.currentRow to state.currentCol)
+        state.moveBy(5, 5)
+        assertEquals(1 to 2, state.currentRow to state.currentCol)
+        state.moveBy(-5, -5)
+        assertEquals(0 to 0, state.currentRow to state.currentCol)
+    }
 }

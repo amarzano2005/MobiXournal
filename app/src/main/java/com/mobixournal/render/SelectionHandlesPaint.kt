@@ -58,14 +58,15 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
             canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)
         }
     }
-    // Edge-midpoint handles: one axis each, the out-of-proportion resize (also offered on a locked single shape).
+    // Edge-midpoint handles: one axis each (hidden in lock mode for shapes/strokes so proportions stay locked).
+    val suppressEdgeHandles = aspectLocked && canToggleSelectionAspectLock()
     val midX = (l + r) / 2f
     val midY = (t + bottom) / 2f
-    if (shaft == null && !flatY && (!isSingleShape || aspectLocked)) {
+    if (shaft == null && !flatY && !isSingleShape && !suppressEdgeHandles) {
         canvas.drawCircle(midX, t, HANDLE_DRAW_PX, chrome.handle)
         canvas.drawCircle(midX, bottom, HANDLE_DRAW_PX, chrome.handle)
     }
-    if (shaft == null && !flatX && (!isSingleShape || aspectLocked)) {
+    if (shaft == null && !flatX && !isSingleShape && !suppressEdgeHandles) {
         canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
         canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
     }

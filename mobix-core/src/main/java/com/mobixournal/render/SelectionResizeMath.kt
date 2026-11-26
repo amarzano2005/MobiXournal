@@ -2,6 +2,8 @@ package com.mobixournal.render
 
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
+import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.Stroke
 import kotlin.math.abs
 import kotlin.math.hypot
 
@@ -55,6 +57,22 @@ object SelectionResizeMath {
     /** The [ResizeAxis] for a corner drag on [element]. */
     fun cornerAxis(element: Element?, lockAspect: Boolean, lockMixed: Boolean = true): ResizeAxis =
         if (cornerLocksAspect(element, lockAspect, lockMixed)) ResizeAxis.BOTH else ResizeAxis.FREE
+
+    /**
+     * Whether toggling aspect-lock produces distinct resize/handle behaviour for [elements].
+     *
+     * True for single [ParametricShapeElement]s (bluish locked box vs free vertices) and non-shaft
+     * [Stroke]s such as circles, ellipses and freehand drawings (4 proportional corners vs 8 free
+     * handles). Hidden for shafts (lines/arrows), pictures (always proportional), structured elements
+     * (tables, circuits, plots, math/text blocks), and mixed selections.
+     */
+    fun supportsAspectLockToggle(elements: List<Element>, isShaft: Boolean = false): Boolean {
+        if (elements.size != 1 || isShaft) return false
+        return when (elements.first()) {
+            is ParametricShapeElement, is Stroke -> true
+            else -> false
+        }
+    }
 
     /**
      * Clamped scale factor along one axis, measured from [anchorPt].

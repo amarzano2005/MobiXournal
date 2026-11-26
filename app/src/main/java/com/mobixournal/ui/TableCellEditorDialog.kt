@@ -16,10 +16,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,7 +46,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,6 +66,7 @@ import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -77,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.TableAlign
 import com.mobixournal.format.model.TableCell
 import com.mobixournal.render.replaceTableElement
+import com.mobixournal.render.setActiveTableCellHighlight
 import com.mobixournal.ui.theme.rememberClosingArgument
 
 private enum class TableInspectorTab(val label: String) {
@@ -115,22 +119,42 @@ fun TableEditorHost(
         }
     }
 
+    val density = LocalDensity.current
+    val imeBottomPx = WindowInsets.ime.getBottom(density)
+    val imeVisible = imeBottomPx > 0
+
+    DisposableEffect(pane.surface, liveTable, state.currentRow, state.currentCol) {
+        pane.surface?.setActiveTableCellHighlight(liveTable, state.currentRow, state.currentCol)
+        onDispose { pane.surface?.setActiveTableCellHighlight(null, 0, 0) }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
-        LivingInspectorAnchor(
-            sessionKey = session,
-            anchorRect = pane.selectionRect,
-            canvasSizePx = canvasSizePx,
-            safeInsets = safeInsets,
-            minWidth = 300.dp,
-            maxWidth = 380.dp,
-        ) { dragModifier ->
-            TableInspectorPanel(
+        if (imeVisible) {
+            TableCompactFormulaBar(
                 state = state,
-                session = session,
-                dragModifier = dragModifier,
                 onCommitLive = commitLive,
-                onDismiss = { ui.editingTableCell = null },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 8.dp)
+                    .padding(bottom = with(density) { imeBottomPx.toDp() } + 6.dp),
             )
+        } else {
+            LivingInspectorAnchor(
+                sessionKey = session,
+                anchorRect = pane.selectionRect,
+                canvasSizePx = canvasSizePx,
+                safeInsets = safeInsets,
+                minWidth = 300.dp,
+                maxWidth = 380.dp,
+            ) { dragModifier ->
+                TableInspectorPanel(
+                    state = state,
+                    session = session,
+                    dragModifier = dragModifier,
+                    onCommitLive = commitLive,
+                    onDismiss = { ui.editingTableCell = null },
+                )
+            }
         }
     }
 }
@@ -325,12 +349,6 @@ private fun TableCompactCellField(
     val isFocused = state.focusedCell == (row to col)
     val isLastCell = row == state.rowHeights.size - 1 && col == state.colWidths.size - 1
     val shape = RoundedCornerShape(6.dp)
-
-    LaunchedEffect(state.focusedCell) {
-        if (state.focusedCell == (row to col)) {
-            try { focusRequester.requestFocus() } catch (_: Throwable) {}
-        }
-    }
 
     val containerColor = when {
         isFocused -> scheme.surface
@@ -549,7 +567,7 @@ private fun TableRowColActionsBar(
 }
 
 @Composable
-private fun TableSegmentButton(
+internal fun TableSegmentButton(
     selected: Boolean,
     imageVector: ImageVector,
     description: String,
@@ -579,7 +597,7 @@ private fun TableSegmentButton(
 }
 
 @Composable
-private fun TableBoldButton(
+internal fun TableBoldButton(
     selected: Boolean,
     onClick: () -> Unit,
 ) {

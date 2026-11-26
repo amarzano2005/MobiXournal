@@ -54,7 +54,7 @@ internal class ScrollGesture(
     private val touchSlopPx: () -> Float,
     /** The band at each edge (px) that starts the auto-scroll. */
     private val edgePx: () -> Float,
-    /** How far one auto-scroll frame moves the page (px). */
+    /** How far one auto-scroll frame moves the page (px) when speed lambdas are omitted. */
     private val stepPx: () -> Float,
     private val viewWidth: () -> Int,
     private val viewHeight: () -> Int,
@@ -65,6 +65,14 @@ internal class ScrollGesture(
     private val postFrame: () -> Unit,
     /** Drop a scheduled frame (the drag left the band, or the gesture ended). */
     private val removeFrame: () -> Unit,
+    private val minSpeedPxPerSec: () -> Float = {
+        stepPx() * (DrawingSurfaceDefaults.DRAG_AUTOSCROLL_MIN_SPEED_DP_PER_SEC / DrawingSurfaceDefaults.DRAG_AUTOSCROLL_STEP_DP)
+    },
+    private val maxSpeedPxPerSec: () -> Float = {
+        stepPx() * (DrawingSurfaceDefaults.DRAG_AUTOSCROLL_MAX_SPEED_DP_PER_SEC / DrawingSurfaceDefaults.DRAG_AUTOSCROLL_STEP_DP)
+    },
+    private val delayMs: Long = DrawingSurfaceDefaults.DRAG_AUTOSCROLL_DELAY_MS,
+    private val nowMs: () -> Long = { System.nanoTime() / 1_000_000L },
 ) {
 
     /**
@@ -93,6 +101,8 @@ internal class ScrollGesture(
     private var dirX = 0
     private var dirY = 0
     private var posted = false
+    private var edgeEnterTimeMs = 0L
+    private var lastFrameTimeMs = 0L
 
     /**
      * A pan has begun: take the baselines, and drop the release the momentum would otherwise carry from
@@ -174,15 +184,26 @@ internal class ScrollGesture(
             else -> 0
         }
         if (nextX == dirX && nextY == dirY) return
+        val wasIdle = dirX == 0 && dirY == 0
         dirX = nextX
         dirY = nextY
-        if (dirX != 0 || dirY != 0) postAutoScroll() else stopAutoScroll()
+        if (dirX != 0 || dirY != 0) {
+            if (wasIdle) {
+                edgeEnterTimeMs = nowMs()
+                lastFrameTimeMs = 0L
+            }
+            postAutoScroll()
+        } else {
+            stopAutoScroll()
+        }
     }
 
     /** Stop the auto-scroll repeat (a released/cancelled gesture, or the drag left the edge band). */
     fun stopAutoScroll() {
         dirX = 0
         dirY = 0
+        edgeEnterTimeMs = 0L
+        lastFrameTimeMs = 0L
         if (posted) {
             removeFrame()
             posted = false
@@ -190,19 +211,46 @@ internal class ScrollGesture(
     }
 
     /**
-     * One auto-scroll frame: scroll one step toward the edge the finger is in, re-apply the drag at the
-     * finger's last position so it rides the scrolling sheet, then repost.
+     * One auto-scroll frame: waits [delayMs] after entering an edge band, then scrolls smoothly
+     * based on real elapsed frame time (`dt`) and quadratic edge penetration, re-applying the drag.
      */
     fun autoScrollFrame() {
         posted = false
         if (dirX == 0 && dirY == 0) return
-        val step = stepPx()
-        if (!scrollBy(dirX * step, dirY * step)) {
+        val now = nowMs()
+        if (now - edgeEnterTimeMs < delayMs) {
+            postAutoScroll()
+            return
+        }
+        val dtSec = if (lastFrameTimeMs == 0L) 0.016f else ((now - lastFrameTimeMs).coerceIn(1L, 50L) / 1000f)
+        lastFrameTimeMs = now
+        val edge = edgePx().coerceAtLeast(1f)
+        val minS = minSpeedPxPerSec()
+        val maxS = maxSpeedPxPerSec()
+        val dx = axisAutoScrollStep(dirX, dragX, viewWidth().toFloat(), edge, minS, maxS, dtSec)
+        val dy = axisAutoScrollStep(dirY, dragY, viewHeight().toFloat(), edge, minS, maxS, dtSec)
+        if (!scrollBy(dx, dy)) {
             stopAutoScroll() // pinned at a bound in both axes: nothing left to scroll into
             return
         }
         dragAt(dragX, dragY)
         postAutoScroll()
+    }
+
+    private fun axisAutoScrollStep(
+        dir: Int,
+        pos: Float,
+        extent: Float,
+        edge: Float,
+        minSpeed: Float,
+        maxSpeed: Float,
+        dtSec: Float,
+    ): Float {
+        if (dir == 0) return 0f
+        val distFromEdge = if (dir > 0) (extent - pos).coerceAtLeast(0f) else pos.coerceAtLeast(0f)
+        val t = ((edge - distFromEdge) / edge).coerceIn(0f, 1f)
+        val speed = minSpeed + (maxSpeed - minSpeed) * t * t
+        return dir * speed * dtSec
     }
 
     private fun postAutoScroll() {

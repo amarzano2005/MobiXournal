@@ -71,6 +71,8 @@ internal class SelectionGestureController(
     // anchor stays pinned to the sheet while the end follows the pointer as the content moves under it.
     var banding = false
         private set
+
+    internal var activeTableCellHighlight: Triple<TableElement, Int, Int>? = null
     var bandPage = 0
         private set
 

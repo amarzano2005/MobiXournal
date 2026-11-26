@@ -643,6 +643,19 @@ internal fun DrawingSurfaceView.reportTextSelectionRect() {
     }
 }
 
+/** Whether the active selection distinguishes between aspect-locked and unlocked resize modes. */
+fun DrawingSurfaceView.canToggleSelectionAspectLock(): Boolean {
+    val sel = selection ?: return false
+    val page = pageAt(sel.pageIndex) ?: return false
+    val elements = sel.refs.mapNotNull { ref ->
+        page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+    }
+    return SelectionResizeMath.supportsAspectLockToggle(
+        elements = elements,
+        isShaft = gestures.shaftOfSelection(sel) != null,
+    )
+}
+
 /** Whether corner resizing on the active selection locks aspect ratio (`sx == sy`). */
 fun DrawingSurfaceView.isSelectionAspectLocked(): Boolean =
     singleSelectedShape()?.aspectLocked ?: gestures.aspectLocked

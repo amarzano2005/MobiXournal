@@ -47,6 +47,7 @@ class ScrollGestureTest {
     private var framePosted = 0
     private var frameRemoved = 0
     private var canScroll = true
+    private var clockMs = 1_000L
 
     private val scroll = ScrollGesture(
         scrollBy = { dx, dy ->
@@ -58,13 +59,17 @@ class ScrollGestureTest {
         panSensitivity = { 2f },
         touchSlopPx = { 8f },
         edgePx = { 50f },
-        stepPx = { 12f },
+        stepPx = { 10f },
         viewWidth = { 1000 },
         viewHeight = { 800 },
         dragAt = { x, y -> drags += x to y },
         render = { repaints++ },
         postFrame = { framePosted++ },
         removeFrame = { frameRemoved++ },
+        minSpeedPxPerSec = { 100f },
+        maxSpeedPxPerSec = { 500f },
+        delayMs = 120L,
+        nowMs = { clockMs },
     )
 
     @Test
@@ -164,25 +169,40 @@ class ScrollGestureTest {
     }
 
     @Test
-    fun `one auto-scroll frame moves a step, re-applies the drag and reposts`() {
-        scroll.updateDrag(500f, 790f)
+    fun `auto-scroll waits delayMs then scrolls progressively with dt`() {
+        scroll.updateDrag(500f, 775f) // 25px inside 50px bottom edge (t = 0.5 -> speed = 200 px/s)
 
+        // Before delayMs elapses: reposts without scrolling
+        clockMs += 60L
         scroll.autoScrollFrame()
+        assertTrue("waits hold delay before scrolling", pans.isEmpty())
+        assertEquals(2, framePosted)
 
+        // After delayMs elapses: first active frame uses 16ms default dt -> 200 * 0.016 = 3.2 px
+        clockMs += 70L
+        scroll.autoScrollFrame()
         assertEquals(0f, pans.single().first, 0f)
-        assertEquals(12f, pans.single().second, 0f)
-        assertEquals("the selection rides the scrolling page", 500f to 790f, drags.single())
-        assertEquals("and the loop continues", 2, framePosted)
+        assertEquals(200f * 0.016f, pans.single().second, 1e-3f)
+        assertEquals("the selection rides the scrolling page", 500f to 775f, drags.single())
+        assertEquals(3, framePosted)
+
+        // Deeper penetration at extreme edge (t = 1.0 -> speed = 500 px/s) after 20ms dt -> 10.0 px
+        scroll.updateDrag(500f, 800f)
+        clockMs += 20L
+        scroll.autoScrollFrame()
+        assertEquals(500f * 0.020f, pans.last().second, 1e-3f)
     }
 
     @Test
     fun `a frame that cannot scroll any further stops the loop`() {
         scroll.updateDrag(500f, 790f)
         canScroll = false
+        clockMs += 150L
 
         scroll.autoScrollFrame()
         assertTrue("nothing was dragged into a pinned page", drags.isEmpty())
 
+        clockMs += 20L
         scroll.autoScrollFrame()
         assertEquals("and the repeat is over: no step, no drag, no repost", 1, framePosted)
         assertEquals(1, pans.size)

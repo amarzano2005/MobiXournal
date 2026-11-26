@@ -460,14 +460,14 @@ internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSele
     val t = (b.top * box.scale + box.topPx - scrollY).toFloat() - DrawingSurfaceDefaults.SELECT_PAD_PX
     val r = (b.right * box.scale + box.leftPx - scrollX).toFloat() + DrawingSurfaceDefaults.SELECT_PAD_PX
     val bot = (b.bottom * box.scale + box.topPx - scrollY).toFloat() + DrawingSurfaceDefaults.SELECT_PAD_PX
-    // A line/arrow shows no box; a single parametric polygon hugs its own vertices instead of a rectangle.
+    // Lock mode shows the bluish box; Unlock shows polygon vertices for shapes.
     val singleShape = singleSelectedShape()
-    if (singleShape != null && drawShapePolygonOutline(canvas, box, singleShape)) {
-        // Outline drawn along polygon vertices.
-    } else if (gestures.shaftOfSelection(sel) == null) {
+    if (singleShape != null && !gestures.aspectLocked && drawShapePolygonOutline(canvas, box, singleShape)) Unit
+    else if (gestures.shaftOfSelection(sel) == null) {
         canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionFill)
         canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionStroke)
     }
+    drawActiveTableCellHighlight(canvas, box)
     drawSelectionHandleDots(canvas, sel, box, l, t, r, bot)
     // A move the magnet has caught: the pin it will join, lit while the hand is still down. Without it
     // the part jumps onto a target the user never saw, which is what made the magnet feel greedy.

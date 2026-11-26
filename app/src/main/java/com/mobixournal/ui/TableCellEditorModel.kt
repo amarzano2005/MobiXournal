@@ -316,4 +316,13 @@ internal class TableCellEditorState(initial: TableElement, initialFocus: Pair<In
         currentCol = prevCol
         focusedCell = prevRow to prevCol
     }
+
+    fun moveBy(dRow: Int, dCol: Int) {
+        val totalRows = rowHeights.size
+        val totalCols = colWidths.size
+        if (totalRows == 0 || totalCols == 0) return
+        currentRow = (currentRow + dRow).coerceIn(0, totalRows - 1)
+        currentCol = (currentCol + dCol).coerceIn(0, totalCols - 1)
+        focusedCell = currentRow to currentCol
+    }
 }

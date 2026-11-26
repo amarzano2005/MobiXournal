@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "table-ime-lock-exit-scroll-polish"
+title = "Add IME formula bar for table editing, unify lock-mode visuals/visibility, freeze selection exit buttons, and smooth drag auto-scroll"
+description = "Implemented TableCompactFormulaBar (TableStyleTab.kt + TableCellEditorDialog.kt) with arrow navigation and live active-cell canvas highlight (DrawingSurfaceTable.kt); centralized SelectionResizeMath.supportsAspectLockToggle, bluish box & 4-corner lock mode handles on shapes/strokes (DrawingSurfacePaint.kt, SelectionHandlesPaint.kt, SelectionHandleResize.kt) and hid lock toggle when inapplicable (EditorActionBars.kt); froze SelectionBarCapabilities with rememberClosingArgument across exit animation (SelectionActionAnchor.kt); replaced frame-step edge auto-scroll with 120ms-delayed dt-based quadratic speed ramp (CanvasScroll.kt, DrawingSurfaceConstants.kt); updated unit tests and docs. Verified via :mobix-core:test, :app:testDebugUnitTest (including SourceStructureTest and ColorContractGuardTest), :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: FloatingSurface + POPOVER GlassMotion for compact formula bar; tokens: existing MaterialTheme + CanvasChrome selectionStroke/selectionFill; glyph: KeyboardArrow/KeyboardHide + FormatAlign/FormatBold + ASPECT_LOCK; states: IME open/closed mode transition, locked/unlocked handle distinction, frozen exit capabilities; copy: English descriptions; parity: centralized SelectionResizeMath.supportsAspectLockToggle in mobix-core; docs: docs/mobix-living-entities.md and docs/interface-contract.md updated; tests: SelectionResizeMathTest, ScrollGestureTest, TableCellEditorDialogTest, SelectionActionAnchorTest, SelectionResizeTest, SourceStructureTest, ColorContractGuardTest green"
+
+[[task]]
 id = "live-table-inspector-redesign"
 title = "Redesign table editing into live 2-tab anchored inspector"
 description = "Replaced modal TableCellEditorDialog with live 2-tab TableEditorHost (TableCellEditorDialog.kt + TableStyleTab.kt) on LivingInspectorAnchor; added recordUndo parameter to replaceTableElement (DrawingSurfaceSelection.kt) for single-session undo coalescing; added tableInspectorSession/openTableInspector (EditorUiState.kt, LivingEditors.kt, SelectionActionAnchor.kt); extended TableCellEditorModel.kt with columnLabel, headerRowToggled, tableDistributedEvenly, borderWidth/borderColor/toTableElement; wired TableEditorHost in EditorRegions.kt; added JVM tests in TableCellEditorDialogTest.kt; updated docs/mobix-living-entities.md and docs/interface-contract.md. Verified via unit tests, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and scripts/release-apk.sh."

@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.mobixournal.render.canToggleSelectionAspectLock
 import com.mobixournal.render.clearSelection
 import com.mobixournal.render.copySelection
 import com.mobixournal.render.cutSelection
@@ -29,6 +30,27 @@ import com.mobixournal.render.singleSelectedShape
 import com.mobixournal.render.singleSelectedTable
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import kotlin.math.roundToInt
+
+private data class SelectionBarCapabilities(
+    val canEditShape: Boolean = false,
+    val canEditPlot: Boolean = false,
+    val canEditTable: Boolean = false,
+    val canEditCircuit: Boolean = false,
+    val canToggleAspectLock: Boolean = false,
+)
+
+private fun currentSelectionCapabilities(
+    pane: PaneState,
+    surface: com.mobixournal.render.DrawingSurfaceView?,
+): SelectionBarCapabilities? = if (pane.selectionRect != null) {
+    SelectionBarCapabilities(
+        canEditShape = surface?.singleSelectedShape() != null,
+        canEditPlot = surface?.singleSelectedPlot() != null,
+        canEditTable = surface?.singleSelectedTable() != null,
+        canEditCircuit = surface?.singleSelectedCircuit() != null,
+        canToggleAspectLock = surface?.canToggleSelectionAspectLock() == true,
+    )
+} else null
 
 /** Gap between the floating action bar and the selection it belongs to. */
 private val SELECTION_BAR_GAP = 10.dp
@@ -70,6 +92,8 @@ fun SelectionActionAnchor(
         return
     }
     val palette = rememberColorPaletteState(settings, onSettingsChange)
+    val liveCaps = currentSelectionCapabilities(pane, surface)
+    val caps = com.mobixournal.ui.theme.rememberClosingArgument(liveCaps) ?: SelectionBarCapabilities()
     val selectedShape = surface?.singleSelectedShape()
     var aspectLocked by remember(surface, rect, selectedShape?.id, selectedShape?.aspectLocked) {
         mutableStateOf(surface?.isSelectionAspectLocked() ?: settings.defaultFigureAspectLock)
@@ -103,30 +127,31 @@ fun SelectionActionAnchor(
         palette = palette,
         onReWidth = { w -> surface?.restyleSelection(null, w.toDouble()) },
         widthSlots = settings.penWidths,
-        canEditShape = surface?.singleSelectedShape() != null,
+        canEditShape = caps.canEditShape,
         onEditShape = {
             surface?.singleSelectedShape()?.let { shape ->
                 ui.openShapeInspector(shape)
             }
         },
-        canEditPlot = surface?.singleSelectedPlot() != null,
+        canEditPlot = caps.canEditPlot,
         onEditPlot = {
             surface?.singleSelectedPlot()?.let { plot ->
                 ui.openPlotInspector(plot)
             }
         },
-        canEditTable = surface?.singleSelectedTable() != null,
+        canEditTable = caps.canEditTable,
         onEditTable = {
             surface?.singleSelectedTable()?.let { table ->
                 ui.openTableInspector(table, 0, 0)
             }
         },
-        canEditCircuit = surface?.singleSelectedCircuit() != null,
+        canEditCircuit = caps.canEditCircuit,
         onEditCircuit = {
             surface?.singleSelectedCircuit()?.let { circuit ->
                 ui.openCircuitInspector(circuit)
             }
         },
+        canToggleAspectLock = caps.canToggleAspectLock,
         aspectLocked = aspectLocked,
         onToggleAspectLock = { aspectLocked = !aspectLocked; surface?.setSelectionAspectLocked(aspectLocked) },
         modifier = modifier
