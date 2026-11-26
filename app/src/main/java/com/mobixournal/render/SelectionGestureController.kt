@@ -272,8 +272,8 @@ internal class SelectionGestureController(
             page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? ParametricShapeElement
         }
         val hitsBody = if (singleShape != null && !aspectLocked) {
-            ElementHitTester.hits(singleShape, ptX, ptY, DrawingSurfaceDefaults.MOVE_GRAB_PAD) ||
-                SelectionResizeMath.pointInPolygon(singleShape.vertices, ptX, ptY)
+            if (ParametricShapes.isConic(singleShape)) ParametricShapes.conicContains(singleShape, ptX, ptY, DrawingSurfaceDefaults.MOVE_GRAB_PAD)
+            else ElementHitTester.hits(singleShape, ptX, ptY, DrawingSurfaceDefaults.MOVE_GRAB_PAD) || SelectionResizeMath.pointInPolygon(singleShape.vertices, ptX, ptY)
         } else b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(ptX, ptY)
         if (hitsBody) { beginMove(event, box); return true }
         return false
@@ -360,7 +360,7 @@ internal class SelectionGestureController(
         val page = pageAt(sel.pageIndex) ?: return
         val rawX = box.toPtX(event.x, viewport.scrollX)
         val rawY = box.toPtY(event.y, viewport.scrollY)
-        val (x, y) = if (snapVertices()) ParametricShapes.snappedVertex(base, vertexIndex, rawX, rawY) else rawX to rawY
+        val (x, y) = if (!ParametricShapes.isConic(base) && snapVertices()) ParametricShapes.snappedVertex(base, vertexIndex, rawX, rawY) else rawX to rawY
         val updated = ParametricShapes.moveVertex(base, vertexIndex, x, y)
         if (updated === base) return
         val edited = ElementEdits.replaceElementOn(page, base, updated) ?: return

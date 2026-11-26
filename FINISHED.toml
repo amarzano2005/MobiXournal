@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "living-conics-visible-autoscroll"
+title = "Promote circles/ellipses to living parametric shapes and anchor drag auto-scroll to visible canvas bounds"
+description = "Promoted CIRCLE and ELLIPSE to living ParametricShapeElement with 4 cardinal vertices [N,E,S,W], smooth ShapeInk synthesis, exact rotated ElementBounds, elliptic interior hit-testing, Lock rectangular box vs Unlock curve-hugging selection + 4 cardinal handles, and live Rx/Ry/Make circle controls on Android (ShapeEditorDialog.kt) and Desktop (ShapeInspector.kt, SelectionOverlay.kt, LivingGrips.kt); anchored ScrollGesture drag auto-scroll to visible safe canvas bounds (viewport insets) and dragged selection bounds (CanvasScroll.kt, DrawingSurfaceView.kt, DrawingSurfaceInput.kt, DrawingSurfaceConstants.kt); updated docs/mobix-living-entities.md and tests. Verified via :mobix-core:test (all tests), :app:testDebugUnitTest (ScrollGestureTest, ShapeInspectorHelpersTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest), :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: unchanged FloatingSurface inspector panels on Android and flat section cards on Desktop; tokens: MaterialTheme scheme + CanvasChrome paints + DesktopTheme; glyph: unchanged Edit/Lock glyphs; states: conic Rx/Ry/Make circle + Lock rectangular box vs Unlock curve outline + visible-edge drag scroll; copy: English labels (Radius X, Radius Y, Show radii, Make circle); parity: full Android + Desktop + mobix-core parity; docs: docs/mobix-living-entities.md updated; tests: :mobix-core:test and :app:testDebugUnitTest guards green"
+
+[[task]]
 id = "stroke-lock-interior-drag-scroll"
 title = "Persist stroke aspect lock, allow dragging inside selection interior, and sharpen edge auto-scroll"
 description = "Persisted Stroke aspectLocked in extraAttrs via storedAspectLocked/withAspectLocked (SelectionResizeMath.kt, DrawingSurfaceSelection.kt, SelectionGestureController.kt, SelectionActionAnchor.kt) with full render() repaint; added ray-casting SelectionResizeMath.pointInPolygon so shapes can be dragged from anywhere inside their bluish selection box or polygon interior immediately after insertion; tuned drag auto-scroll (56dp edge band, 40ms delay, 140-780dp/s, t^1.3 ramp in DrawingSurfaceConstants.kt and CanvasScroll.kt); updated unit tests. Verified with SelectionResizeMathTest, ScrollGestureTest, SelectionResizeTest, SelectionActionAnchorTest, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and scripts/release-apk.sh."

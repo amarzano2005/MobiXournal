@@ -76,16 +76,25 @@ object ShapeInk {
         return out
     }
 
-    /** The figure closed on itself: the vertices, and the first one again. */
+    /** The figure closed on itself: smooth conic sample loop or polygon vertex loop. */
     private fun outlineOf(shape: ParametricShapeElement): List<StrokePoint> {
-        val out = ArrayList<StrokePoint>(shape.vertices.size + 1)
-        shape.vertices.forEach { out += InkPrimitives.pt(it.x, it.y, shape.strokeWidth) }
-        val first = shape.vertices.first()
-        out += InkPrimitives.pt(first.x, first.y, shape.strokeWidth)
+        val pts = if (ParametricShapes.isConic(shape)) {
+            ParametricShapes.conicOutlinePoints(shape)
+        } else {
+            shape.vertices
+        }
+        if (pts.isEmpty()) return emptyList()
+        val out = ArrayList<StrokePoint>(pts.size + 1)
+        pts.forEach { out += InkPrimitives.pt(it.x, it.y, shape.strokeWidth) }
+        if (!ParametricShapes.isConic(shape)) {
+            val first = pts.first()
+            out += InkPrimitives.pt(first.x, first.y, shape.strokeWidth)
+        }
         return out
     }
 
     private fun labels(shape: ParametricShapeElement): List<Element> {
+        if (ParametricShapes.isConic(shape)) return conicLabels(shape)
         val out = mutableListOf<Element>()
         val count = shape.vertices.size
         if (count < MIN_VERTICES) return out
@@ -125,6 +134,46 @@ object ShapeInk {
                     content = text,
                     x = vertex.x + dx - width / 2.0,
                     y = vertex.y + dy - height / 2.0,
+                    color = shape.strokeColor,
+                )
+            }
+        }
+        return out
+    }
+
+    private fun conicLabels(shape: ParametricShapeElement): List<Element> {
+        if (!shape.showSideLengths) return emptyList()
+        val f = ParametricShapes.conicFrame(shape) ?: return emptyList()
+        val out = mutableListOf<Element>()
+        val isCircle = shape.shape == ParametricShapes.CIRCLE
+        val rLabel = if (isCircle) {
+            measurementText(f.rx)?.let { "r=$it" }
+        } else {
+            measurementText(f.rx)?.let { "a=$it" }
+        }
+        if (rLabel != null) {
+            val (w, h) = labelSize(rLabel)
+            val ux = if (f.rx > SAME_POINT_PT) f.ux / f.rx else 1.0
+            val uy = if (f.rx > SAME_POINT_PT) f.uy / f.rx else 0.0
+            val off = LABEL_GAP_PT + abs(ux) * w / 2.0 + abs(uy) * h / 2.0
+            out += InkPrimitives.text(
+                content = rLabel,
+                x = f.cx + f.ux + ux * off - w / 2.0,
+                y = f.cy + f.uy + uy * off - h / 2.0,
+                color = shape.strokeColor,
+            )
+        }
+        if (!isCircle) {
+            val bLabel = measurementText(f.ry)?.let { "b=$it" }
+            if (bLabel != null) {
+                val (w, h) = labelSize(bLabel)
+                val vx = if (f.ry > SAME_POINT_PT) f.vx / f.ry else 0.0
+                val vy = if (f.ry > SAME_POINT_PT) f.vy / f.ry else 1.0
+                val off = LABEL_GAP_PT + abs(vx) * w / 2.0 + abs(vy) * h / 2.0
+                out += InkPrimitives.text(
+                    content = bLabel,
+                    x = f.cx + f.vx + vx * off - w / 2.0,
+                    y = f.cy + f.vy + vy * off - h / 2.0,
                     color = shape.strokeColor,
                 )
             }

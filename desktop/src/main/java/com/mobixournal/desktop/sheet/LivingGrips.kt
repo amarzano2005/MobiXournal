@@ -91,7 +91,7 @@ internal fun dragGrip(element: Element, grip: LivingGrip, dx: Double, dy: Double
     return when {
         element is ParametricShapeElement && grip is LivingGrip.Vertex -> {
             val vertex = element.vertices.getOrNull(grip.index) ?: return element
-            val (x, y) = if (snap) {
+            val (x, y) = if (snap && !ParametricShapes.isConic(element)) {
                 ParametricShapes.snappedVertex(element, grip.index, vertex.x + dx, vertex.y + dy)
             } else {
                 (vertex.x + dx) to (vertex.y + dy)

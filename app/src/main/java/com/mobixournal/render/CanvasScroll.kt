@@ -74,6 +74,10 @@ internal class ScrollGesture(
     },
     private val delayMs: Long = DrawingSurfaceDefaults.DRAG_AUTOSCROLL_DELAY_MS,
     private val nowMs: () -> Long = { System.nanoTime() / 1_000_000L },
+    private val safeLeftPx: () -> Float = { 0f },
+    private val safeTopPx: () -> Float = { 0f },
+    private val safeRightPx: () -> Float = { 0f },
+    private val safeBottomPx: () -> Float = { 0f },
 ) {
 
     /**
@@ -97,6 +101,10 @@ internal class ScrollGesture(
         private set
     var dragY = 0f
         private set
+    private var dragBoundsL = 0f
+    private var dragBoundsT = 0f
+    private var dragBoundsR = 0f
+    private var dragBoundsB = 0f
 
     /** The band the drag is pushing into: -1, 0 or +1 per axis. */
     private var dirX = 0
@@ -166,22 +174,37 @@ internal class ScrollGesture(
     // --- drag auto-scroll: keep scrolling while a selection is dragged into an edge band -----------
 
     /**
-     * Update the auto-scroll direction from a drag's position (view px): pushing into an edge band
-     * starts the page scrolling that way, and moving back out stops it. Idempotent, so it is safe on
-     * every MOVE.
+     * Update the auto-scroll direction from a drag's pointer ([viewX], [viewY]) and optional
+     * dragged element bounds relative to the visible canvas area (clear of overlaid toolbars).
      */
-    fun updateDrag(viewX: Float, viewY: Float) {
+    fun updateDrag(
+        viewX: Float,
+        viewY: Float,
+        boundsLeft: Float = viewX,
+        boundsTop: Float = viewY,
+        boundsRight: Float = viewX,
+        boundsBottom: Float = viewY,
+    ) {
         dragX = viewX
         dragY = viewY
+        dragBoundsL = boundsLeft
+        dragBoundsT = boundsTop
+        dragBoundsR = boundsRight
+        dragBoundsB = boundsBottom
         val edge = edgePx()
+        val visL = safeLeftPx()
+        val visT = safeTopPx()
+        val visR = (viewWidth() - safeRightPx()).coerceAtLeast(visL + 1f)
+        val visB = (viewHeight() - safeBottomPx()).coerceAtLeast(visT + 1f)
+        val elemMargin = edge * 0.25f
         val nextX = when {
-            viewX > viewWidth() - edge -> 1
-            viewX < edge -> -1
+            viewX > visR - edge || boundsRight > visR - elemMargin -> 1
+            viewX < visL + edge || boundsLeft < visL + elemMargin -> -1
             else -> 0
         }
         val nextY = when {
-            viewY > viewHeight() - edge -> 1
-            viewY < edge -> -1
+            viewY > visB - edge || boundsBottom > visB - elemMargin -> 1
+            viewY < visT + edge || boundsTop < visT + elemMargin -> -1
             else -> 0
         }
         if (nextX == dirX && nextY == dirY) return
@@ -226,10 +249,14 @@ internal class ScrollGesture(
         val dtSec = if (lastFrameTimeMs == 0L) 0.016f else ((now - lastFrameTimeMs).coerceIn(1L, 50L) / 1000f)
         lastFrameTimeMs = now
         val edge = edgePx().coerceAtLeast(1f)
+        val visL = safeLeftPx()
+        val visT = safeTopPx()
+        val visR = (viewWidth() - safeRightPx()).coerceAtLeast(visL + 1f)
+        val visB = (viewHeight() - safeBottomPx()).coerceAtLeast(visT + 1f)
         val minS = minSpeedPxPerSec()
         val maxS = maxSpeedPxPerSec()
-        val dx = axisAutoScrollStep(dirX, dragX, viewWidth().toFloat(), edge, minS, maxS, dtSec)
-        val dy = axisAutoScrollStep(dirY, dragY, viewHeight().toFloat(), edge, minS, maxS, dtSec)
+        val dx = axisAutoScrollStep(dirX, dragX, dragBoundsL, dragBoundsR, visL, visR, edge, minS, maxS, dtSec)
+        val dy = axisAutoScrollStep(dirY, dragY, dragBoundsT, dragBoundsB, visT, visB, edge, minS, maxS, dtSec)
         if (!scrollBy(dx, dy)) {
             stopAutoScroll() // pinned at a bound in both axes: nothing left to scroll into
             return
@@ -241,15 +268,21 @@ internal class ScrollGesture(
     private fun axisAutoScrollStep(
         dir: Int,
         pos: Float,
-        extent: Float,
+        bMin: Float,
+        bMax: Float,
+        visMin: Float,
+        visMax: Float,
         edge: Float,
         minSpeed: Float,
         maxSpeed: Float,
         dtSec: Float,
     ): Float {
         if (dir == 0) return 0f
-        val distFromEdge = if (dir > 0) (extent - pos).coerceAtLeast(0f) else pos.coerceAtLeast(0f)
-        val t = ((edge - distFromEdge) / edge).coerceIn(0f, 1f)
+        val ptrDist = if (dir > 0) (visMax - pos).coerceAtLeast(0f) else (pos - visMin).coerceAtLeast(0f)
+        val ptrT = ((edge - ptrDist) / edge).coerceIn(0f, 1f)
+        val elemDist = if (dir > 0) (visMax - bMax).coerceAtLeast(0f) else (bMin - visMin).coerceAtLeast(0f)
+        val elemT = ((edge * 0.25f - elemDist) / edge).coerceIn(0f, 1f)
+        val t = maxOf(ptrT, elemT)
         val speed = minSpeed + (maxSpeed - minSpeed) * t.toDouble().pow(1.3).toFloat()
         return dir * speed * dtSec
     }

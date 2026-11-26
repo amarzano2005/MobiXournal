@@ -50,9 +50,9 @@ class ParametricShapesTest {
     }
 
     @Test fun openFiguresStayStrokes() {
-        for (kind in listOf(FigureKind.LINE, FigureKind.ARROW, FigureKind.ARC, FigureKind.CIRCLE, FigureKind.ELLIPSE)) {
+        for (kind in listOf(FigureKind.LINE, FigureKind.ARROW, FigureKind.ARC)) {
             val figure = RecognisedFigure(kind, listOf(pt(0.0, 0.0), pt(10.0, 0.0)))
-            assertNull("$kind is not a polygon to drag", ParametricShapes.elementFor(figure, 0xFF000000.toInt(), 1.0))
+            assertNull("$kind stays a stroke", ParametricShapes.elementFor(figure, 0xFF000000.toInt(), 1.0))
         }
     }
 
@@ -165,15 +165,23 @@ class ParametricShapesTest {
         assertEquals(ParametricShapes.RECTANGLE, rectShape.shape)
         assertEquals(4, rectShape.vertices.size)
         assertEquals(LineStyle.DASHED, rectShape.lineStyle)
-        // Lines and circles stay non-parametric strokes.
+        // Open line strokes stay non-parametric strokes; ellipse/circle tools become living conics.
         assertNull(
             ParametricShapes.elementForShapeTool(
-                ShapeKind.ELLIPSE,
-                ShapeBuilder.build(ShapeKind.ELLIPSE, 0.0, 0.0, 40.0, 40.0, 2.0),
+                ShapeKind.LINE,
+                ShapeBuilder.build(ShapeKind.LINE, 0.0, 0.0, 40.0, 40.0, 2.0),
                 0xFF000000.toInt(),
                 2.0,
             ),
         )
+        val circleShape = ParametricShapes.elementForShapeTool(
+            ShapeKind.ELLIPSE,
+            ShapeBuilder.build(ShapeKind.ELLIPSE, 0.0, 0.0, 40.0, 40.0, 2.0),
+            0xFF000000.toInt(),
+            2.0,
+        )
+        requireNotNull(circleShape)
+        assertEquals(ParametricShapes.CIRCLE, circleShape.shape)
     }
 
     @Test fun parametricSideLengthAndInteriorAngleEditVerticesAccurately() {

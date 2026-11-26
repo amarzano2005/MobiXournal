@@ -248,9 +248,10 @@ object FigurePins {
         else -> emptyList()
     }
 
-    /** A living figure's vertices as the points the pin rules measure, at the width it is drawn with. */
+    /** A living figure's outline points at the width it is drawn with. */
     private fun pointsOf(shape: ParametricShapeElement): List<StrokePoint> =
-        shape.vertices.map { StrokePoint(it.x, it.y, shape.strokeWidth) }
+        (if (ParametricShapes.isConic(shape)) ParametricShapes.conicOutlinePoints(shape) else shape.vertices)
+            .map { StrokePoint(it.x, it.y, shape.strokeWidth) }
 
     /**
      * The marks a **selected** element wears: its **own** pins, and the **compatible** ones it can be paired

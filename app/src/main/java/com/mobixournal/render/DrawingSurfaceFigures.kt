@@ -35,11 +35,16 @@ internal fun DrawingSurfaceView.recogniseStroke(raw: List<StrokePoint>): Recogni
 }
 
 internal fun DrawingSurfaceView.drawShapePolygonOutline(canvas: Canvas, box: PageBox, shape: ParametricShapeElement): Boolean {
-    if (shape.vertices.size < 3) return false
+    val pts = if (ParametricShapes.isConic(shape)) {
+        ParametricShapes.conicOutlinePoints(shape)
+    } else {
+        shape.vertices
+    }
+    if (pts.size < 3) return false
     chrome.lassoPath.reset()
-    chrome.lassoPath.moveTo(box.toViewX(shape.vertices[0].x, scrollX), box.toViewY(shape.vertices[0].y, scrollY))
-    for (i in 1 until shape.vertices.size) {
-        chrome.lassoPath.lineTo(box.toViewX(shape.vertices[i].x, scrollX), box.toViewY(shape.vertices[i].y, scrollY))
+    chrome.lassoPath.moveTo(box.toViewX(pts[0].x, scrollX), box.toViewY(pts[0].y, scrollY))
+    for (i in 1 until pts.size) {
+        chrome.lassoPath.lineTo(box.toViewX(pts[i].x, scrollX), box.toViewY(pts[i].y, scrollY))
     }
     chrome.lassoPath.close()
     canvas.drawPath(chrome.lassoPath, chrome.selectionFill)

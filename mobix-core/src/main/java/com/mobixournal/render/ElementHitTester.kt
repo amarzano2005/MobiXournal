@@ -41,8 +41,12 @@ object ElementHitTester {
         if (!ElementBounds.of(element).expand(padPt).contains(x, y)) return false
         return when (element) {
             is ParametricShapeElement -> {
-                val poly = element.vertices.map { Vec2(it.x, it.y) }
-                containsInPolygon(poly, x, y, padPt + element.strokeWidth / 2.0)
+                if (ParametricShapes.isConic(element)) {
+                    ParametricShapes.conicContains(element, x, y, padPt + element.strokeWidth / 2.0)
+                } else {
+                    val poly = element.vertices.map { Vec2(it.x, it.y) }
+                    containsInPolygon(poly, x, y, padPt + element.strokeWidth / 2.0)
+                }
             }
             is Stroke -> {
                 if (isClosedFigureStroke(element)) {
@@ -72,8 +76,11 @@ object ElementHitTester {
         return when (element) {
             is Stroke -> FigurePins.isFigureOf(element, kind)
             is ParametricShapeElement -> {
-                val expected = ParametricShapes.shapeNameForTool(kind)
-                expected != null && (element.shape == expected || element.extraAttrs[FigurePins.SHAPE_ATTR] == kind.name)
+                if (kind == ShapeKind.ELLIPSE && ParametricShapes.isConic(element)) true
+                else {
+                    val expected = ParametricShapes.shapeNameForTool(kind)
+                    expected != null && (element.shape == expected || element.extraAttrs[FigurePins.SHAPE_ATTR] == kind.name)
+                }
             }
             else -> false
         }
@@ -99,20 +106,34 @@ object ElementHitTester {
     private fun nearestOutlinePoint(element: Element?, targetX: Double, targetY: Double): Pair<Double, Double> {
         return when (element) {
             is ParametricShapeElement -> {
-                val verts = element.vertices
-                if (verts.isEmpty()) return targetX to targetY
-                if (verts.size == 1) return verts[0].x to verts[0].y
-                var bestX = verts[0].x
-                var bestY = verts[0].y
-                var bestDist = Double.MAX_VALUE
-                var j = verts.size - 1
-                for (i in verts.indices) {
-                    val (px, py) = closestPointOnSegment(targetX, targetY, verts[j].x, verts[j].y, verts[i].x, verts[i].y)
-                    val d = hypot(targetX - px, targetY - py)
-                    if (d < bestDist) { bestDist = d; bestX = px; bestY = py }
-                    j = i
+                if (ParametricShapes.isConic(element)) {
+                    val verts = ParametricShapes.conicOutlinePoints(element)
+                    if (verts.size < 2) return targetX to targetY
+                    var bestX = verts[0].x
+                    var bestY = verts[0].y
+                    var bestDist = Double.MAX_VALUE
+                    for (i in 0 until verts.size - 1) {
+                        val (px, py) = closestPointOnSegment(targetX, targetY, verts[i].x, verts[i].y, verts[i + 1].x, verts[i + 1].y)
+                        val d = hypot(targetX - px, targetY - py)
+                        if (d < bestDist) { bestDist = d; bestX = px; bestY = py }
+                    }
+                    bestX to bestY
+                } else {
+                    val verts = element.vertices
+                    if (verts.isEmpty()) return targetX to targetY
+                    if (verts.size == 1) return verts[0].x to verts[0].y
+                    var bestX = verts[0].x
+                    var bestY = verts[0].y
+                    var bestDist = Double.MAX_VALUE
+                    var j = verts.size - 1
+                    for (i in verts.indices) {
+                        val (px, py) = closestPointOnSegment(targetX, targetY, verts[j].x, verts[j].y, verts[i].x, verts[i].y)
+                        val d = hypot(targetX - px, targetY - py)
+                        if (d < bestDist) { bestDist = d; bestX = px; bestY = py }
+                        j = i
+                    }
+                    bestX to bestY
                 }
-                bestX to bestY
             }
             is Stroke -> {
                 val pts = element.points

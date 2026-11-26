@@ -539,7 +539,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
         get() = gestures.selection
         set(value) { gestures.selection = value }
 
-
     /** The pending long-press that lifts the selection as a drag (`SelectionDragOut.kt`). */
     internal val selectionDragOut = SelectionDragOut()
 
@@ -655,6 +654,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         render = { render() },
         postFrame = { choreographer.postFrameCallback(autoScrollCallback) },
         removeFrame = { choreographer.removeFrameCallback(autoScrollCallback) },
+        safeLeftPx = { viewport.insetLeftPx }, safeTopPx = { viewport.insetTopPx }, safeRightPx = { viewport.insetRightPx }, safeBottomPx = { viewport.insetBottomPx },
     )
 
     /** The auto-scroll frame: the loop itself lives in [ScrollGesture], this is only its clock. */

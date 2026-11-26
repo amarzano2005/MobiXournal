@@ -19,6 +19,75 @@ private const val SHAPE_FILL_ALPHA = 0x40
  */
 @Composable
 internal fun ShapeBody(shape: ParametricShapeElement, commit: (Element) -> Unit) {
+    if (ParametricShapes.isConic(shape)) {
+        ConicGeometrySection(shape, commit)
+    } else {
+        PolygonGeometrySection(shape, commit)
+    }
+    SectionCard("Outline") {
+        NumberField("width pt", shape.strokeWidth) { value ->
+            if (value in 0.5..30.0 && value != shape.strokeWidth) {
+                commit(shape.copy(strokeWidth = value))
+            }
+        }
+        ColourRow(current = shape.strokeColor) { colour ->
+            commit(shape.copy(strokeColor = colour))
+        }
+    }
+    SectionCard("Fill") {
+        ColourRow(current = shape.fillColor?.let { it or 0xFF000000.toInt() }) { colour ->
+            commit(shape.copy(fillColor = colour.withAlpha(SHAPE_FILL_ALPHA)))
+        }
+        if (shape.fillColor != null) {
+            Spacer(Modifier.height(4.dp))
+            InspectorButton(
+                label = "None (clear fill)",
+                primary = false,
+                enabled = true,
+                onClick = { commit(shape.copy(fillColor = null)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConicGeometrySection(shape: ParametricShapeElement, commit: (Element) -> Unit) {
+    val frame = ParametricShapes.conicFrame(shape)
+    if (frame != null) {
+        SectionCard("Geometry") {
+            NumberRow(
+                left = {
+                    NumberField("radius x pt", frame.rx) { rx ->
+                        if (rx >= 4.0 && rx != frame.rx) commit(ParametricShapes.setConicRadii(shape, rxPt = rx))
+                    }
+                },
+                right = {
+                    NumberField("radius y pt", frame.ry) { ry ->
+                        if (ry >= 4.0 && ry != frame.ry) commit(ParametricShapes.setConicRadii(shape, ryPt = ry))
+                    }
+                },
+            )
+            if (shape.shape == ParametricShapes.ELLIPSE) {
+                Spacer(Modifier.height(4.dp))
+                val avgR = (frame.rx + frame.ry) / 2.0
+                InspectorButton(
+                    label = "Make circle",
+                    primary = false,
+                    enabled = true,
+                    onClick = { commit(ParametricShapes.setConicRadii(shape, rxPt = avgR, ryPt = avgR)) },
+                )
+            }
+        }
+    }
+    SectionCard("Labels") {
+        SwitchRow("Show radii", shape.showSideLengths) { on ->
+            commit(shape.copy(showSideLengths = on))
+        }
+    }
+}
+
+@Composable
+private fun PolygonGeometrySection(shape: ParametricShapeElement, commit: (Element) -> Unit) {
     SectionCard("Geometry") {
         for (index in shape.vertices.indices) {
             val side = ParametricShapes.sideLengthPt(shape, index)
@@ -47,30 +116,6 @@ internal fun ShapeBody(shape: ParametricShapeElement, commit: (Element) -> Unit)
         }
         SwitchRow("Show angles", shape.showAngles) { on ->
             commit(shape.copy(showAngles = on))
-        }
-    }
-    SectionCard("Outline") {
-        NumberField("width pt", shape.strokeWidth) { value ->
-            if (value in 0.5..30.0 && value != shape.strokeWidth) {
-                commit(shape.copy(strokeWidth = value))
-            }
-        }
-        ColourRow(current = shape.strokeColor) { colour ->
-            commit(shape.copy(strokeColor = colour))
-        }
-    }
-    SectionCard("Fill") {
-        ColourRow(current = shape.fillColor?.let { it or 0xFF000000.toInt() }) { colour ->
-            commit(shape.copy(fillColor = colour.withAlpha(SHAPE_FILL_ALPHA)))
-        }
-        if (shape.fillColor != null) {
-            Spacer(Modifier.height(4.dp))
-            InspectorButton(
-                label = "None (clear fill)",
-                primary = false,
-                enabled = true,
-                onClick = { commit(shape.copy(fillColor = null)) },
-            )
         }
     }
 }

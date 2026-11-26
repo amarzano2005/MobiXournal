@@ -41,6 +41,32 @@ object ParametricShapes {
     /** The shape-library key a generic or regular polygon is stored under. */
     const val POLYGON = "POLYGON"
 
+    /** The shape-library key a circular conic is stored under (`vertices = [N, E, S, W]`). */
+    const val CIRCLE = "CIRCLE"
+
+    /** The shape-library key an elliptical conic is stored under (`vertices = [N, E, S, W]`). */
+    const val ELLIPSE = "ELLIPSE"
+
+    /** Local axes of a conic [ParametricShapeElement] centred at ([cx], [cy]). */
+    data class ConicFrame(
+        val cx: Double,
+        val cy: Double,
+        val ux: Double,
+        val uy: Double,
+        val vx: Double,
+        val vy: Double,
+        val rx: Double,
+        val ry: Double,
+    )
+
+    /** Minimum diameter (pt) enforced when dragging a conic cardinal handle or setting radii. */
+    private const val MIN_CONIC_DIAMETER_PT = 8.0
+    private const val CONIC_OUTLINE_STEPS = 64
+
+    /** True when [shape] stores a circle or ellipse encoded by its four cardinal points `[N, E, S, W]`. */
+    fun isConic(shape: ParametricShapeElement): Boolean =
+        (shape.shape == CIRCLE || shape.shape == ELLIPSE) && shape.vertices.size == 4
+
     /** Maximum deviation (degrees) from 90° for a quadrilateral to still count as rectangular. */
     private const val RIGHT_ANGLE_TOL_DEG = 0.5
 
@@ -72,31 +98,29 @@ object ParametricShapes {
     /** Two points nearer than this (pt) are the same corner. */
     private const val SAME_POINT_PT = 1e-6
 
-    /** The shape-library key [figure] is stored under, or null when it is not a polygon. */
+    /** The shape-library key [figure] is stored under, or null when it stays a plain stroke. */
     fun shapeName(figure: RecognisedFigure): String? = when (figure.kind) {
         FigureKind.TRIANGLE -> TRIANGLE
         FigureKind.RECTANGLE -> RECTANGLE
+        FigureKind.CIRCLE -> CIRCLE
+        FigureKind.ELLIPSE -> ELLIPSE
         else -> null
     }
 
-    /** The shape-library key a closed-polygon figure tool [kind] writes, or null when it stays a stroke. */
+    /** The shape-library key a figure tool [kind] writes, or null when it stays a stroke. */
     fun shapeNameForTool(kind: ShapeKind): String? = when (kind) {
         ShapeKind.RECTANGLE -> RECTANGLE
         ShapeKind.SQUARE -> SQUARE
         ShapeKind.TRIANGLE -> TRIANGLE
         ShapeKind.TRAPEZOID -> TRAPEZOID
         ShapeKind.POLYGON -> POLYGON
+        ShapeKind.ELLIPSE -> ELLIPSE
         else -> null
     }
 
     /**
-     * [figure] as the living shape it should be kept as, or **null** when it is not a closed polygon
-     * (the caller then keeps the recognised stroke).
-     *
-     * @param figure What the recogniser matched.
-     * @param strokeColor The ink the stroke was drawn in, as an ARGB int.
-     * @param strokeWidth The width the stroke was drawn at, in points.
-     * @param lineStyle Stroke pattern of the outline ([LineStyle.PLAIN] by default).
+     * [figure] as the living shape it should be kept as, or **null** when it is not a closed figure
+     * (line/arrow/arc stay strokes).
      */
     fun elementFor(
         figure: RecognisedFigure,
@@ -105,7 +129,18 @@ object ParametricShapes {
         lineStyle: LineStyle = LineStyle.PLAIN,
         aspectLocked: Boolean = true,
     ): ParametricShapeElement? {
-        if (!figure.isClosedPolygon) return null
+        val isConicFigure = figure.kind == FigureKind.CIRCLE || figure.kind == FigureKind.ELLIPSE
+        if (!figure.isClosedPolygon && !isConicFigure) return null
+        if (isConicFigure) {
+            return conicElementFromPoints(
+                points = figure.points,
+                strokeColor = strokeColor,
+                strokeWidth = strokeWidth,
+                extraAttrs = emptyMap(),
+                lineStyle = lineStyle,
+                aspectLocked = aspectLocked,
+            )
+        }
         val vertices = verticesOf(figure)
         if (vertices.size < MIN_VERTICES) return null
         return ParametricShapeElement(
@@ -120,8 +155,8 @@ object ParametricShapes {
     }
 
     /**
-     * A closed-polygon tool's [points] turned into a living [ParametricShapeElement], or **null**
-     * when [kind] is not a polygon tool or has fewer than three corners.
+     * A figure tool's [points] turned into a living [ParametricShapeElement], or **null**
+     * when [kind] is not a living shape tool or has degenerate geometry.
      */
     fun elementForShapeTool(
         kind: ShapeKind,
@@ -131,6 +166,16 @@ object ParametricShapes {
         lineStyle: LineStyle = LineStyle.PLAIN,
         aspectLocked: Boolean = true,
     ): ParametricShapeElement? {
+        if (kind == ShapeKind.ELLIPSE) {
+            return conicElementFromPoints(
+                points = points,
+                strokeColor = strokeColor,
+                strokeWidth = strokeWidth,
+                extraAttrs = mapOf(FigurePins.SHAPE_ATTR to kind.name),
+                lineStyle = lineStyle,
+                aspectLocked = aspectLocked,
+            )
+        }
         val key = shapeNameForTool(kind) ?: return null
         val vertices = verticesOfPoints(points)
         if (vertices.size < MIN_VERTICES) return null
@@ -144,6 +189,107 @@ object ParametricShapes {
             lineStyle = lineStyle,
             aspectLocked = aspectLocked,
         )
+    }
+
+    private fun conicElementFromPoints(
+        points: List<StrokePoint>,
+        strokeColor: Int,
+        strokeWidth: Double,
+        extraAttrs: Map<String, String>,
+        lineStyle: LineStyle,
+        aspectLocked: Boolean,
+    ): ParametricShapeElement? {
+        if (points.size < 2) return null
+        val minX = points.minOf { it.x }
+        val maxX = points.maxOf { it.x }
+        val minY = points.minOf { it.y }
+        val maxY = points.maxOf { it.y }
+        val cx = (minX + maxX) / 2.0
+        val cy = (minY + maxY) / 2.0
+        val rx = ((maxX - minX) / 2.0).coerceAtLeast(MIN_CONIC_DIAMETER_PT / 2.0)
+        val ry = ((maxY - minY) / 2.0).coerceAtLeast(MIN_CONIC_DIAMETER_PT / 2.0)
+        val kind = if (abs(rx - ry) <= EQUAL_SIDE_TOL_PT) CIRCLE else ELLIPSE
+        return ParametricShapeElement(
+            shape = kind,
+            vertices = listOf(
+                ShapeVertex(cx, cy - ry),
+                ShapeVertex(cx + rx, cy),
+                ShapeVertex(cx, cy + ry),
+                ShapeVertex(cx - rx, cy),
+            ),
+            strokeColor = strokeColor,
+            strokeWidth = strokeWidth,
+            extraAttrs = extraAttrs,
+            id = ElementId.mint(ElementId.SHAPE),
+            lineStyle = lineStyle,
+            aspectLocked = aspectLocked,
+        )
+    }
+
+    /** Extracts center and semi-axes vectors from a conic [shape], or null if invalid. */
+    fun conicFrame(shape: ParametricShapeElement): ConicFrame? {
+        if (!isConic(shape)) return null
+        val v = shape.vertices
+        val cx = (v[0].x + v[2].x) / 2.0
+        val cy = (v[0].y + v[2].y) / 2.0
+        val ux = v[1].x - cx
+        val uy = v[1].y - cy
+        val vx = v[2].x - cx
+        val vy = v[2].y - cy
+        return ConicFrame(cx, cy, ux, uy, vx, vy, hypot(ux, uy), hypot(vx, vy))
+    }
+
+    /** Sampled closed ellipse polyline around [shape]'s `[N, E, S, W]` cardinal frame. */
+    fun conicOutlinePoints(shape: ParametricShapeElement, steps: Int = CONIC_OUTLINE_STEPS): List<ShapeVertex> {
+        val f = conicFrame(shape) ?: return emptyList()
+        val count = steps.coerceAtLeast(16)
+        val out = ArrayList<ShapeVertex>(count + 1)
+        for (i in 0..count) {
+            val theta = (2.0 * Math.PI * i) / count
+            val c = cos(theta)
+            val s = sin(theta)
+            out += ShapeVertex(f.cx + f.ux * c + f.vx * s, f.cy + f.uy * c + f.vy * s)
+        }
+        return out
+    }
+
+    /** True when ([x], [y]) lies inside or within [padPt] of the ellipse [shape]. */
+    fun conicContains(shape: ParametricShapeElement, x: Double, y: Double, padPt: Double = 0.0): Boolean {
+        val f = conicFrame(shape) ?: return false
+        val dx = x - f.cx
+        val dy = y - f.cy
+        val du = if (f.rx > SAME_POINT_PT) (dx * f.ux + dy * f.uy) / f.rx else 0.0
+        val dv = if (f.ry > SAME_POINT_PT) (dx * f.vx + dy * f.vy) / f.ry else 0.0
+        val a = (f.rx + padPt).coerceAtLeast(SAME_POINT_PT)
+        val b = (f.ry + padPt).coerceAtLeast(SAME_POINT_PT)
+        return (du / a) * (du / a) + (dv / b) * (dv / b) <= 1.0
+    }
+
+    /** Updates [shape]'s horizontal ([rxPt]) and/or vertical ([ryPt]) semi-axes about its centre. */
+    fun setConicRadii(
+        shape: ParametricShapeElement,
+        rxPt: Double? = null,
+        ryPt: Double? = null,
+    ): ParametricShapeElement {
+        val f = conicFrame(shape) ?: return shape
+        val minR = MIN_CONIC_DIAMETER_PT / 2.0
+        val nextRx = (rxPt ?: f.rx).takeIf { it.isFinite() }?.coerceAtLeast(minR) ?: f.rx
+        val nextRy = (ryPt ?: f.ry).takeIf { it.isFinite() }?.coerceAtLeast(minR) ?: f.ry
+        val su = if (f.rx > SAME_POINT_PT) nextRx / f.rx else 1.0
+        val sv = if (f.ry > SAME_POINT_PT) nextRy / f.ry else 1.0
+        val ux = if (f.rx > SAME_POINT_PT) f.ux * su else nextRx
+        val uy = if (f.rx > SAME_POINT_PT) f.uy * su else 0.0
+        val vx = if (f.ry > SAME_POINT_PT) f.vx * sv else 0.0
+        val vy = if (f.ry > SAME_POINT_PT) f.vy * sv else nextRy
+        val updated = shape.copy(
+            vertices = listOf(
+                ShapeVertex(f.cx - vx, f.cy - vy),
+                ShapeVertex(f.cx + ux, f.cy + uy),
+                ShapeVertex(f.cx + vx, f.cy + vy),
+                ShapeVertex(f.cx - ux, f.cy - uy),
+            ),
+        )
+        return updated.copy(shape = reclassifiedKind(updated))
     }
 
     /** [figure]'s corners: its emitted points without the closing repetition of the first one. */
@@ -165,10 +311,40 @@ object ParametricShapes {
      * or equal sides were broken by the move is honestly relabelled.
      */
     fun moveVertex(shape: ParametricShapeElement, index: Int, x: Double, y: Double): ParametricShapeElement {
+        if (isConic(shape)) return moveConicCardinal(shape, index, x, y)
         if (index !in shape.vertices.indices) return shape
         val moved = shape.vertices.toMutableList()
         moved[index] = ShapeVertex(x, y)
         val raw = shape.copy(vertices = moved)
+        return raw.copy(shape = reclassifiedKind(raw))
+    }
+
+    private fun moveConicCardinal(shape: ParametricShapeElement, index: Int, x: Double, y: Double): ParametricShapeElement {
+        val f = conicFrame(shape) ?: return shape
+        if (index !in 0..3) return shape
+        val v = shape.vertices
+        val oppIdx = (index + 2) % 4
+        val opp = v[oppIdx]
+        val dx0 = v[index].x - opp.x
+        val dy0 = v[index].y - opp.y
+        val len0 = hypot(dx0, dy0)
+        if (len0 <= SAME_POINT_PT) return shape
+        val ax = dx0 / len0
+        val ay = dy0 / len0
+        val span = ((x - opp.x) * ax + (y - opp.y) * ay).coerceAtLeast(MIN_CONIC_DIAMETER_PT)
+        val moved = ShapeVertex(opp.x + ax * span, opp.y + ay * span)
+        val cx = (opp.x + moved.x) / 2.0
+        val cy = (opp.y + moved.y) / 2.0
+        val next = v.toMutableList()
+        next[index] = moved
+        if (index == 0 || index == 2) {
+            next[1] = ShapeVertex(cx + f.ux, cy + f.uy)
+            next[3] = ShapeVertex(cx - f.ux, cy - f.uy)
+        } else {
+            next[0] = ShapeVertex(cx - f.vx, cy - f.vy)
+            next[2] = ShapeVertex(cx + f.vx, cy + f.vy)
+        }
+        val raw = shape.copy(vertices = next)
         return raw.copy(shape = reclassifiedKind(raw))
     }
 
@@ -214,8 +390,12 @@ object ParametricShapes {
         return moveVertex(shape, nextIndex, vertex.x + lenB * cos(targetAngle), vertex.y + lenB * sin(targetAngle))
     }
 
-    /** Keeps `SQUARE` and `RECTANGLE` labels truthful after free vertex or non-uniform scale edits. */
+    /** Keeps `CIRCLE`/`ELLIPSE` and `SQUARE`/`RECTANGLE` labels truthful after edits. */
     fun reclassifiedKind(shape: ParametricShapeElement): String {
+        if (isConic(shape)) {
+            val f = conicFrame(shape) ?: return shape.shape
+            return if (abs(f.rx - f.ry) <= EQUAL_SIDE_TOL_PT) CIRCLE else ELLIPSE
+        }
         if (shape.shape != RECTANGLE && shape.shape != SQUARE) return shape.shape
         if (shape.vertices.size != 4) return POLYGON
         val rightAngles = (0 until 4).all { abs(interiorAngleDeg(shape, it) - 90.0) <= RIGHT_ANGLE_TOL_DEG }

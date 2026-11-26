@@ -209,4 +209,41 @@ class ScrollGestureTest {
         assertEquals("and the repeat is over: no step, no drag, no repost", 1, framePosted)
         assertEquals(1, pans.size)
     }
+
+    @Test
+    fun `safe insets and dragged bounds trigger auto-scroll at visible edge`() {
+        val insetScroll = ScrollGesture(
+            scrollBy = { dx, dy -> pans += dx to dy; true },
+            zoomAbout = { _, _, _ -> },
+            momentum = momentum,
+            panSensitivity = { 1f },
+            touchSlopPx = { 8f },
+            edgePx = { 50f },
+            stepPx = { 10f },
+            viewWidth = { 1000 },
+            viewHeight = { 800 },
+            dragAt = { x, y -> drags += x to y },
+            render = { repaints++ },
+            postFrame = { framePosted++ },
+            removeFrame = { frameRemoved++ },
+            minSpeedPxPerSec = { 100f },
+            maxSpeedPxPerSec = { 500f },
+            delayMs = 0L,
+            nowMs = { clockMs },
+            safeLeftPx = { 80f },
+            safeTopPx = { 100f },
+            safeRightPx = { 0f },
+            safeBottomPx = { 0f },
+        )
+        // Pointer at y=130 is inside visTop+edge (100+50=150) even though well below view top 0
+        insetScroll.updateDrag(viewX = 500f, viewY = 130f)
+        insetScroll.autoScrollFrame()
+        assertTrue("top safe inset band scrolls up", pans.last().second < 0f)
+
+        // Pointer in middle, but dragged element's right edge crosses visible right edge (1000)
+        pans.clear()
+        insetScroll.updateDrag(viewX = 500f, viewY = 400f, boundsLeft = 400f, boundsTop = 350f, boundsRight = 995f, boundsBottom = 450f)
+        insetScroll.autoScrollFrame()
+        assertTrue("dragged element edge pushes scroll right", pans.last().first > 0f)
+    }
 }

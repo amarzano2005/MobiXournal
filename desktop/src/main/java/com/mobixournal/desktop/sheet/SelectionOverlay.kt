@@ -35,10 +35,15 @@ import com.mobixournal.render.shaftTurn
 internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, living: Element? = null) {
     val shaft = shaftOf(living)
     val singleShape = living as? ParametricShapeElement
-    // Lines/arrows show no box; a single parametric polygon hugs its own vertices instead of a rectangle.
+    // Lines/arrows show no box; a single parametric figure hugs its curve or vertices instead of a rectangle.
     if (singleShape != null && singleShape.vertices.size >= 3) {
+        val outline = if (com.mobixournal.render.ParametricShapes.isConic(singleShape)) {
+            com.mobixournal.render.ParametricShapes.conicOutlinePoints(singleShape)
+        } else {
+            singleShape.vertices
+        }
         drawRegion(
-            SelectionRegion.Polygon(singleShape.vertices.map { com.mobixournal.render.Vec2(it.x, it.y) }),
+            SelectionRegion.Polygon(outline.map { com.mobixournal.render.Vec2(it.x, it.y) }),
             pxPerPt,
             dashed = true,
         )

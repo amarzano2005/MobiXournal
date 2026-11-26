@@ -116,6 +116,11 @@ object ElementBounds {
     private fun shapeBounds(s: ParametricShapeElement): Bounds {
         if (s.vertices.isEmpty()) return Bounds(0.0, 0.0, 0.0, 0.0)
         val half = s.strokeWidth / 2.0
+        ParametricShapes.conicFrame(s)?.let { f ->
+            val halfW = kotlin.math.hypot(f.ux, f.vx)
+            val halfH = kotlin.math.hypot(f.uy, f.vy)
+            return Bounds(f.cx - halfW - half, f.cy - halfH - half, f.cx + halfW + half, f.cy + halfH + half)
+        }
         var left = Double.MAX_VALUE
         var top = Double.MAX_VALUE
         var right = -Double.MAX_VALUE

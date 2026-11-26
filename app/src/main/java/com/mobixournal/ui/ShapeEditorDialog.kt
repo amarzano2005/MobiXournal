@@ -263,6 +263,16 @@ private fun ShapeGeometryTab(
     onFocusField: (String?) -> Unit,
     onUpdate: (ParametricShapeElement) -> Unit,
 ) {
+    if (ParametricShapes.isConic(shape)) {
+        ShapeConicGeometryTab(
+            shape = shape,
+            editVersion = editVersion,
+            activeField = activeField,
+            onFocusField = onFocusField,
+            onUpdate = onUpdate,
+        )
+        return
+    }
     if (shape.vertices.size >= 3) {
         ShapeMiniDiagram(
             vertices = shape.vertices,
@@ -339,6 +349,103 @@ private fun ShapeGeometryTab(
             onClick = { onUpdate(shape.copy(showAngles = !shape.showAngles)) },
             modifier = Modifier.weight(1f),
         )
+    }
+}
+
+@Composable
+private fun ShapeConicGeometryTab(
+    shape: ParametricShapeElement,
+    editVersion: Int,
+    activeField: String?,
+    onFocusField: (String?) -> Unit,
+    onUpdate: (ParametricShapeElement) -> Unit,
+) {
+    val frame = ParametricShapes.conicFrame(shape) ?: return
+    ConicMiniDiagram(shape = shape)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ShapeNumberInput(
+            fieldId = "conic_rx",
+            label = "Radius X",
+            suffix = "pt",
+            value = frame.rx,
+            syncKey = editVersion * 31 + 1,
+            isEditing = activeField == "conic_rx",
+            onActivate = { onFocusField("conic_rx") },
+            onCommit = { rx ->
+                if (rx >= 4.0) onUpdate(ParametricShapes.setConicRadii(shape, rxPt = rx))
+            },
+            modifier = Modifier.weight(1f),
+        )
+        ShapeNumberInput(
+            fieldId = "conic_ry",
+            label = "Radius Y",
+            suffix = "pt",
+            value = frame.ry,
+            syncKey = editVersion * 31 + 2,
+            isEditing = activeField == "conic_ry",
+            onActivate = { onFocusField("conic_ry") },
+            onCommit = { ry ->
+                if (ry >= 4.0) onUpdate(ParametricShapes.setConicRadii(shape, ryPt = ry))
+            },
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        InspectorChip(
+            label = "Show radii",
+            selected = shape.showSideLengths,
+            onClick = { onUpdate(shape.copy(showSideLengths = !shape.showSideLengths)) },
+            modifier = Modifier.weight(1f),
+        )
+        if (shape.shape == ParametricShapes.ELLIPSE) {
+            val avgR = (frame.rx + frame.ry) / 2.0
+            InspectorChip(
+                label = "Make circle",
+                selected = false,
+                onClick = { onUpdate(ParametricShapes.setConicRadii(shape, rxPt = avgR, ryPt = avgR)) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ConicMiniDiagram(shape: ParametricShapeElement) {
+    val scheme = MaterialTheme.colorScheme
+    val outline = remember(shape.vertices) { ParametricShapes.conicOutlinePoints(shape, steps = 48) }
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(92.dp),
+    ) {
+        val pts = normalizePolygonForPreview(
+            vertices = outline,
+            width = size.width,
+            height = size.height,
+            padding = 18.dp.toPx(),
+        )
+        if (pts.size < 3) return@Canvas
+        val path = Path().apply {
+            moveTo(pts[0].x, pts[0].y)
+            for (i in 1 until pts.size) lineTo(pts[i].x, pts[i].y)
+            close()
+        }
+        drawPath(path = path, color = scheme.primary.copy(alpha = 0.75f), style = Stroke(width = 1.8.dp.toPx()))
+        val cardinal = normalizePolygonForPreview(
+            vertices = shape.vertices,
+            width = size.width,
+            height = size.height,
+            padding = 18.dp.toPx(),
+        )
+        for (c in cardinal) {
+            drawCircle(color = scheme.primary, radius = 3.2.dp.toPx(), center = c)
+        }
     }
 }
 
