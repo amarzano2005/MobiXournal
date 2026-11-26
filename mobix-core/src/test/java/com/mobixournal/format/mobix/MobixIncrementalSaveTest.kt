@@ -219,4 +219,49 @@ class MobixIncrementalSaveTest {
             tempDest.delete()
         }
     }
+
+    @Test
+    fun `incremental repack writes dirty precompressed assets as STORED and dirty json or wav as DEFLATED`() {
+        val tempSource = File.createTempFile("mobix-inc-stored-src", ".mobix")
+        val tempDest = File.createTempFile("mobix-inc-stored-dst", ".mobix")
+        try {
+            createNotebookArchive(tempSource, pageCount = 2)
+            val hashA = "a".repeat(64)
+            val hashB = "b".repeat(64)
+            val pngName = MobixFormat.assetEntry(hashA, MobixFormat.AssetKind.IMAGE, suffix = "png")
+            val oggName = MobixFormat.assetEntry(hashB, MobixFormat.AssetKind.AUDIO, suffix = "ogg")
+            val wavName = MobixFormat.assetEntry(hashA, MobixFormat.AssetKind.AUDIO, suffix = "wav")
+            val pngBytes = ByteArray(96) { (it * 7).toByte() }
+            val oggBytes = "OggS-audio".toByteArray(Charsets.US_ASCII)
+            val wavBytes = ByteArray(128) { 0 }
+
+            val source = MobixEntrySource.fromFile(tempSource)
+            try {
+                val dirty = mapOf(
+                    pngName to MobixPayload.of(pngBytes),
+                    oggName to MobixPayload.of(oggBytes),
+                    wavName to MobixPayload.of(wavBytes),
+                )
+                FileOutputStream(tempDest).use { out ->
+                    MobixIncrementalSaver.repack(source, dirty, out)
+                }
+            } finally {
+                source.close()
+            }
+
+            val repacked = rawEntries(tempDest.readBytes()).associateBy { it.first }
+            assertEquals(ZipEntry.STORED, repacked[pngName]?.second)
+            assertEquals(ZipEntry.STORED, repacked[oggName]?.second)
+            assertEquals(ZipEntry.DEFLATED, repacked[wavName]?.second)
+            assertEquals(ZipEntry.DEFLATED, repacked[MobixFormat.pageEntry(1)]?.second)
+
+            val opened = MobixContainer.open(tempDest.inputStream())
+            assertArrayEquals(pngBytes, opened.bytes(pngName))
+            assertArrayEquals(oggBytes, opened.bytes(oggName))
+            assertArrayEquals(wavBytes, opened.bytes(wavName))
+        } finally {
+            tempSource.delete()
+            tempDest.delete()
+        }
+    }
 }

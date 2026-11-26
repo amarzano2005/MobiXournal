@@ -81,13 +81,13 @@ internal object MobixIncrementalSaver {
         for (name in allEntryNames) {
             val dirty = dirtyEntries[name]
             if (dirty != null) {
-                zip.putDeflated(name, dirty)
+                if (MobixFormat.shouldStoreUncompressed(name)) zip.putStored(name, dirty) else zip.putDeflated(name, dirty)
                 rewrittenCount++
                 rewrittenBytes += dirty.length
                 continue
             }
             // An entry the source holds as it wrote it is copied verbatim; one it can only inflate
-            // (an in-memory source) is deflated here instead. Either way it is not re-created.
+            // (an in-memory source) is written using the archive's compression policy.
             val raw = source.rawEntry(name)
             if (raw != null) {
                 zip.putRaw(name, raw)
@@ -96,7 +96,7 @@ internal object MobixIncrementalSaver {
                 continue
             }
             source.readBytes(name)?.let { bytes ->
-                zip.putDeflated(name, bytes)
+                if (MobixFormat.shouldStoreUncompressed(name)) zip.putStored(name, bytes) else zip.putDeflated(name, bytes)
                 streamedCount++
                 streamedBytes += bytes.size.toLong()
             }

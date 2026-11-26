@@ -95,8 +95,8 @@ internal fun DrawingSurfaceView.setChromeInsets(
     bottomPx: Float,
     animating: Boolean,
 ) {
-    val wasAnimating = chromeAnimating
-    chromeAnimating = animating
+    val wasAnimating = viewport.chromeAnimating
+    viewport.chromeAnimating = animating
     val changed = if (width > 0 && height > 0) {
         viewport.updateChromeInsets(leftPx, topPx, rightPx, bottomPx) { relayoutFor(width, height) }
     } else {

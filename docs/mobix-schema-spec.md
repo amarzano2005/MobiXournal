@@ -55,7 +55,9 @@ limits it must impose before allocating are [mobix-format.md](mobix-format.md)'s
 - **MUST NOT trust `mimetype` to be first or STORED.** A writer MUST put it first and stored, so that a
   reader asking only "what is this?" inflates nothing (the reasoning ODF uses); a reader MUST scan for
   it and inflate it anyway, because refusing a valid document written by another tool is the worse
-  error. Every other entry MUST be DEFLATED by a writer.
+  error. A writer MUST DEFLATE JSON/text and uncompressed entries, and MAY write pre-compressed binary
+  assets under `assets/` (`.png`, `.jpg`, `.webp`, `.ogg`, `.pdf`, etc.) `STORED` to avoid redundant
+  re-compression; a reader MUST accept both `STORED` and `DEFLATED` for any entry.
 - **MUST require `manifest.json`,** on read and on write alike: an archive without it is not a document.
 - **MUST treat an entry name as an identity, not a path.** Names are `/`-separated (`pages/page-0001.json`,
   `chunks/chunk_-3_2.json`, `assets/img_<sha256>.webp`), and a reader MUST NOT normalise one: a name with

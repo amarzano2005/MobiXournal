@@ -35,6 +35,7 @@ internal class ViewportState {
     private var contentHeightPx = 0f
 
     /** Animated chrome insets in pixels reserving space for overlaid bands without resizing the Surface. */
+    var chromeAnimating = false
     var insetLeftPx = 0f
         private set
     var insetTopPx = 0f

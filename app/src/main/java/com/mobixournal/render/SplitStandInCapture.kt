@@ -25,8 +25,8 @@ internal fun DrawingSurfaceView.captureStandInBitmap(maxWidthPx: Int = 900): Bit
         canvas.scale(scale, scale)
         canvas.drawColor(chrome.backdropColor)
         val visible = layout.visible(scrollY, h.toFloat())
-        val prevAnimating = chromeAnimating
-        chromeAnimating = true
+        val prevAnimating = viewport.chromeAnimating
+        viewport.chromeAnimating = true
         try {
             for (box in visible) {
                 BackgroundRenderer.draw(
@@ -37,7 +37,7 @@ internal fun DrawingSurfaceView.captureStandInBitmap(maxWidthPx: Int = 900): Bit
                 drawPageOutline(canvas, box)
             }
         } finally {
-            chromeAnimating = prevAnimating
+            viewport.chromeAnimating = prevAnimating
         }
         bmp
     }.getOrNull()

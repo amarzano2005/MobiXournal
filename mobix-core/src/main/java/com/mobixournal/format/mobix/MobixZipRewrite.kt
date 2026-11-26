@@ -211,9 +211,30 @@ internal object MobixZip {
         private val dosTime = (calendar.get(Calendar.HOUR_OF_DAY) shl 11) or
             (calendar.get(Calendar.MINUTE) shl 5) or (calendar.get(Calendar.SECOND) / 2)
 
-        /** [bytes] stored uncompressed — the mimetype, which the container requires that way. */
+        /** [bytes] stored uncompressed — the mimetype or a pre-compressed media entry. */
         fun putStored(name: String, bytes: ByteArray) =
             put(name, ZipEntry.STORED, crcOf(bytes), bytes, bytes.size.toLong())
+
+        /** Stream [payload] uncompressed (`STORED`) with CRC and size known up front (bounded memory). */
+        fun putStored(name: String, payload: MobixPayload) {
+            val (crc, size) = payload.crc32AndSize()
+            val offset = written
+            val nameBytes = name.toByteArray(Charsets.UTF_8)
+            ClassicZipLimits.entry(centred.size, offset, nameBytes.size, size, size)
+            val header = localHeader(nameBytes.size, ZipEntry.STORED, crc, size, size)
+            out.write(header)
+            out.write(nameBytes)
+            payload.open().use { input ->
+                val buffer = ByteArray(COPY_BUFFER_BYTES)
+                while (true) {
+                    val n = input.read(buffer)
+                    if (n < 0) break
+                    if (n > 0) out.write(buffer, 0, n)
+                }
+            }
+            written += header.size + nameBytes.size + size
+            centred += Centred(name, ZipEntry.STORED, crc, size, size, offset, 0)
+        }
 
         /** [bytes] deflated fresh: content this save produced. */
         fun putDeflated(name: String, bytes: ByteArray) =

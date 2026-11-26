@@ -4,6 +4,7 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.security.MessageDigest
+import java.util.zip.CRC32
 import java.util.zip.ZipFile
 
 /**
@@ -110,6 +111,28 @@ class MobixPayload private constructor(
         val s = MobixAssetSink.suffixFor(head(SNIFF_BYTES))
         if (key != null) storeSuffix(key, s)
         s
+    }
+
+    /** Streaming CRC-32 and byte length for writing pre-compressed `STORED` entries without materialising large files. */
+    internal fun crc32AndSize(): Pair<Long, Long> {
+        val crc = CRC32()
+        cached?.let { bytes ->
+            crc.update(bytes)
+            return crc.value to bytes.size.toLong()
+        }
+        var total = 0L
+        val buffer = ByteArray(BUFFER_BYTES)
+        open().use { input ->
+            while (true) {
+                val n = input.read(buffer)
+                if (n < 0) break
+                if (n > 0) {
+                    crc.update(buffer, 0, n)
+                    total += n
+                }
+            }
+        }
+        return crc.value to total
     }
 
     private fun countBytes(): Long {

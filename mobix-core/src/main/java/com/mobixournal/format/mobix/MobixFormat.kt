@@ -139,6 +139,25 @@ object MobixFormat {
     /** Whether [name] is a chunk entry this build would read. */
     fun isChunkEntry(name: String): Boolean = name.startsWith(CHUNKS_DIR) && name.endsWith(".json")
 
+    /**
+     * Extensions of media payloads that are already compressed internally, so storing them
+     * uncompressed (`STORED`) avoids wasting CPU on deflate/inflate for zero size gain.
+     * Uncompressed formats (e.g. `.wav`, `.bmp`) remain `DEFLATED`.
+     */
+    val PRECOMPRESSED_ASSET_EXTENSIONS: Set<String> = setOf(
+        "png", "jpg", "jpeg", "webp", "gif", "avif", "heic", "heif",
+        "ogg", "opus", "mp3", "m4a", "aac", "flac",
+        "pdf",
+    )
+
+    /** Whether [entryName] is a pre-compressed asset under `assets/` that writers store uncompressed. */
+    fun shouldStoreUncompressed(entryName: String): Boolean {
+        if (!entryName.startsWith(ASSETS_DIR)) return false
+        val dot = entryName.lastIndexOf('.')
+        if (dot < ASSETS_DIR.length || dot == entryName.lastIndex) return false
+        return entryName.substring(dot + 1).lowercase() in PRECOMPRESSED_ASSET_EXTENSIONS
+    }
+
     /** The length of the hex sha256 every asset entry name carries. */
     private const val SHA256_LENGTH = 64
 

@@ -83,7 +83,6 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal var layout: StackedLayout = StackedLayout(emptyList(), 0f, 0f)
     /** The scroll/zoom offsets and their clamps ([ViewportState] owns the numbers and the maths). */
     internal val viewport = ViewportState()
-    internal var chromeAnimating = false
     internal var firstFrameNotified = false
     internal var onFirstFrameDrawn: (() -> Unit)? = null
 
@@ -245,9 +244,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         activeLayerOf = { resolvedActiveLayer(it) },
         commit = { commitElementEdit(it) },
     )
-    /** Which page index was last reported to [onCurrentPageChanged], to suppress duplicate calls. */
-    private var lastReportedPage = -1
-    /** Last (scrollY, totalHeightPx, viewportPx, zoom) throttle state for [onScrollChanged]/[onZoomChanged]. */
+    /** Placements and viewport reporting throttle state for [onScrollChanged]/[onZoomChanged]/[onCurrentPageChanged]. */
     internal val viewportReporter = ViewportReportThrottle()
     /**
      * The boxes already reported to the chrome, so a redraw that moved neither selection stays silent.
@@ -711,7 +708,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         notifyHistory()
         resetPageWindow()
         onPageCountChanged?.invoke(pageSource.pageCount)
-        lastReportedPage = -1
+        viewportReporter.lastReportedPage = -1
         search.reload()
         relayout()
         render()
@@ -1097,34 +1094,11 @@ class DrawingSurfaceView @JvmOverloads constructor(
     internal fun reportCurrentPage() {
         if (pageSource.pageCount == 0) return
         val idx = currentPageIndex()
-        if (idx != lastReportedPage) {
-            lastReportedPage = idx
+        if (idx != viewportReporter.lastReportedPage) {
+            viewportReporter.lastReportedPage = idx
             onCurrentPageChanged?.invoke(idx)
             onLayersChanged?.invoke() // the panel tracks the visible page's layers
         }
-    }
-
-    /** Emit [onScrollChanged] if changed, throttled during active pan/pinch/fling unless [force]d. */
-    internal fun reportScroll(force: Boolean = false) {
-        val t = ScrollReport(scrollY, layout.totalHeightPx, height.toFloat(), scrollX)
-        val gesturing = !force && (scroll.active || momentum.isFlinging)
-        if (viewportReporter.shouldEmitScroll(t, System.nanoTime() / 1_000_000L, gesturing)) {
-            onScrollChanged?.invoke(t.scrollY, t.totalPx, t.viewportPx, t.scrollX)
-        }
-    }
-
-    /** Emit [onZoomChanged] if changed, throttled during active pan/pinch/fling unless [force]d. */
-    internal fun reportZoom(force: Boolean = false) {
-        val gesturing = !force && (scroll.active || momentum.isFlinging)
-        if (viewportReporter.shouldEmitZoom(zoom, System.nanoTime() / 1_000_000L, gesturing)) {
-            onZoomChanged?.invoke(zoom)
-        }
-    }
-
-    /** Push exact settled scroll and zoom state to the Compose overlay host. */
-    internal fun flushViewportReports() {
-        reportScroll(force = true)
-        reportZoom(force = true)
     }
 
     // --- authoring: place text boxes, images, and LaTeX images by tapping ------------------------

@@ -304,4 +304,42 @@ class MobixContainerTest {
         assertTrue(MobixFormat.isChunkEntry(MobixFormat.chunkEntry(-1, -1)))
         assertFalse("the manifest is not a page", MobixFormat.isPageEntry(MobixFormat.MANIFEST_ENTRY))
     }
+
+    @Test
+    fun precompressedAssetsAreStoredUncompressedWhileJsonAndWavRemainDeflated() {
+        val hashA = "a".repeat(64)
+        val hashB = "b".repeat(64)
+        val hashC = "c".repeat(64)
+        val hashD = "d".repeat(64)
+        val pngName = MobixFormat.assetEntry(hashA, MobixFormat.AssetKind.IMAGE, suffix = "png")
+        val webpName = MobixFormat.assetEntry(hashB, MobixFormat.AssetKind.IMAGE, suffix = "webp")
+        val pdfName = MobixFormat.assetEntry(hashC, MobixFormat.AssetKind.IMAGE, suffix = "pdf")
+        val oggName = MobixFormat.assetEntry(hashD, MobixFormat.AssetKind.AUDIO, suffix = "ogg")
+        val wavName = MobixFormat.assetEntry(hashA, MobixFormat.AssetKind.AUDIO, suffix = "wav")
+        val pageName = MobixFormat.pageEntry(1)
+
+        val entries = listOf(
+            manifest(),
+            Entry(pageName, """{"layers":[]}""".toByteArray(Charsets.UTF_8)),
+            Entry(pngName, ByteArray(128) { (it * 3).toByte() }),
+            Entry(webpName, ByteArray(128) { (it * 5).toByte() }),
+            Entry(pdfName, "%PDF-1.4\n%%EOF".toByteArray(Charsets.US_ASCII)),
+            Entry(oggName, "OggS-fake-opus".toByteArray(Charsets.US_ASCII)),
+            Entry(wavName, ByteArray(256) { 0 }),
+        )
+
+        val archiveBytes = MobixContainer.toBytes(entries)
+        val byName = rawEntries(archiveBytes).associateBy { it.first }
+
+        assertEquals(ZipEntry.STORED, byName[pngName]?.second)
+        assertEquals(ZipEntry.STORED, byName[webpName]?.second)
+        assertEquals(ZipEntry.STORED, byName[pdfName]?.second)
+        assertEquals(ZipEntry.STORED, byName[oggName]?.second)
+        assertEquals(ZipEntry.DEFLATED, byName[MobixFormat.MANIFEST_ENTRY]?.second)
+        assertEquals(ZipEntry.DEFLATED, byName[pageName]?.second)
+        assertEquals("uncompressed WAV remains deflated", ZipEntry.DEFLATED, byName[wavName]?.second)
+
+        val opened = MobixContainer.open(ByteArrayInputStream(archiveBytes))
+        for (entry in entries) assertArrayEquals(entry.name, entry.bytes, opened.bytes(entry.name))
+    }
 }

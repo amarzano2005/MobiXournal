@@ -230,8 +230,10 @@ object MobixContainer {
 
     /**
      * Write [entries] as a `.mobix` on [output]: the declared [MobixFormat.MIMETYPE], STORED and
-     * first, then every payload entry **in the order given**, DEFLATED. The stream is finished and
-     * closed — a ZIP is only readable once its central directory has been written.
+     * first, then every payload entry **in the order given** — pre-compressed binary assets under
+     * `assets/` stored uncompressed (`STORED`) to skip redundant CPU work, and everything else
+     * DEFLATED. The stream is finished and closed — a ZIP is only readable once its central
+     * directory has been written.
      *
      * Two things are refused rather than written quietly, because a file this app produces has to be
      * a document: [entries] must carry [MobixFormat.MANIFEST_ENTRY], and no entry may be named
@@ -250,18 +252,15 @@ object MobixContainer {
         ZipOutputStream(output).use { zip ->
             putStored(zip, MobixFormat.MIMETYPE_ENTRY, MobixFormat.MIMETYPE.toByteArray(Charsets.UTF_8))
             for (entry in entries) {
-                zip.putNextEntry(ZipEntry(entry.name))
-                // Streamed, never handed over as one array: a recording is deflated as it is read, so
-                // the write costs a 64 KiB buffer whatever the entry weighs.
-                entry.payload.open().use { input ->
-                    val buffer = ByteArray(STREAM_BUFFER_BYTES)
-                    while (true) {
-                        val n = input.read(buffer)
-                        if (n < 0) break
-                        if (n > 0) zip.write(buffer, 0, n)
-                    }
+                if (MobixFormat.shouldStoreUncompressed(entry.name)) {
+                    putStored(zip, entry.name, entry.payload)
+                } else {
+                    zip.putNextEntry(ZipEntry(entry.name))
+                    // Streamed, never handed over as one array: a recording is deflated as it is read, so
+                    // the write costs a 64 KiB buffer whatever the entry weighs.
+                    streamPayload(entry.payload, zip)
+                    zip.closeEntry()
                 }
-                zip.closeEntry()
             }
         }
     }
@@ -279,6 +278,17 @@ object MobixContainer {
     /** The chunk a streamed entry is written in, so no payload is ever held whole. */
     private const val STREAM_BUFFER_BYTES = 64 * 1024
 
+    private fun streamPayload(payload: MobixPayload, output: OutputStream) {
+        payload.open().use { input ->
+            val buffer = ByteArray(STREAM_BUFFER_BYTES)
+            while (true) {
+                val n = input.read(buffer)
+                if (n < 0) break
+                if (n > 0) output.write(buffer, 0, n)
+            }
+        }
+    }
+
     /**
      * A STORED entry: no compression, with the size and CRC the ZIP format requires for one (a
      * DEFLATED entry lets the stream fill those in; a STORED entry cannot, because the reader must
@@ -295,6 +305,21 @@ object MobixContainer {
             },
         )
         zip.write(bytes)
+        zip.closeEntry()
+    }
+
+    /** Stream a pre-compressed [payload] into a `STORED` ZIP entry without materialising large files. */
+    private fun putStored(zip: ZipOutputStream, name: String, payload: MobixPayload) {
+        val (crc, size) = payload.crc32AndSize()
+        zip.putNextEntry(
+            ZipEntry(name).apply {
+                method = ZipEntry.STORED
+                this.size = size
+                compressedSize = size
+                this.crc = crc
+            },
+        )
+        streamPayload(payload, zip)
         zip.closeEntry()
     }
 }

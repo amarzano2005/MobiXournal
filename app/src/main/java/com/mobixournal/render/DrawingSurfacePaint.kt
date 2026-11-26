@@ -146,7 +146,7 @@ internal fun DrawingSurfaceView.paint() {
     // A frame drawn into a buffer the surface is about to outgrow must not be the last one: once the
     // platform has resized the surface, paint again for the settled size.
     if (provisional) repaintWhenSurfaceSettles()
-    if (!chromeAnimating) {
+    if (!viewport.chromeAnimating) {
         reportCurrentPage()
         reportScroll()
         reportSelectionRect()
@@ -187,7 +187,7 @@ private fun DrawingSurfaceView.reportMissingBackgrounds() {
  * image for a `pixmap` one, null for anything else (the renderer then draws sheet and ruling).
  * Both caches fill asynchronously, so this never stalls a frame.
  */
-internal fun DrawingSurfaceView.deferRaster(): Boolean = chromeAnimating || scroll.pinching
+internal fun DrawingSurfaceView.deferRaster(): Boolean = viewport.chromeAnimating || scroll.pinching
 
 internal fun DrawingSurfaceView.hiddenLayersFor(box: PageBox): Set<Int> =
     if (hiddenLayers.isEmpty()) emptySet() else box.page.layers.indices.filterTo(HashSet()) { isLayerHidden(box.index, it) }
@@ -345,7 +345,7 @@ internal fun DrawingSurfaceView.drawPageElements(canvas: Canvas, box: PageBox) {
         drawKaraokePage(canvas, box, karaoke, hidden)
         return
     }
-    val scrolling = scroll.active || momentum.isFlinging || chromeAnimating
+    val scrolling = scroll.active || momentum.isFlinging || viewport.chromeAnimating
     if (inkCacheUsable && inkCache.draw(canvas, box, scrollX, scrollY, hidden, preferStandIn = scrolling, skipRasterize = deferRaster())) return
     PageRenderer.drawElements(
         canvas, box.page, box.scale, box.leftPx - scrollX, box.topPx - scrollY,

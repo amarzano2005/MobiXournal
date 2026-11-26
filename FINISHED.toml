@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "mobix-stored-precompressed-assets"
+title = "Store pre-compressed media assets uncompressed in .mobix archives"
+description = "Added MobixFormat.PRECOMPRESSED_ASSET_EXTENSIONS/shouldStoreUncompressed and streaming MobixPayload.crc32AndSize; wired ZipEntry.STORED for pre-compressed assets/ entries across MobixContainer.save and MobixIncrementalSaver.repack/MobixZip.Writer.putStored while keeping JSON/WAV DEFLATED; updated docs/mobix-schema-spec.md and unit tests in MobixContainerTest and MobixIncrementalSaveTest; also moved chromeAnimating, lastReportedPage, and viewport reporting extensions out of DrawingSurfaceView to satisfy SourceStructureTest and PackageStructureTest. Verified :mobix-core:test, guards, render tests, :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "none: .mobix ZIP container compression policy for pre-compressed assets and canvas guard cleanup, no UI surface"
+
+[[task]]
 id = "android-scroll-zoom-cache-throttle"
 title = "Optimize Android scroll/zoom ink prefetch, pinch stand-in, and Compose throttling"
 description = "Added InkCache.prefetch for first-1/last+1 adjacent pages in DrawingSurfacePaint.prefetchAround; tracked active pinch state in ScrollGesture (pinching flag cleared on rebase/lift) to skip background ink/PDF rasterization and tile scheduling while blitting cached stand-ins smoothly until lift; added ViewportReportThrottle (~20 Hz during active scroll/pinch/fling with immediate settled flush on lift/fling stop). Verified with InkRetentionTest, ScrollGestureTest, ViewportReportThrottleTest, ViewportStateTest, MomentumTest, SourceStructureTest, PackageStructureTest, :desktop:createDistributable, and scripts/release-apk.sh."
