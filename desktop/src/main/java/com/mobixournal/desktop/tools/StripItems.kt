@@ -94,21 +94,93 @@ internal val DEFAULT_IMAGE_ANCHOR: DesktopTool = DesktopTool.MARQUEE
  * A [StripItem.Divider] is added whenever the run of slots changes family, which is what turns one long
  * band of buttons into five groups the eye can name.
  */
+internal const val DESKTOP_DIVIDER_PREFIX = "DIV_"
+
+internal const val DESKTOP_NO_DIVIDERS = "NO_DIVIDERS"
+
+internal fun isDesktopDividerToken(token: String): Boolean = token.startsWith(DESKTOP_DIVIDER_PREFIX)
+
+internal fun hasExplicitDesktopDividers(rawOrder: List<String>): Boolean =
+    rawOrder.any { isDesktopDividerToken(it) || it == DESKTOP_NO_DIVIDERS }
+
+internal fun nextDesktopDividerToken(tokens: Collection<String>): String {
+    var index = 1
+    while ("$DESKTOP_DIVIDER_PREFIX$index" in tokens) index++
+    return "$DESKTOP_DIVIDER_PREFIX$index"
+}
+
+/** Factory tool order with explicit divider tokens inserted at every [StripFamily] boundary. */
+internal fun defaultDesktopOrderWithDividers(groups: List<ToolGroup>): List<String> = buildList {
+    var family: StripFamily? = null
+    var divIndex = 1
+    for (group in groups) {
+        val next = group.face.stripFamily
+        if (family != null && next != family) {
+            add("$DESKTOP_DIVIDER_PREFIX${divIndex++}")
+        }
+        family = next
+        add(group.face.name)
+    }
+}
+
 internal fun stripItems(
     groups: List<ToolGroup>,
     imageAfter: String = DEFAULT_IMAGE_ANCHOR.name,
-): List<StripItem> = buildList {
+    rawOrder: List<String> = emptyList(),
+): List<StripItem> {
+    if (hasExplicitDesktopDividers(rawOrder)) {
+        return explicitStripItems(groups, imageAfter, rawOrder)
+    }
+    return buildList {
+        val anchor = imageAfter.takeIf { name -> groups.any { it.face.name == name } }
+            ?: DEFAULT_IMAGE_ANCHOR.name
+        var family: StripFamily? = null
+        groups.forEachIndexed { index, group ->
+            val next = group.face.stripFamily
+            if (family != null && next != family) add(StripItem.Divider)
+            family = next
+            add(StripItem.Tools(group, index))
+            if (group.face == DesktopTool.HIGHLIGHTER) add(StripItem.Stroke)
+            if (group.face.name == anchor) add(StripItem.Image)
+        }
+    }
+}
+
+private fun explicitStripItems(
+    groups: List<ToolGroup>,
+    imageAfter: String,
+    rawOrder: List<String>,
+): List<StripItem> {
+    val byName = groups.withIndex().associate { (idx, g) -> g.face.name to (g to idx) }
     val anchor = imageAfter.takeIf { name -> groups.any { it.face.name == name } }
         ?: DEFAULT_IMAGE_ANCHOR.name
-    var family: StripFamily? = null
-    groups.forEachIndexed { index, group ->
-        val next = group.face.stripFamily
-        if (family != null && next != family) add(StripItem.Divider)
-        family = next
-        add(StripItem.Tools(group, index))
-        if (group.face == DesktopTool.HIGHLIGHTER) add(StripItem.Stroke)
-        if (group.face.name == anchor) add(StripItem.Image)
+    val out = ArrayList<StripItem>()
+    val emitted = HashSet<String>()
+    var pendingDivider = false
+    for (token in rawOrder) {
+        if (isDesktopDividerToken(token)) {
+            if (out.isNotEmpty()) pendingDivider = true
+            continue
+        }
+        if (token == DESKTOP_NO_DIVIDERS) continue
+        val pair = byName[token] ?: continue
+        if (!emitted.add(token)) continue
+        if (pendingDivider) {
+            out += StripItem.Divider
+            pendingDivider = false
+        }
+        val (group, index) = pair
+        out += StripItem.Tools(group, index)
+        if (group.face == DesktopTool.HIGHLIGHTER) out += StripItem.Stroke
+        if (group.face.name == anchor) out += StripItem.Image
     }
+    for ((index, group) in groups.withIndex()) {
+        if (!emitted.add(group.face.name)) continue
+        out += StripItem.Tools(group, index)
+        if (group.face == DesktopTool.HIGHLIGHTER) out += StripItem.Stroke
+        if (group.face.name == anchor) out += StripItem.Image
+    }
+    return out
 }
 
 /** The two commands a strip draws outside its tool list, each in the material of the slot that owns it. */

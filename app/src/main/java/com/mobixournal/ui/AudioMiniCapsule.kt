@@ -79,23 +79,13 @@ fun AudioMiniCapsule(
     tool: EditorTool = EditorTool.PEN,
     onTool: (EditorTool) -> Unit = {},
     vertical: Boolean = true,
+    frameless: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
-    val hairlineColor = ModernTheme.hairlineBorder(isDark)
 
-    Surface(
-        shape = ModernTheme.capsuleShape,
-        // On paper the capsule is not painted: the band behind it is the sheet's white, so a white fill
-        // was a white box drawn round three round buttons. On black it keeps the glass, which is what
-        // lifts the transport off the band there.
-        color = if (isDark) glassColor else Color.Transparent,
-        shadowElevation = if (isDark) 6.dp else 0.dp,
-        // The **edge** stays in both themes: on paper the fill and the lift go, and the family's drawn rim
-        // is what keeps the transport an object in the chrome.
-        modifier = modifier.floatingRim(ModernTheme.capsuleCornerRadiusDp),
-    ) {
+    val body = @Composable {
         if (vertical) {
             Column(
                 modifier = Modifier.padding(horizontal = 3.dp, vertical = 3.dp),
@@ -116,6 +106,19 @@ fun AudioMiniCapsule(
                 PauseCapsuleButton(audio = audio, isDark = isDark)
                 PlayCapsuleButton(audio = audio, tool = tool, onTool = onTool, isDark = isDark)
             }
+        }
+    }
+
+    if (frameless) {
+        Box(modifier = modifier) { body() }
+    } else {
+        Surface(
+            shape = ModernTheme.capsuleShape,
+            color = if (isDark) glassColor else Color.Transparent,
+            shadowElevation = if (isDark) 6.dp else 0.dp,
+            modifier = modifier.floatingRim(ModernTheme.capsuleCornerRadiusDp),
+        ) {
+            body()
         }
     }
 }

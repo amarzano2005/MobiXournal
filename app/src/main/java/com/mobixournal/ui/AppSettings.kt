@@ -270,7 +270,7 @@ data class AppSettings(
      */
     val railHidden: Set<String> = emptySet(),
     /** The Secondary Toolbar's button positions in display order. Empty falls back to factory default. */
-    val topBarOrder: List<String> = DEFAULT_TOP_BAR_ORDER,
+    val topBarOrder: List<String> = FACTORY_TOP_BAR_ORDER_WITH_DIVIDERS,
     /** The button ids the user has hidden from the Secondary Toolbar. */
     val topBarHidden: Set<String> = emptySet(),
     /**

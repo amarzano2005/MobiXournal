@@ -94,8 +94,11 @@ fun toolGroupForRailItem(id: String): ToolGroup? = TOOL_GROUPS.firstOrNull { it.
  */
 fun orderedRailItems(order: List<String>): List<RailItem> {
     val byId = RAIL_ITEMS.associateBy { it.id }
-    val listed = order.distinct().mapNotNull { byId[it] }.filterNot { it.id in PINNED_RAIL_IDS }
-    val reorderable = listed + RAIL_ITEMS.filterNot { it in listed || it.id in PINNED_RAIL_IDS }
+    val listed = order.distinct()
+        .filterNot { it in PINNED_RAIL_IDS }
+        .mapNotNull { id -> if (isDividerId(id)) dividerRailItem(id) else byId[id] }
+    val listedIds = listed.mapTo(HashSet()) { it.id }
+    val reorderable = listed + RAIL_ITEMS.filterNot { it.id in listedIds || it.id in PINNED_RAIL_IDS }
     return reorderable + PINNED_RAIL_IDS.mapNotNull { byId[it] }
 }
 
@@ -103,8 +106,14 @@ fun orderedRailItems(order: List<String>): List<RailItem> {
  * [orderedRailItems] minus the positions the user has hidden — except the [PINNED_RAIL_IDS], which a
  * saved `railHidden` from an older build may still name and which the rail keeps regardless.
  */
-fun visibleRailItems(order: List<String>, hidden: Set<String>): List<RailItem> =
-    orderedRailItems(order).filterNot { it.id in hidden && it.id !in PINNED_RAIL_IDS }
+fun visibleRailItems(order: List<String>, hidden: Set<String>): List<RailItem> {
+    val ordered = orderedRailItems(order)
+    val tools = cleanVisibleDividers(
+        ordered.filterNot { it.id in PINNED_RAIL_IDS || (!isDividerId(it.id) && it.id in hidden) },
+    )
+    val pinned = ordered.filter { it.id in PINNED_RAIL_IDS }
+    return tools + pinned
+}
 
 /** One stretch of the rail and whether a rule opens it: the tools, then the pinned panels under a line. */
 data class RailSection(val items: List<RailItem>, val ruled: Boolean)
@@ -146,5 +155,5 @@ fun encodeRailIds(ids: Collection<String>): String = ids.joinToString(",")
 fun decodeRailIds(raw: String?): List<String> {
     if (raw.isNullOrBlank()) return emptyList()
     val known = RAIL_ITEMS.map { it.id }.toSet()
-    return raw.split(',').map { it.trim() }.filter { it in known }.distinct()
+    return raw.split(',').map { it.trim() }.filter { it in known || isDividerId(it) }.distinct()
 }

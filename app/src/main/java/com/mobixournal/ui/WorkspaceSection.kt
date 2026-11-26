@@ -76,9 +76,10 @@ fun WorkspaceSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         ToolbarPosition.LEFT
     }
     val visibleRailCount = orderedRailItems(settings.railOrder)
-        .filterNot { it.id in PINNED_RAIL_IDS }
+        .filterNot { it.id in PINNED_RAIL_IDS || isDividerId(it.id) }
         .count { it.id !in settings.railHidden }
     val visibleTopCount = orderedTopBarItems(settings.topBarOrder)
+        .filterNot { isDividerId(it.id) }
         .count { it.id !in settings.topBarHidden }
     val reach = LocalSettingsCardInset.current
 

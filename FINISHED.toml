@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "capsule-free-docked-bars-and-editable-dividers"
+title = "Remove docked bar capsules on mobile and add user-editable toolbar dividers across both shells"
+description = "Added ToolbarDividers.kt and ToolbarDividersTest.kt; removed docked capsules from SideToolbar, TopBarToolsRow, and horizontal AudioMiniCapsule; added Add/Remove/drag-reorder dividers in Android ToolbarSection/SettingsWidgets (with default FACTORY_TOP_BAR_ORDER_WITH_DIVIDERS) and Desktop StripItems/StripOrderState/ToolbarOrderRows/SettingsSections/ToolStrips/DesktopShell; updated chrome.md, interface-contract.md, desktop-settings.md, StripItemsTest; verified unit tests, UI guards, androidTest compile, desktop distributable, and signed release APK (app/build/outputs/apk/release/MobiXournal-2.4.0.apk)."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: docked Android bars are frameless inside the L-band while Liquid Glass stays on floating overlays; tokens: ModernTheme/DesignTokens only; states: DesktopButton Ghost remove and primaryContainer/primary active slots; parity: both Android and Desktop support editable toolbar dividers; docs: chrome.md, interface-contract.md, desktop-settings.md; tests: ToolbarDividersTest, StripItemsTest, UI/Desktop guards, signed release APK"
+
+[[task]]
 id = "mobile-editor-two-row-l-frame-chrome"
 title = "Separate mobile editor document header and STEM dock with seamless L-frame"
 description = "Added CompactTopBarGrouping.kt, EditorHeaderRows.kt, ChromeCornerFillet.kt, and CompactTopBarGroupingTest.kt; updated TopBarIndicator (INDICATOR_AS_DOCK_CAP=false, Style A ring), PageListPanel, DocumentNavigationPanel, QuickPdfExport, EditorOverflowMenu, EditorRegions, ChromeGeometryGuardTest, docs/chrome.md, and docs/interface-contract.md; verified unit tests, UI guards, androidTest compile, desktop distributable, and signed release APK (app/build/outputs/apk/release/MobiXournal-2.4.0.apk)."

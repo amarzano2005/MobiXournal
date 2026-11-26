@@ -38,27 +38,36 @@ fun ToolbarSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
     }
 }
 
-/** The Main Toolbar's reorderable button list. */
+/** The Main Toolbar's reorderable button list, with user-editable dividers. */
 @Composable
 internal fun MainToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    SettingsNote("Toggle switch to show or hide; hold and drag to reorder. Pages and Layers remain pinned at bottom.")
+    SettingsNote("Toggle switch to show or hide; hold and drag to reorder tools or dividers. Pages and Layers remain pinned at bottom.")
+    val items = orderedRailItems(settings.railOrder).filterNot { it.id in PINNED_RAIL_IDS }
+    val currentIds = items.map { it.id }
     ReorderableRowList(
-        items = orderedRailItems(settings.railOrder).filterNot { it.id in PINNED_RAIL_IDS },
+        items = items,
         hidden = settings.railHidden,
         onOrder = { onChange(settings.copy(railOrder = it)) },
         onHidden = { onChange(settings.copy(railHidden = it)) },
+        onDelete = { id -> onChange(settings.copy(railOrder = currentIds - id)) },
     )
+    AddDividerRow {
+        onChange(settings.copy(railOrder = currentIds + nextDividerId(currentIds)))
+    }
 }
 
 /**
- * The Secondary Toolbar's reorderable button list. Its figure buttons mirror the Shapes submenu, so
- * a reorder or hide here is written through to [AppSettings.shapeOrder] / [AppSettings.shapeHidden].
+ * The Secondary Toolbar's reorderable button list (tools and movable dividers). Its figure buttons
+ * mirror the Shapes submenu, so a reorder or hide here is written through to
+ * [AppSettings.shapeOrder] / [AppSettings.shapeHidden].
  */
 @Composable
 internal fun SecondaryToolbarButtons(settings: AppSettings, onChange: (AppSettings) -> Unit) {
-    SettingsNote("The figures and tools in the top bar. Switch one off to hide it; hold a row to reorder.")
+    SettingsNote("Figures, tools, and dividers in the top bar. Switch a tool off to hide it; hold a row to reorder.")
+    val items = orderedTopBarItems(settings.topBarOrder)
+    val currentIds = items.map { it.id }
     ReorderableRowList(
-        items = orderedTopBarItems(settings.topBarOrder),
+        items = items,
         hidden = settings.topBarHidden,
         onOrder = { newTopBarOrder ->
             val figureToolNames = newTopBarOrder.mapNotNull { id ->
@@ -78,5 +87,21 @@ internal fun SecondaryToolbarButtons(settings: AppSettings, onChange: (AppSettin
             val newShapeHidden = (settings.shapeHidden - figureNames) + hiddenShapeNames
             onChange(settings.copy(topBarHidden = newTopBarHidden, shapeHidden = newShapeHidden))
         },
+        onDelete = { id -> onChange(settings.copy(topBarOrder = currentIds - id)) },
     )
+    AddDividerRow {
+        onChange(settings.copy(topBarOrder = currentIds + nextDividerId(currentIds)))
+    }
+}
+
+@Composable
+private fun AddDividerRow(onAdd: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+        horizontalArrangement = Arrangement.End,
+    ) {
+        OutlinedButton(onClick = onAdd) {
+            Text("Add divider")
+        }
+    }
 }

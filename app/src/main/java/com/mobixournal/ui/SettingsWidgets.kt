@@ -23,10 +23,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -483,6 +485,7 @@ fun ReorderableRowList(
     hidden: Set<String>,
     onOrder: (List<String>) -> Unit,
     onHidden: (Set<String>) -> Unit,
+    onDelete: ((String) -> Unit)? = null,
 ) {
     val ids = items.map { it.id }
     var dragIndex by remember { mutableStateOf(-1) }
@@ -505,6 +508,9 @@ fun ReorderableRowList(
             onShown = { shown ->
                 onHidden(if (shown) hidden - item.id else hidden + item.id)
             },
+            onDelete = if (onDelete != null && isDividerId(item.id)) {
+                { onDelete(item.id) }
+            } else null,
             onHeight = { rowHeightPx = it },
             onDragStart = { dragIndex = index; dragOffset = 0f },
             onDrag = { dy -> dragOffset += dy },
@@ -519,10 +525,8 @@ fun ReorderableRowList(
 }
 
 /**
- * One rail position in the Toolbar section: a drag handle, its name and a show/hide switch. The row
- * is grabbed by a **long-press anywhere on it** (not just the handle) and dragged up or down. Every
- * row is placed by [dragOffset]: the held one follows the finger, and the rows it is crossing shift
- * a place to preview where it will land.
+ * One rail position in the Toolbar section: a drag handle, its name and a show/hide switch (or a
+ * hairline preview and remove icon for divider entries).
  */
 @Composable
 fun RailItemRow(
@@ -531,6 +535,7 @@ fun RailItemRow(
     dragging: Boolean,
     dragOffset: Float,
     onShown: (Boolean) -> Unit,
+    onDelete: (() -> Unit)? = null,
     onHeight: (Int) -> Unit,
     onDragStart: () -> Unit,
     onDrag: (Float) -> Unit,
@@ -572,8 +577,32 @@ fun RailItemRow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.width(12.dp))
-            Text(item.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-            Switch(checked = shown, onCheckedChange = onShown)
+            if (isDividerId(item.id)) {
+                HorizontalDivider(
+                    modifier = Modifier.width(36.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    "Divider",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                if (onDelete != null) {
+                    IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Outlined.Close,
+                            contentDescription = "Remove divider",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                }
+            } else {
+                Text(item.label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                Switch(checked = shown, onCheckedChange = onShown)
+            }
         }
     }
 }

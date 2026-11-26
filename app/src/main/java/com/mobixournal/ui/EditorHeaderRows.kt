@@ -152,6 +152,7 @@ internal fun EditorToolsStripRow(
             audio = audio,
             tool = ui.tool,
             vertical = false,
+            frameless = true,
             onTool = { newTool -> pane.surface?.activateTool(newTool, ui, settings, onSettingsChange) },
         )
     }
@@ -169,11 +170,13 @@ internal fun EditorToolsStripRow(
                 TopBarToolsRow(ui = ui, pane = pane, settings = settings, onSettingsChange = onSettingsChange)
             }
             if (showAudioCapsule) {
+                TopBarToolDivider(air = 4.dp)
                 Box(modifier = Modifier.padding(end = 8.dp)) { audioPill() }
             }
         } else {
             if (showAudioCapsule) {
                 Box(modifier = Modifier.padding(start = 8.dp)) { audioPill() }
+                TopBarToolDivider(air = 4.dp)
             }
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                 TopBarToolsRow(ui = ui, pane = pane, settings = settings, onSettingsChange = onSettingsChange)

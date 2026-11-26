@@ -693,92 +693,96 @@ fun TopBarToolsRow(
 
     val density = LocalDensity.current
     var availableWidthDp by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-    val collapsed = shouldCollapseTopBar(availableWidthDp, items.size)
+    val collapsed = shouldCollapseTopBarItems(availableWidthDp, items)
 
     val renderItem = @Composable { item: RailItem ->
-        val single = singleToolForTopBarId(item.id)
-        if (single != null) {
-            CompactSingleToolButton(
-                tool = single,
-                active = ui.tool == single,
-                onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
-            )
-        } else if (item.id == "triangle" || item.id == "trapezoid") {
-            val triangle = item.id == "triangle"
-            val tool = if (triangle) EditorTool.TRIANGLE else EditorTool.TRAPEZOID
-            val kindLabels = if (triangle) {
-                TriangleKind.values().map { it.label }
-            } else {
-                TrapezoidKind.values().map { it.label }
-            }
-            val kind = if (triangle) settings.triangleKind.ordinal else settings.trapezoidKind.ordinal
-            CompactShapeKindButton(
-                tool = tool,
-                active = ui.tool == tool,
-                heading = if (triangle) "Triangle" else "Trapezoid",
-                kinds = kindLabels,
-                kindIcons = if (triangle) {
-                    TriangleKind.values().map(::triangleKindIcon)
-                } else {
-                    TrapezoidKind.values().map(::trapezoidKindIcon)
-                },
-                selectedKind = kind,
-                editableKind = if (triangle) TriangleKind.SCALENE.ordinal else TrapezoidKind.SCALENE.ordinal,
-                onSelectKind = { index ->
-                    val updated = if (triangle) {
-                        settings.copy(triangleKind = TriangleKind.values()[index])
-                    } else {
-                        settings.copy(trapezoidKind = TrapezoidKind.values()[index])
-                    }
-                    onSettingsChange(updated)
-                    surface?.activateTool(tool, ui, updated, onSettingsChange)
-                },
-                showEditor = ui.tool == tool &&
-                    (if (triangle) settings.triangleKind == TriangleKind.SCALENE
-                    else settings.trapezoidKind == TrapezoidKind.SCALENE),
-                editorHint = if (triangle) "Customize scalene angles" else "Customize scalene angles (trapezoid)",
-                onEditKind = {
-                    if (triangle) ui.showScaleneAnglesDialog = true else ui.showTrapezoidAnglesDialog = true
-                },
-                onClick = { surface?.activateTool(tool, ui, settings, onSettingsChange) },
-            )
-        } else if (item.id == "polygons") {
-            PolygonSlotButton(
-                active = ui.tool == EditorTool.POLYGON,
-                sides = settings.polygonSides,
-                onPick = { sides ->
-                    val updated = settings.copy(polygonSides = sides)
-                    onSettingsChange(updated)
-                    surface?.activateTool(EditorTool.POLYGON, ui, updated, onSettingsChange)
-                },
-                onClick = { surface?.activateTool(EditorTool.POLYGON, ui, settings, onSettingsChange) },
-            )
-        } else if (item.id == "guides") {
-            CompactGuidePopupButton(
-                kind = settings.guideKind,
-                onKind = {
-                    onSettingsChange(settings.copy(guideKind = it, guidePose = null))
-                    pane.surface?.placeGuide(it)
-                },
-            )
+        if (isDividerId(item.id)) {
+            TopBarToolDivider(air = 4.dp)
         } else {
-            val group = secondaryToolGroup(item.id)
-            if (group != null) {
-                CompactTopBarToolButton(
-                    group = group,
-                    members = group.tools,
-                    selected = group.selected(settings.toolGroupSelections),
-                    active = ui.tool in group.tools,
-                    onTool = { tool -> surface?.activateTool(tool, ui, settings, onSettingsChange) },
-                    onPick = { picked ->
-                        val base = settings.copy(
-                            toolGroupSelections = group.withSelection(settings.toolGroupSelections, picked),
-                        )
-                        surface?.activateTool(picked, ui, base, onSettingsChange)
-                    },
-                    triangleKind = settings.triangleKind,
-                    trapezoidKind = settings.trapezoidKind,
+            val single = singleToolForTopBarId(item.id)
+            if (single != null) {
+                CompactSingleToolButton(
+                    tool = single,
+                    active = ui.tool == single,
+                    onClick = { surface?.activateTool(single, ui, settings, onSettingsChange) },
                 )
+            } else if (item.id == "triangle" || item.id == "trapezoid") {
+                val triangle = item.id == "triangle"
+                val tool = if (triangle) EditorTool.TRIANGLE else EditorTool.TRAPEZOID
+                val kindLabels = if (triangle) {
+                    TriangleKind.values().map { it.label }
+                } else {
+                    TrapezoidKind.values().map { it.label }
+                }
+                val kind = if (triangle) settings.triangleKind.ordinal else settings.trapezoidKind.ordinal
+                CompactShapeKindButton(
+                    tool = tool,
+                    active = ui.tool == tool,
+                    heading = if (triangle) "Triangle" else "Trapezoid",
+                    kinds = kindLabels,
+                    kindIcons = if (triangle) {
+                        TriangleKind.values().map(::triangleKindIcon)
+                    } else {
+                        TrapezoidKind.values().map(::trapezoidKindIcon)
+                    },
+                    selectedKind = kind,
+                    editableKind = if (triangle) TriangleKind.SCALENE.ordinal else TrapezoidKind.SCALENE.ordinal,
+                    onSelectKind = { index ->
+                        val updated = if (triangle) {
+                            settings.copy(triangleKind = TriangleKind.values()[index])
+                        } else {
+                            settings.copy(trapezoidKind = TrapezoidKind.values()[index])
+                        }
+                        onSettingsChange(updated)
+                        surface?.activateTool(tool, ui, updated, onSettingsChange)
+                    },
+                    showEditor = ui.tool == tool &&
+                        (if (triangle) settings.triangleKind == TriangleKind.SCALENE
+                        else settings.trapezoidKind == TrapezoidKind.SCALENE),
+                    editorHint = if (triangle) "Customize scalene angles" else "Customize scalene angles (trapezoid)",
+                    onEditKind = {
+                        if (triangle) ui.showScaleneAnglesDialog = true else ui.showTrapezoidAnglesDialog = true
+                    },
+                    onClick = { surface?.activateTool(tool, ui, settings, onSettingsChange) },
+                )
+            } else if (item.id == "polygons") {
+                PolygonSlotButton(
+                    active = ui.tool == EditorTool.POLYGON,
+                    sides = settings.polygonSides,
+                    onPick = { sides ->
+                        val updated = settings.copy(polygonSides = sides)
+                        onSettingsChange(updated)
+                        surface?.activateTool(EditorTool.POLYGON, ui, updated, onSettingsChange)
+                    },
+                    onClick = { surface?.activateTool(EditorTool.POLYGON, ui, settings, onSettingsChange) },
+                )
+            } else if (item.id == "guides") {
+                CompactGuidePopupButton(
+                    kind = settings.guideKind,
+                    onKind = {
+                        onSettingsChange(settings.copy(guideKind = it, guidePose = null))
+                        pane.surface?.placeGuide(it)
+                    },
+                )
+            } else {
+                val group = secondaryToolGroup(item.id)
+                if (group != null) {
+                    CompactTopBarToolButton(
+                        group = group,
+                        members = group.tools,
+                        selected = group.selected(settings.toolGroupSelections),
+                        active = ui.tool in group.tools,
+                        onTool = { tool -> surface?.activateTool(tool, ui, settings, onSettingsChange) },
+                        onPick = { picked ->
+                            val base = settings.copy(
+                                toolGroupSelections = group.withSelection(settings.toolGroupSelections, picked),
+                            )
+                            surface?.activateTool(picked, ui, base, onSettingsChange)
+                        },
+                        triangleKind = settings.triangleKind,
+                        trapezoidKind = settings.trapezoidKind,
+                    )
+                }
             }
         }
     }
@@ -825,18 +829,18 @@ fun TopBarToolsRow(
 
     val glassColor = rememberGlassSurfaceColor()
     val dock = @Composable {
-        Surface(
-            shape = ModernTheme.capsuleShape,
-            color = glassColor,
-            tonalElevation = 0.dp,
-            shadowElevation = 6.dp,
-            modifier = Modifier
-                .wrapContentWidth()
-                .height(TOP_BAR_DOCK_HEIGHT)
-                .floatingRim(ModernTheme.capsuleCornerRadiusDp),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (INDICATOR_AS_DOCK_CAP) {
+        if (INDICATOR_AS_DOCK_CAP) {
+            Surface(
+                shape = ModernTheme.capsuleShape,
+                color = glassColor,
+                tonalElevation = 0.dp,
+                shadowElevation = 6.dp,
+                modifier = Modifier
+                    .wrapContentWidth()
+                    .height(TOP_BAR_DOCK_HEIGHT)
+                    .floatingRim(ModernTheme.capsuleCornerRadiusDp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     if (railOnLeft) {
                         indicator()
                         if (items.isNotEmpty()) {
@@ -850,9 +854,14 @@ fun TopBarToolsRow(
                         }
                         indicator()
                     }
-                } else if (items.isNotEmpty()) {
-                    toolsRow()
                 }
+            }
+        } else if (items.isNotEmpty()) {
+            Row(
+                modifier = Modifier.wrapContentWidth().height(TOP_BAR_DOCK_HEIGHT),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                toolsRow()
             }
         }
     }

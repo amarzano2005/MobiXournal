@@ -114,9 +114,11 @@ fun migrateTopBarOrder(order: List<String>): List<String> =
  */
 fun orderedTopBarItems(order: List<String>): List<RailItem> {
     val byId = TOP_BAR_ITEMS.associateBy { it.id }
-    val listed = order.distinct().mapNotNull { byId[it] }
-    if (listed.isEmpty()) return TOP_BAR_ITEMS
-    val known = listed.mapTo(HashSet()) { it.id }
+    val listed = order.distinct().mapNotNull { id ->
+        if (isDividerId(id)) dividerRailItem(id) else byId[id]
+    }
+    val known = listed.filterNot { isDividerId(it.id) }.mapTo(HashSet()) { it.id }
+    if (known.isEmpty()) return TOP_BAR_ITEMS
     val positioned = listed.toMutableList()
     for ((index, item) in TOP_BAR_ITEMS.withIndex()) {
         if (item.id in known) continue
@@ -155,13 +157,16 @@ fun visibleTopBarItems(
     order: List<String>,
     hidden: Set<String>,
     shapeHidden: Set<String> = emptySet(),
-): List<RailItem> =
-    orderedTopBarItems(order).filterNot { item ->
+): List<RailItem> {
+    val filtered = orderedTopBarItems(order).filterNot { item ->
+        if (isDividerId(item.id)) return@filterNot false
         if (item.id in hidden) return@filterNot true
         val tool = TOP_BAR_ID_TO_FIGURE_TOOL[item.id]
         if (tool != null && tool.name in shapeHidden) return@filterNot true
         false
     }
+    return cleanVisibleDividers(filtered)
+}
 
 /** Move an item at [index] by [delta] positions. */
 fun moveTopBarItem(order: List<String>, index: Int, delta: Int): List<String> {
@@ -179,7 +184,7 @@ fun encodeTopBarIds(ids: Collection<String>): String = ids.joinToString(",")
 fun decodeTopBarIds(raw: String?): List<String> {
     if (raw.isNullOrBlank()) return emptyList()
     val known = TOP_BAR_ITEMS.map { it.id }.toSet()
-    return raw.split(',').map { it.trim() }.filter { it in known }.distinct()
+    return raw.split(',').map { it.trim() }.filter { it in known || isDividerId(it) }.distinct()
 }
 
 /**

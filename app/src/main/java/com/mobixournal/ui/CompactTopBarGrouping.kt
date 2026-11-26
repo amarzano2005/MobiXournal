@@ -6,6 +6,9 @@ internal const val TOP_BAR_SLOT_STEP_DP = 40f
 /** Horizontal padding reserved by the Secondary Toolbar dock capsule. */
 internal const val TOP_BAR_DOCK_PAD_DP = 12f
 
+/** Width step per divider hairline inside the Secondary Toolbar. */
+internal const val TOP_BAR_DIVIDER_STEP_DP = 10f
+
 /**
  * True when [availableWidthDp] is too narrow to fit [itemCount] separate Secondary Toolbar icons
  * without horizontal scrolling, triggering adaptive family grouping on compact phones.
@@ -13,6 +16,18 @@ internal const val TOP_BAR_DOCK_PAD_DP = 12f
 internal fun shouldCollapseTopBar(availableWidthDp: Float, itemCount: Int): Boolean =
     itemCount > 0 && availableWidthDp > 0f &&
         availableWidthDp < itemCount * TOP_BAR_SLOT_STEP_DP + TOP_BAR_DOCK_PAD_DP
+
+/**
+ * Overload taking [items] so divider hairlines count at [TOP_BAR_DIVIDER_STEP_DP] instead of a
+ * full button slot.
+ */
+internal fun shouldCollapseTopBarItems(availableWidthDp: Float, items: List<RailItem>): Boolean {
+    val toolCount = items.count { !isDividerId(it.id) }
+    val divCount = items.count { isDividerId(it.id) }
+    if (toolCount == 0 || availableWidthDp <= 0f) return false
+    val needed = toolCount * TOP_BAR_SLOT_STEP_DP + divCount * TOP_BAR_DIVIDER_STEP_DP + TOP_BAR_DOCK_PAD_DP
+    return availableWidthDp < needed
+}
 
 /**
  * One entry in the Secondary Toolbar dock: either a single [RailItem] slot (kept as-is) or a
@@ -42,8 +57,9 @@ private val KNOWN_GROUPED_IDS: Set<String> = setOf(
  * visible item degrades to [CompactTopBarEntry.Single] so its native picker/tap behaviour stays intact.
  */
 internal fun compactTopBarEntries(items: List<RailItem>): List<CompactTopBarEntry> {
-    if (items.isEmpty()) return emptyList()
-    val byId = items.associateBy { it.id }
+    val toolsOnly = items.filterNot { isDividerId(it.id) }
+    if (toolsOnly.isEmpty()) return emptyList()
+    val byId = toolsOnly.associateBy { it.id }
     val out = ArrayList<CompactTopBarEntry>()
 
     addLinesEntry(byId, out)

@@ -1,6 +1,11 @@
 package com.mobixournal.desktop.settings
+import com.mobixournal.desktop.tools.DESKTOP_NO_DIVIDERS
 import com.mobixournal.desktop.tools.DesktopTool
 import com.mobixournal.desktop.tools.ToolGroup
+import com.mobixournal.desktop.tools.defaultDesktopOrderWithDividers
+import com.mobixournal.desktop.tools.hasExplicitDesktopDividers
+import com.mobixournal.desktop.tools.isDesktopDividerToken
+import com.mobixournal.desktop.tools.nextDesktopDividerToken
 import com.mobixournal.desktop.tools.orderedToolGroups
 
 import androidx.compose.runtime.getValue
@@ -30,6 +35,40 @@ internal class StripOrderState(private val store: DesktopSettings) {
 
     /** The slots in the reader's order — what both strips draw. */
     val groups: List<ToolGroup> get() = orderedToolGroups(toolOrder)
+
+    /** The editable row tokens (tool names and movable `DIV_*` dividers) shown in Settings -> Toolbar. */
+    val editableTokens: List<String>
+        get() {
+            if (!hasExplicitDesktopDividers(toolOrder)) return defaultDesktopOrderWithDividers(groups)
+            val validTools = groups.map { it.face.name }.toSet()
+            val cleaned = toolOrder.filter { isDesktopDividerToken(it) || it in validTools }.distinct()
+            val missing = groups.map { it.face.name }.filterNot { it in cleaned }
+            return cleaned + missing
+        }
+
+    fun moveEditableRow(from: Int, to: Int) {
+        val tokens = editableTokens
+        if (from !in tokens.indices || to !in tokens.indices || from == to) return
+        val moved = tokens.toMutableList()
+        moved.add(to, moved.removeAt(from))
+        saveExplicitTokens(moved)
+    }
+
+    fun addDivider() {
+        val tokens = editableTokens
+        saveExplicitTokens(tokens + nextDesktopDividerToken(tokens))
+    }
+
+    fun removeDivider(token: String) {
+        val next = editableTokens.filterNot { it == token }
+        saveExplicitTokens(next)
+    }
+
+    private fun saveExplicitTokens(tokens: List<String>) {
+        val persisted = if (tokens.any(::isDesktopDividerToken)) tokens else tokens + DESKTOP_NO_DIVIDERS
+        toolOrder = persisted
+        store.toolOrder = persisted
+    }
 
     /**
      * Move slot [index] one place [direction] (‑1 up/left, +1 down/right) and remember the order.

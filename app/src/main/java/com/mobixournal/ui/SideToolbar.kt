@@ -72,20 +72,18 @@ fun SideToolbar(
 ) {
     val items = visibleRailItems(railOrder, railHidden)
     val sections = railSections(items)
-    // The rule is a child of the column like any other, so the adaptive pitch has to be told about it:
-    // otherwise the slots fill the height exactly and the rule pushes the last one past the bottom edge
-    // the whole-slot rule exists to keep clean.
-    val ruleHeightDp = if (sections.size > 1) {
-        RailRuleHeight.value + RailRuleAir.value * 2f + RailSpacing.value
-    } else {
-        0f
-    }
-    ToolbarShell(slotCount = items.size, extraHeightDp = ruleHeightDp, modifier = modifier) {
+    val slotCount = items.count { !isDividerId(it.id) }
+    val ruleCount = (if (sections.size > 1) 1 else 0) + items.count { isDividerId(it.id) }
+    val singleRuleDp = RailRuleHeight.value + RailRuleAir.value * 2f + RailSpacing.value
+    val ruleHeightDp = ruleCount * singleRuleDp
+    ToolbarShell(slotCount = slotCount, extraHeightDp = ruleHeightDp, modifier = modifier) {
         for (section in sections) {
-            // The rail's two lives: the tools the user orders, then the navigation panels — Pages and
-            // Layers — that always stand at the foot, under one hairline (`railSections`).
             if (section.ruled) RailRule()
             for (item in section.items) {
+                if (isDividerId(item.id)) {
+                    RailRule()
+                    continue
+                }
                 val group = toolGroupForRailItem(item.id)
                 if (group != null) {
                     ToolGroupButton(
@@ -216,13 +214,7 @@ private fun ToolbarShell(
             LocalRailSlotSize provides baseSlot * scale,
             LocalRailSlotScale provides scale,
         ) {
-            Surface(
-                modifier = Modifier.width(SideToolbarModernWidth).floatingRim(ModernTheme.capsuleCornerRadiusDp),
-                shape = ModernTheme.capsuleShape,
-                color = glassColor,
-                tonalElevation = 0.dp,
-                shadowElevation = ModernTheme.capsuleShadowDp,
-            ) {
+            Box(modifier = Modifier.width(SideToolbarModernWidth)) {
                 RailColumn(scale) { buttons() }
             }
         }

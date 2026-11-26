@@ -69,4 +69,17 @@ class StripItemsTest {
         )
         assertTrue("and the strip still carries it", imageIndexAfter("NO_SUCH_SLOT") > 0)
     }
+
+    @Test
+    fun `explicit divider tokens override auto-family rules and NO_DIVIDERS drops all rules`() {
+        val customOrder = listOf("PEN", "DIV_1", "HIGHLIGHTER", "DIV_2", "DIV_3", "ERASER")
+        val items = stripItems(DESKTOP_TOOL_GROUPS, rawOrder = customOrder)
+        assertEquals("consecutive DIV_2/DIV_3 collapse into one rule", 2, items.count { it is StripItem.Divider })
+
+        val noDividers = stripItems(
+            DESKTOP_TOOL_GROUPS,
+            rawOrder = listOf("PEN", "HIGHLIGHTER", "NO_DIVIDERS"),
+        )
+        assertEquals("NO_DIVIDERS produces zero rules", 0, noDividers.count { it is StripItem.Divider })
+    }
 }

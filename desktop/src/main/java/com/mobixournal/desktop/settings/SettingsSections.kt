@@ -389,13 +389,16 @@ private fun ToolbarSettings(policy: DesktopSettingsState) {
         )
     }
     SettingsGroup("Buttons") {
-        // The rows are the strip's own contents in the strip's own order ([stripItems]), and each tool
-        // slot carries the drag handle beside its chevrons (`ToolbarOrderRows`).
         ToolbarOrderRows(policy)
+        SettingsCommand(
+            label = "Add divider",
+            note = "Insert a movable visual separator into the tool strip.",
+            onClick = policy.strips::addDivider,
+        )
         if (policy.toolOrder.isNotEmpty()) {
             SettingsCommand(
                 label = "Reset to defaults",
-                note = "Restore tool slot positions to factory layout.",
+                note = "Restore tool slot positions and dividers to factory layout.",
                 onClick = policy::resetToolOrder,
             )
         }

@@ -1,64 +1,85 @@
 package com.mobixournal.desktop.settings
-import com.mobixournal.desktop.tools.StripItem
-import com.mobixournal.desktop.tools.stripItems
+import com.mobixournal.desktop.tools.DEFAULT_IMAGE_ANCHOR
+import com.mobixournal.desktop.tools.DesktopButton
+import com.mobixournal.desktop.tools.DesktopButtonVariant
+import com.mobixournal.desktop.tools.isDesktopDividerToken
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
 
 /**
- * The **Buttons** group's rows, each tool slot carrying a drag handle.
- *
- * The drag is the page list's, in miniature: the carried row is lifted over the list on its shadow,
- * follows the pointer, the rows between glide open on a short tween and the row it would land on
- * wears the accent along its top edge. A drop commits the whole arrangement through
- * `StripOrderState.moveSlotTo`, so both strips and the next launch read exactly what the list showed.
- *
- * A slot row draws **no chevrons**: the same handle answers the keyboard, and focused it steps the
- * slot one place with an arrow key. Insert image keeps its own pair — its place is an anchor under a
- * slot, not an index in the order, so it has no grip to carry it — and the stroke settings travel
- * with the highlighter rather than getting a row of their own.
+ * The **Buttons** group's rows, each tool slot and divider carrying a drag handle.
  */
 @Composable
 internal fun ToolbarOrderRows(policy: DesktopSettingsState) {
     val groups = policy.toolGroups
+    val tokens = policy.strips.editableTokens
+    val byName = groups.associateBy { it.face.name }
+    val anchor = policy.imageAfter.takeIf { name -> name in byName } ?: DEFAULT_IMAGE_ANCHOR.name
     val drag = remember { ReorderState() }
 
-    // The rows are the strip's own contents in the strip's own order ([stripItems]): the list said
-    // "bottom of the strip" while the strip drew Insert image under Text.
-    for (item in stripItems(groups, policy.imageAfter)) when (item) {
-        // The stroke's settings travel with the highlighter, and a family's rule is not a button: neither
-        // is a row the reader could move.
-        StripItem.Stroke, StripItem.Divider -> Unit
-        is StripItem.Tools -> {
-            val index = item.index
-            ReorderRow(drag, index, groups.size) {
+    tokens.forEachIndexed { index, token ->
+        if (isDesktopDividerToken(token)) {
+            ReorderRow(drag, index, tokens.size) {
                 SettingsRow(
-                    label = item.group.face.label,
-                    // Only a slot holding more than one tool says what it holds: "Pen — Pen" teaches nothing.
-                    note = item.group.members.takeIf { it.size > 1 }?.joinToString(" · ") { it.label }.orEmpty(),
+                    label = "Divider",
+                    note = "Visual separator in the tool strip.",
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        DesktopButton(
+                            label = "Remove",
+                            variant = DesktopButtonVariant.Ghost,
+                            onClick = { policy.strips.removeDivider(token) },
+                        )
+                        DragGrip(
+                            label = "Divider",
+                            onDragStart = { drag.start(index) },
+                            onDrag = drag::by,
+                            onDragEnd = { drag.drop(tokens.size)?.let { to -> policy.strips.moveEditableRow(index, to) } },
+                            onDragCancel = drag::clear,
+                            onStep = { direction -> policy.strips.moveEditableRow(index, index + direction) },
+                        )
+                    }
+                }
+            }
+        } else {
+            val group = byName[token] ?: return@forEachIndexed
+            ReorderRow(drag, index, tokens.size) {
+                SettingsRow(
+                    label = group.face.label,
+                    note = group.members.takeIf { it.size > 1 }?.joinToString(" · ") { it.label }.orEmpty(),
                 ) {
                     DragGrip(
-                        label = item.group.face.label,
+                        label = group.face.label,
                         onDragStart = { drag.start(index) },
                         onDrag = drag::by,
-                        onDragEnd = { drag.drop(groups.size)?.let { to -> policy.strips.moveSlotTo(index, to) } },
+                        onDragEnd = { drag.drop(tokens.size)?.let { to -> policy.strips.moveEditableRow(index, to) } },
                         onDragCancel = drag::clear,
-                        onStep = { direction -> policy.moveToolSlot(index, direction) },
+                        onStep = { direction -> policy.strips.moveEditableRow(index, index + direction) },
                     )
                 }
             }
-        }
-        StripItem.Image -> SettingsRow(
-            label = "Insert image",
-            note = "Follows the tool slot directly above it.",
-        ) {
-            val anchor = groups.indexOfFirst { it.face.name == policy.imageAfter }
-            SettingsStepButtons(
-                upEnabled = anchor > 0,
-                downEnabled = anchor in 0 until groups.lastIndex,
-                onUp = { policy.moveImageSlot(-1) },
-                onDown = { policy.moveImageSlot(1) },
-            )
+            if (token == anchor) {
+                SettingsRow(
+                    label = "Insert image",
+                    note = "Follows the tool slot directly above it.",
+                ) {
+                    val toolPos = groups.indexOfFirst { it.face.name == anchor }
+                    SettingsStepButtons(
+                        upEnabled = toolPos > 0,
+                        downEnabled = toolPos in 0 until groups.lastIndex,
+                        onUp = { policy.moveImageSlot(-1) },
+                        onDown = { policy.moveImageSlot(1) },
+                    )
+                }
+            }
         }
     }
 }
