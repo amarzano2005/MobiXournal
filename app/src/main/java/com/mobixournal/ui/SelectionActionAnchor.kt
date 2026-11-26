@@ -27,7 +27,9 @@ import com.mobixournal.render.setSelectionAspectLocked
 import com.mobixournal.render.singleSelectedCircuit
 import com.mobixournal.render.singleSelectedPlot
 import com.mobixournal.render.singleSelectedShape
+import com.mobixournal.render.singleSelectedStroke
 import com.mobixournal.render.singleSelectedTable
+import com.mobixournal.render.storedAspectLocked
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import kotlin.math.roundToInt
 
@@ -95,7 +97,8 @@ fun SelectionActionAnchor(
     val liveCaps = currentSelectionCapabilities(pane, surface)
     val caps = com.mobixournal.ui.theme.rememberClosingArgument(liveCaps) ?: SelectionBarCapabilities()
     val selectedShape = surface?.singleSelectedShape()
-    var aspectLocked by remember(surface, rect, selectedShape?.id, selectedShape?.aspectLocked) {
+    val selectedStroke = surface?.singleSelectedStroke()
+    var aspectLocked by remember(surface, rect, selectedShape?.id, selectedShape?.aspectLocked, selectedStroke?.id, selectedStroke?.storedAspectLocked()) {
         mutableStateOf(surface?.isSelectionAspectLocked() ?: settings.defaultFigureAspectLock)
     }
     var barSize by remember { mutableStateOf(IntSize.Zero) }

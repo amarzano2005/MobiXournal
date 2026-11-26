@@ -123,19 +123,19 @@ internal object DrawingSurfaceDefaults {
      * Size (dp) of the edge bands (top, bottom, left, right) that auto-scroll the page while a selection
      * is dragged into them — compact enough not to trigger near casual margins.
      */
-    const val DRAG_AUTOSCROLL_EDGE_DP = 40f
+    const val DRAG_AUTOSCROLL_EDGE_DP = 56f
 
     /** Fallback per-frame step (dp) kept for callers without explicit time-based speeds. */
     const val DRAG_AUTOSCROLL_STEP_DP = 6f
 
     /** Minimum auto-scroll speed (dp/sec) upon entering an edge band. */
-    const val DRAG_AUTOSCROLL_MIN_SPEED_DP_PER_SEC = 45f
+    const val DRAG_AUTOSCROLL_MIN_SPEED_DP_PER_SEC = 140f
 
     /** Maximum auto-scroll speed (dp/sec) at the outer border of an edge band. */
-    const val DRAG_AUTOSCROLL_MAX_SPEED_DP_PER_SEC = 320f
+    const val DRAG_AUTOSCROLL_MAX_SPEED_DP_PER_SEC = 780f
 
-    /** Hold delay (ms) inside the edge band before auto-scroll begins, preventing accidental jumps. */
-    const val DRAG_AUTOSCROLL_DELAY_MS = 120L
+    /** Brief hold delay (ms) inside the edge band before auto-scroll starts. */
+    const val DRAG_AUTOSCROLL_DELAY_MS = 40L
     const val MIN_RESIZE = 0.05        // clamp on the live uniform-resize factor
     const val MAX_RESIZE = 20.0
     const val PASTE_OFFSET_PT = 12.0   // paste/duplicate nudge so copies don't hide the original

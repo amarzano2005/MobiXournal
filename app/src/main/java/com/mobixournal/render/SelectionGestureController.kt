@@ -62,8 +62,8 @@ internal class SelectionGestureController(
     var selection: ActiveSelection? = null
         set(value) {
             field = value
-            val shape = value?.refs?.singleOrNull()?.let { r -> pageAt(value.pageIndex)?.layers?.getOrNull(r.layerIndex)?.elements?.getOrNull(r.elementIndex) as? ParametricShapeElement }
-            aspectLocked = shape?.aspectLocked ?: defaultAspectLocked
+            val single = value?.refs?.singleOrNull()?.let { r -> pageAt(value.pageIndex)?.layers?.getOrNull(r.layerIndex)?.elements?.getOrNull(r.elementIndex) }
+            aspectLocked = when (single) { is ParametricShapeElement -> single.aspectLocked; is Stroke -> single.storedAspectLocked() ?: defaultAspectLocked; else -> defaultAspectLocked }
         }
 
     // Live rubber-band marquee and the page it selects within. The corners are held in **page-local
@@ -271,11 +271,10 @@ internal class SelectionGestureController(
         val singleShape = sel.refs.singleOrNull()?.let { ref ->
             page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? ParametricShapeElement
         }
-        val hitsBody = if (singleShape != null) {
-            ElementHitTester.hits(singleShape, ptX, ptY, DrawingSurfaceDefaults.MOVE_GRAB_PAD)
-        } else {
-            b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(ptX, ptY)
-        }
+        val hitsBody = if (singleShape != null && !aspectLocked) {
+            ElementHitTester.hits(singleShape, ptX, ptY, DrawingSurfaceDefaults.MOVE_GRAB_PAD) ||
+                SelectionResizeMath.pointInPolygon(singleShape.vertices, ptX, ptY)
+        } else b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(ptX, ptY)
         if (hitsBody) { beginMove(event, box); return true }
         return false
     }

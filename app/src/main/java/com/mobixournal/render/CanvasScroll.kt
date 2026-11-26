@@ -22,6 +22,7 @@
 package com.mobixournal.render
 
 import kotlin.math.abs
+import kotlin.math.pow
 
 /**
  * The four things scrolling asks of the momentum driver — an interface so that this object, and the
@@ -249,7 +250,7 @@ internal class ScrollGesture(
         if (dir == 0) return 0f
         val distFromEdge = if (dir > 0) (extent - pos).coerceAtLeast(0f) else pos.coerceAtLeast(0f)
         val t = ((edge - distFromEdge) / edge).coerceIn(0f, 1f)
-        val speed = minSpeed + (maxSpeed - minSpeed) * t * t
+        val speed = minSpeed + (maxSpeed - minSpeed) * t.toDouble().pow(1.3).toFloat()
         return dir * speed * dtSec
     }
 

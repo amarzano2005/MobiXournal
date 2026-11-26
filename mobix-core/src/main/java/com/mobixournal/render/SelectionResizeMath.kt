@@ -3,6 +3,7 @@ package com.mobixournal.render
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.ShapeVertex
 import com.mobixournal.format.model.Stroke
 import kotlin.math.abs
 import kotlin.math.hypot
@@ -43,6 +44,25 @@ object SelectionResizeMath {
     const val MAX_SCALE = 20.0
     const val FLAT_PT = 4.0
     private const val MIN_AXIS_SPAN_PT = 1e-3
+    const val STROKE_ASPECT_LOCKED_ATTR = "aspectLocked"
+
+    /** Ray-casting check for whether page point ([x], [y]) lies inside polygon [vertices]. */
+    fun pointInPolygon(vertices: List<ShapeVertex>, x: Double, y: Double): Boolean {
+        if (vertices.size < 3) return false
+        var inside = false
+        var j = vertices.lastIndex
+        for (i in vertices.indices) {
+            val xi = vertices[i].x
+            val yi = vertices[i].y
+            val xj = vertices[j].x
+            val yj = vertices[j].y
+            val intersects = ((yi > y) != (yj > y)) &&
+                (x < (xj - xi) * (y - yi) / ((yj - yi).let { if (abs(it) < 1e-9) 1e-9 else it }) + xi)
+            if (intersects) inside = !inside
+            j = i
+        }
+        return inside
+    }
 
     /**
      * Whether a corner drag keeps the selection's proportions (`sx == sy`).
@@ -142,3 +162,11 @@ object SelectionResizeMath {
         return (hypot(currentX - anchorX, currentY - anchorY) / denom).coerceIn(minScale, maxScale)
     }
 }
+
+/** Stored aspect-lock preference on a [Stroke], or null if never explicitly toggled. */
+fun Stroke.storedAspectLocked(): Boolean? =
+    extraAttrs[SelectionResizeMath.STROKE_ASPECT_LOCKED_ATTR]?.toBooleanStrictOrNull()
+
+/** Returns a copy of this [Stroke] persisting its aspect-lock [locked] preference in `extraAttrs`. */
+fun Stroke.withAspectLocked(locked: Boolean): Stroke =
+    copy(extraAttrs = extraAttrs + (SelectionResizeMath.STROKE_ASPECT_LOCKED_ATTR to locked.toString()))

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "stroke-lock-interior-drag-scroll"
+title = "Persist stroke aspect lock, allow dragging inside selection interior, and sharpen edge auto-scroll"
+description = "Persisted Stroke aspectLocked in extraAttrs via storedAspectLocked/withAspectLocked (SelectionResizeMath.kt, DrawingSurfaceSelection.kt, SelectionGestureController.kt, SelectionActionAnchor.kt) with full render() repaint; added ray-casting SelectionResizeMath.pointInPolygon so shapes can be dragged from anywhere inside their bluish selection box or polygon interior immediately after insertion; tuned drag auto-scroll (56dp edge band, 40ms delay, 140-780dp/s, t^1.3 ramp in DrawingSurfaceConstants.kt and CanvasScroll.kt); updated unit tests. Verified with SelectionResizeMathTest, ScrollGestureTest, SelectionResizeTest, SelectionActionAnchorTest, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: unchanged selection bar surface; tokens: unchanged ChromeGlyph and CanvasChrome; glyph: ASPECT_LOCK/ASPECT_UNLOCK; states: persisted per-stroke aspect lock restored on reselection and unlocked/locked shape interior drag; copy: unchanged English; parity: shared SelectionResizeMath.pointInPolygon and stroke aspect-lock helpers in mobix-core; docs: none (no UI contract change beyond existing lock/scroll behavior); tests: SelectionResizeMathTest, ScrollGestureTest, SelectionResizeTest, SelectionActionAnchorTest, SourceStructureTest, ColorContractGuardTest green"
+
+[[task]]
 id = "table-ime-lock-exit-scroll-polish"
 title = "Add IME formula bar for table editing, unify lock-mode visuals/visibility, freeze selection exit buttons, and smooth drag auto-scroll"
 description = "Implemented TableCompactFormulaBar (TableStyleTab.kt + TableCellEditorDialog.kt) with arrow navigation and live active-cell canvas highlight (DrawingSurfaceTable.kt); centralized SelectionResizeMath.supportsAspectLockToggle, bluish box & 4-corner lock mode handles on shapes/strokes (DrawingSurfacePaint.kt, SelectionHandlesPaint.kt, SelectionHandleResize.kt) and hid lock toggle when inapplicable (EditorActionBars.kt); froze SelectionBarCapabilities with rememberClosingArgument across exit animation (SelectionActionAnchor.kt); replaced frame-step edge auto-scroll with 120ms-delayed dt-based quadratic speed ramp (CanvasScroll.kt, DrawingSurfaceConstants.kt); updated unit tests and docs. Verified via :mobix-core:test, :app:testDebugUnitTest (including SourceStructureTest and ColorContractGuardTest), :desktop:createDistributable, and scripts/release-apk.sh."

@@ -131,4 +131,23 @@ class SelectionResizeMathTest {
         assertFalse(SelectionResizeMath.supportsAspectLockToggle(listOf(shape, stroke)))
         assertFalse(SelectionResizeMath.supportsAspectLockToggle(emptyList()))
     }
+
+    @Test
+    fun strokeAspectLockPersistsAndPointInPolygonHitsInterior() {
+        val stroke = Stroke(tool = Tool.PEN, color = 0, capStyle = null, uniformWidth = false, points = emptyList())
+        assertEquals(null, stroke.storedAspectLocked())
+        val unlocked = stroke.withAspectLocked(false)
+        assertEquals(false, unlocked.storedAspectLocked())
+        val locked = unlocked.withAspectLocked(true)
+        assertEquals(true, locked.storedAspectLocked())
+
+        val square = listOf(
+            ShapeVertex(0.0, 0.0),
+            ShapeVertex(100.0, 0.0),
+            ShapeVertex(100.0, 100.0),
+            ShapeVertex(0.0, 100.0),
+        )
+        assertTrue(SelectionResizeMath.pointInPolygon(square, 50.0, 50.0))
+        assertFalse(SelectionResizeMath.pointInPolygon(square, 120.0, 50.0))
+    }
 }

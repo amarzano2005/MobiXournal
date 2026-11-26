@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.pow
 
 /**
  * Scrolling as an object: the pan delta, the pinch, the hold that keeps a two-finger tap a tap, and the
@@ -170,7 +171,7 @@ class ScrollGestureTest {
 
     @Test
     fun `auto-scroll waits delayMs then scrolls progressively with dt`() {
-        scroll.updateDrag(500f, 775f) // 25px inside 50px bottom edge (t = 0.5 -> speed = 200 px/s)
+        scroll.updateDrag(500f, 775f) // 25px inside 50px bottom edge (t = 0.5)
 
         // Before delayMs elapses: reposts without scrolling
         clockMs += 60L
@@ -178,11 +179,12 @@ class ScrollGestureTest {
         assertTrue("waits hold delay before scrolling", pans.isEmpty())
         assertEquals(2, framePosted)
 
-        // After delayMs elapses: first active frame uses 16ms default dt -> 200 * 0.016 = 3.2 px
+        // After delayMs elapses: speed = 100 + 400 * 0.5^1.3 ≈ 262.45 px/s -> * 0.016 ≈ 4.199 px
+        val expectedMidSpeed = 100f + 400f * (0.5).pow(1.3).toFloat()
         clockMs += 70L
         scroll.autoScrollFrame()
         assertEquals(0f, pans.single().first, 0f)
-        assertEquals(200f * 0.016f, pans.single().second, 1e-3f)
+        assertEquals(expectedMidSpeed * 0.016f, pans.single().second, 1e-3f)
         assertEquals("the selection rides the scrolling page", 500f to 775f, drags.single())
         assertEquals(3, framePosted)
 

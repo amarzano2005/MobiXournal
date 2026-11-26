@@ -18,6 +18,7 @@ import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.XoppColor
 import com.mobixournal.format.XoppColor.withAlpha
@@ -656,11 +657,20 @@ fun DrawingSurfaceView.canToggleSelectionAspectLock(): Boolean {
     )
 }
 
+/** Returns the currently selected [Stroke] if the active selection consists of exactly one stroke. */
+fun DrawingSurfaceView.singleSelectedStroke(): Stroke? {
+    val sel = selection ?: return null
+    if (sel.refs.size != 1) return null
+    val ref = sel.refs.first()
+    val page = pageAt(sel.pageIndex) ?: return null
+    return page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? Stroke
+}
+
 /** Whether corner resizing on the active selection locks aspect ratio (`sx == sy`). */
 fun DrawingSurfaceView.isSelectionAspectLocked(): Boolean =
-    singleSelectedShape()?.aspectLocked ?: gestures.aspectLocked
+    singleSelectedShape()?.aspectLocked ?: singleSelectedStroke()?.storedAspectLocked() ?: gestures.aspectLocked
 
-/** Toggle proportional corner resizing (`sx == sy`), persisting on a single selected figure, and repaint. */
+/** Toggle proportional corner resizing (`sx == sy`), persisting on shapes and strokes, and repaint. */
 fun DrawingSurfaceView.setSelectionAspectLocked(locked: Boolean) {
     val shape = singleSelectedShape()
     if (shape != null) {
@@ -669,11 +679,19 @@ fun DrawingSurfaceView.setSelectionAspectLocked(locked: Boolean) {
         if (shape.aspectLocked != locked) {
             replaceShapeElement(shape, shape.copy(aspectLocked = locked))
         } else {
-            invalidate()
+            render()
         }
         return
     }
+    val stroke = singleSelectedStroke()
+    if (stroke != null) {
+        gestures.aspectLocked = locked
+        if (stroke.storedAspectLocked() != locked) {
+            val index = selection?.pageIndex ?: pageIndexHolding(stroke) ?: return
+            windowEditPage(index) { page -> ElementEdits.replaceElementOn(page, stroke, stroke.withAspectLocked(locked)) ?: page }
+        }
+        render(); return
+    }
     if (gestures.aspectLocked == locked) return
-    gestures.aspectLocked = locked
-    invalidate()
+    gestures.aspectLocked = locked; render()
 }
