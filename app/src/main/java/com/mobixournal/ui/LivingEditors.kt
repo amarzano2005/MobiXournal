@@ -14,7 +14,7 @@ import com.mobixournal.render.Placement
 fun EditorUiState.openLivingEditor(target: LivingEditTarget) {
     when (target) {
         is LivingEditTarget.TableCell ->
-            editingTableCell = EditingTableCell(target.table, target.row, target.col)
+            openTableInspector(target.table, target.row, target.col)
         is LivingEditTarget.Plot -> openPlotInspector(target.plot)
         is LivingEditTarget.Circuit -> openCircuitInspector(target.circuit)
         is LivingEditTarget.Shape -> openShapeInspector(target.shape)

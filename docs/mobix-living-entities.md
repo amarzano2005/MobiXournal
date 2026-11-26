@@ -76,23 +76,9 @@ wrong: it made `iii` 2.4 times its drawn width, and an exported cell centred on 
 It chooses a cell's **font size** too (`TableInk.autoFontSizePt`), so a column of `iii` is no longer
 shrunk to the size a character count reserved for `MMM`.
 
-The cells are edited through a **fixed editor dialog** (`ui/TableCellEditorDialog.kt`) — the
-anchored floating inspector this replaced was fragile next to the on-screen keyboard (the app
-draws edge-to-edge, so `adjustResize` gives it nothing to clamp against) and could only edit one
-cell at a time. Fixed is literal: the dialog has no drag handle and nothing about the canvas may
-shift it, so the cell under the stylus stays where the last tap left it. Opened by a double tap on a cell or by **Edit table** in the selection bar, the
-dialog shows every cell's text at once in the table's own shape with horizontal and vertical
-scrolling for wide grids, steppers to add/remove rows and columns, keyboard navigation (Tab,
-Shift+Tab, Enter) with automatic row expansion on the final cell, and align/bold acting on the
-focused cell. A column added mid-edit arrives with its **header cell already bold** whenever the
-table has a header row (`headerRow`, or a first row whose cells are bold), so a new column never
-lands plain beside a bold header. Nothing tracks the canvas: the dialog is a fixed surface, so the keyboard
-can never cover it mid-edit.
+The table editor runs as a **live anchored 2-tab inspector** (`TableEditorHost` in `ui/TableCellEditorDialog.kt` and `TableLayoutStyleTab` in `ui/TableStyleTab.kt`) hosted inside `LivingInspectorAnchor`, matching `Plot`, `ParametricShape` and `Circuit`. Opened by a double tap on a cell or by **Edit table** in the selection bar, its **Cells** tab shows a compact spreadsheet grid with column/row headers (`A, B, C...` / `1, 2, 3...`), keyboard navigation (`Tab`, `Shift+Tab`, `Enter`), inline contextual alignment/bold toggles, and row/column insertion or removal at the active cell; a column added mid-edit arrives with its **header cell already bold** whenever the table has a header row (`headerRow`, or a first row whose cells are bold). Its **Layout & Style** tab provides row/column steppers, `Distribute evenly`, `Header row`, border width presets and `PenPalette` border colours.
 
-**Save** is the one commit point: the whole grid is swapped in through
-`DrawingSurfaceView.replaceTableElement` — one element edit, one undo step — and that is exactly
-what the canvas then draws. **Cancel** (and dismiss-on-back) closes without saving, so the
-pre-edit state never leaves the table in a half-committed shape; there is no per-keystroke
+Every edit updates the table **live** on the canvas via `DrawingSurfaceView.replaceTableElement(..., recordUndo = !recordedUndo)`, coalescing the whole editing session into a single undo entry while keeping the anchored panel clear of the figure, safe insets and active IME.
 commit inside the dialog at all.
 
 ### Function plot (`plot`)

@@ -118,7 +118,7 @@ fun SelectionActionAnchor(
         canEditTable = surface?.singleSelectedTable() != null,
         onEditTable = {
             surface?.singleSelectedTable()?.let { table ->
-                ui.editingTableCell = EditingTableCell(table, 0, 0)
+                ui.openTableInspector(table, 0, 0)
             }
         },
         canEditCircuit = surface?.singleSelectedCircuit() != null,

@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "live-table-inspector-redesign"
+title = "Redesign table editing into live 2-tab anchored inspector"
+description = "Replaced modal TableCellEditorDialog with live 2-tab TableEditorHost (TableCellEditorDialog.kt + TableStyleTab.kt) on LivingInspectorAnchor; added recordUndo parameter to replaceTableElement (DrawingSurfaceSelection.kt) for single-session undo coalescing; added tableInspectorSession/openTableInspector (EditorUiState.kt, LivingEditors.kt, SelectionActionAnchor.kt); extended TableCellEditorModel.kt with columnLabel, headerRowToggled, tableDistributedEvenly, borderWidth/borderColor/toTableElement; wired TableEditorHost in EditorRegions.kt; added JVM tests in TableCellEditorDialogTest.kt; updated docs/mobix-living-entities.md and docs/interface-contract.md. Verified via unit tests, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: floating surface via LivingInspectorAnchor (DialogPresence + POPOVER GlassMotion + InspectorTabBar + InspectorChip); tokens: PenPalette.COLORS + MaterialTheme scheme tokens; glyph: TableChart + DragIndicator + FormatAlign/FormatBold + Add/Remove; states: entry/exit presence + active cell focus highlight + live undo coalescing; copy: English labels (Table, Cells, Layout & Style, Distribute evenly, Header row, Border width, Border colour, Done); parity: Android reaches Grid/Header/BorderWidth/BorderColor parity with desktop TableBody; docs: docs/mobix-living-entities.md and docs/interface-contract.md updated; tests: TableCellEditorDialogTest, LivingInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest green"
+
+[[task]]
 id = "floating-bars-exit-motion"
 title = "Add DialogPresence and GlassMotion exit animations to remaining Android overlays"
 description = "Wrapped SelectionActionAnchor, TextSelectionAnchor (SelectionBars.kt) and PenDiagnosticsPanel (EditorRegions.kt) in DialogPresence; retained closing bounds/spans via rememberClosingArgument in SelectionActionAnchor.kt and TextSelectionAnchor.kt; added liquidGlassSpringAnimation(POPOVER) to PenDiagnosticsPanel.kt; updated docs/interface-contract.md §7. Verified with unit/guard tests (77/78 passed; pre-existing README.md 163/160 line budget), :desktop:createDistributable, and scripts/release-apk.sh."

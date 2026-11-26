@@ -17,6 +17,51 @@ internal fun editorCellsOf(table: TableElement): List<List<TableCell>> =
         List(table.colWidths.size) { c -> table.cell(r, c) }
     }
 
+/** Spreadsheet column label (`0 -> "A"`, `25 -> "Z"`, `26 -> "AA"`). */
+internal fun columnLabel(index: Int): String {
+    var n = index.coerceAtLeast(0)
+    val sb = StringBuilder()
+    do {
+        sb.append(('A' + (n % 26)))
+        n = (n / 26) - 1
+    } while (n >= 0)
+    return sb.reverse().toString()
+}
+
+/** Sets bold styling on row 0 cells when toggling the table's header row flag. */
+internal fun headerRowToggled(
+    cells: List<List<TableCell>>,
+    enabled: Boolean,
+): List<List<TableCell>> {
+    if (cells.isEmpty()) return cells
+    return cells.mapIndexed { r, rowCells ->
+        if (r == 0) rowCells.map { it.copy(bold = enabled) } else rowCells
+    }
+}
+
+/**
+ * Redistributes total width evenly across columns and total height evenly across rows while
+ * respecting [TableElementFactory.MIN_COL_WIDTH_PT] and [TableElementFactory.MIN_ROW_HEIGHT_PT].
+ */
+internal fun tableDistributedEvenly(
+    colWidths: List<Double>,
+    rowHeights: List<Double>,
+): Pair<List<Double>, List<Double>> {
+    val evenCols = if (colWidths.isEmpty()) {
+        colWidths
+    } else {
+        val w = (colWidths.sum() / colWidths.size).coerceAtLeast(TableElementFactory.MIN_COL_WIDTH_PT)
+        List(colWidths.size) { w }
+    }
+    val evenRows = if (rowHeights.isEmpty()) {
+        rowHeights
+    } else {
+        val h = (rowHeights.sum() / rowHeights.size).coerceAtLeast(TableElementFactory.MIN_ROW_HEIGHT_PT)
+        List(rowHeights.size) { h }
+    }
+    return evenCols to evenRows
+}
+
 /** Adds a row to the grid and row heights. */
 internal fun rowAdded(
     cells: List<List<TableCell>>,
@@ -150,15 +195,18 @@ internal fun cellStyled(
 }
 
 /**
- * One open editing session's working grid plus the cell the style strip currently acts on. The
- * grid lives only in this session: **Save** commits it onto the table wholesale, closing without
- * saving throws it away — there is no half-committed state in between.
+ * One open editing session's working grid, styling, geometry and active cell focus. Edits mutate
+ * this state and immediately synchronize onto the canvas via `toTableElement`.
  */
 internal class TableCellEditorState(initial: TableElement, initialFocus: Pair<Int, Int> = 0 to 0) {
     var cells by mutableStateOf(editorCellsOf(initial))
     var rowHeights by mutableStateOf(initial.rowHeights)
     /** The table's own header-row flag, carried through so an added column can honour it. */
-    val headerRow: Boolean = initial.headerRow
+    var headerRow by mutableStateOf(initial.headerRow)
+    private var _borderWidth by mutableStateOf(initial.borderWidth)
+    val borderWidth: Double get() = _borderWidth
+    private var _borderColor by mutableStateOf(initial.borderColor)
+    val borderColor: Int get() = _borderColor
     var colWidths by mutableStateOf(initial.colWidths)
     var currentRow by mutableStateOf(initialFocus.first.coerceIn(0, (initial.rowHeights.size - 1).coerceAtLeast(0)))
     var currentCol by mutableStateOf(initialFocus.second.coerceIn(0, (initial.colWidths.size - 1).coerceAtLeast(0)))
@@ -176,6 +224,32 @@ internal class TableCellEditorState(initial: TableElement, initialFocus: Pair<In
         val now = cells.getOrNull(row)?.getOrNull(col)?.bold ?: return
         cells = cellStyled(cells, row, col, bold = !now)
     }
+
+    fun toggleHeaderRow(enabled: Boolean) {
+        headerRow = enabled
+        cells = headerRowToggled(cells, enabled)
+    }
+
+    fun setBorderWidth(width: Double) {
+        _borderWidth = width.coerceIn(0.5, 6.0)
+    }
+
+    fun setBorderColor(color: Int) {
+        _borderColor = color
+    }
+
+    fun distributeEvenly() {
+        val (evenCols, evenRows) = tableDistributedEvenly(colWidths, rowHeights)
+        colWidths = evenCols
+        rowHeights = evenRows
+    }
+
+    fun toTableElement(base: TableElement): TableElement =
+        applyEditedTable(base, cells, rowHeights, colWidths).copy(
+            headerRow = headerRow,
+            borderWidth = borderWidth,
+            borderColor = borderColor,
+        )
 
     fun addRow(afterRow: Int? = null) {
         val (newCells, newHeights) = rowAdded(cells, rowHeights, afterRow)

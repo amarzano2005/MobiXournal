@@ -94,6 +94,11 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
         private set
     /** The existing [TableElement] cell being edited in place, or null when none is. */
     var editingTableCell by mutableStateOf<EditingTableCell?>(null)
+    /**
+     * Which **open** of the table inspector this is — bumped by [openTableInspector], never by a live edit.
+     */
+    var tableInspectorSession by mutableStateOf(0)
+        private set
     /** The existing [CircuitElement] being edited in place, or null when none is. */
     var editingCircuit by mutableStateOf<com.mobixournal.format.model.CircuitElement?>(null)
     /**
@@ -267,6 +272,16 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
         shapeInspectorSession++
     }
 
+    /** Open the anchored table inspector on [table] focused on ([row], [col]) as a **fresh** session. */
+    fun openTableInspector(
+        table: com.mobixournal.format.model.TableElement,
+        row: Int = 0,
+        col: Int = 0,
+    ) {
+        editingTableCell = EditingTableCell(table, row, col)
+        tableInspectorSession++
+    }
+
     /** The pane the toolbar and overlays drive. */
     fun pane(active: Int): PaneState = panes[active.coerceIn(panes.indices)]
 }
@@ -285,9 +300,8 @@ fun rememberEditorUiState(settings: AppSettings): EditorUiState = remember {
 }
 
 /**
- * A [TableElement] with its cell editor open. The fixed editor (`TableCellEditorDialog`) shows
- * every cell at once and commits on Save, so this only needs to name the table and the cell the
- * session starts focused on.
+ * A [TableElement] with its live anchored inspector open (`TableEditorHost`), naming the table and
+ * the cell the session starts focused on.
  */
 data class EditingTableCell(
     val table: com.mobixournal.format.model.TableElement,

@@ -491,15 +491,22 @@ fun DrawingSurfaceView.singleSelectedTable(): TableElement? {
 }
 
 /**
- * Replace [old] table element with [new] in place: records history for undo,
- * keeps the same layer, z-order, and id, and repaints.
+ * Replace [old] table element with [new] in place: keeps the same layer, z-order and id, and
+ * repaints. Records history for undo when [recordUndo] is true (live editing sessions pass
+ * `false` after the initial edit so an entire session collapses into one undo step).
  */
-fun DrawingSurfaceView.replaceTableElement(old: TableElement, new: TableElement) {
-    val before = doc
+fun DrawingSurfaceView.replaceTableElement(
+    old: TableElement,
+    new: TableElement,
+    recordUndo: Boolean = true,
+) {
+    val before = if (recordUndo) doc else null
     val index = pageIndexHolding(old) ?: selection?.pageIndex ?: return
     windowEditPage(index) { page -> ElementEdits.replaceElementOn(page, old, new) ?: page } ?: return
-    history.record(before)
-    notifyHistory()
+    if (before != null) {
+        history.record(before)
+        notifyHistory()
+    }
     relayout()
     render()
 }

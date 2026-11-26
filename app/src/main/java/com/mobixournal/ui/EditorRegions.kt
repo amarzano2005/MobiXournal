@@ -1672,7 +1672,7 @@ fun EditorPaneView(
                 PlotInspectorAnchor(state, ui, canvasSizePx, Modifier.fillMaxSize(), insetPadding)
             }
             DialogPresence(ui.editingTableCell != null) {
-                TableCellEditorDialog(ui = ui, pane = state)
+                TableEditorHost(ui = ui, pane = state, canvasSizePx = canvasSizePx, modifier = Modifier.fillMaxSize(), safeInsets = insetPadding)
             }
             DialogPresence(ui.editingMathBlock != null) {
                 val block = rememberClosingArgument(ui.editingMathBlock) ?: return@DialogPresence

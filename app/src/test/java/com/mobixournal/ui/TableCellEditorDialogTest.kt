@@ -223,4 +223,50 @@ class TableCellEditorDialogTest {
         assertEquals("added row: 3 rows now", 3, state.rowHeights.size)
         assertEquals("focus moved to new row 2 col 0", 2 to 0, state.currentRow to state.currentCol)
     }
+
+    @Test
+    fun columnLabelUsesSpreadsheetLetters() {
+        assertEquals("A", columnLabel(0))
+        assertEquals("Z", columnLabel(25))
+        assertEquals("AA", columnLabel(26))
+    }
+
+    @Test
+    fun headerRowToggledAndEvenDistributionWorkCleanly() {
+        val plain = listOf(
+            listOf(TableCell("H1"), TableCell("H2")),
+            listOf(TableCell("V1"), TableCell("V2")),
+        )
+        val withHeader = headerRowToggled(plain, enabled = true)
+        assertTrue(withHeader[0].all { it.bold })
+        assertFalse(withHeader[1].any { it.bold })
+
+        val withoutHeader = headerRowToggled(withHeader, enabled = false)
+        assertFalse(withoutHeader[0].any { it.bold })
+
+        val (cols, rows) = tableDistributedEvenly(listOf(40.0, 100.0), listOf(30.0, 50.0))
+        assertEquals(listOf(70.0, 70.0), cols)
+        assertEquals(listOf(40.0, 40.0), rows)
+    }
+
+    @Test
+    fun stateStyleMutationsAndToTableElementApplyLive() {
+        val base = sampleTable()
+        val state = TableCellEditorState(base, initialFocus = 0 to 0)
+
+        state.toggleHeaderRow(false)
+        state.setBorderWidth(2.5)
+        state.setBorderColor(0xFFAA0000.toInt())
+        state.distributeEvenly()
+        state.setText(0, 0, "Updated")
+
+        val live = state.toTableElement(base)
+        assertFalse(live.headerRow)
+        assertFalse(live.cell(0, 1).bold)
+        assertEquals(2.5, live.borderWidth, 0.001)
+        assertEquals(0xFFAA0000.toInt(), live.borderColor)
+        assertEquals("Updated", live.cell(0, 0).text)
+        assertEquals(listOf(70.0, 70.0, 70.0), live.colWidths)
+        assertEquals(listOf(35.0, 35.0), live.rowHeights)
+    }
 }
