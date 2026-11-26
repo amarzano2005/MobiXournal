@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "living-inspector-tab-flash-fix"
+title = "Fix popup entry double-flash and add smooth tab transitions"
+description = "Eliminated entry double-flash in LivingInspectorAnchor, restored liquidGlassContentSize(), and added AnimatedContent crossfade transitions in ShapeEditorDialog and PlotInspectorAnchor."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: FloatingSurface; tokens: DesignTokens.GlassMotion POPOVER + liquidGlassContentSize + AnimatedContent; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, PlotInspectorAnchorTest, ShapeInspectorHelpersTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
+
+[[task]]
 id = "popup-motion-safe-insets-sync"
 title = "Fix popup fly-in, resize lag, safe-inset clamping, and 1:1 selection bar tracking"
 description = "Fixed popup fly-in from (0,0) and resize lag in LivingInspectorAnchor, clamped all anchored popups inside safeInsets (insetPadding), removed SelectionActionAnchor spring lag for 1:1 tracking, wired CircuitValueKeyboard to DialogPresence + SHEET spring, and added anchoredOffsetRespectsTopAndLeftSafeInsets test."

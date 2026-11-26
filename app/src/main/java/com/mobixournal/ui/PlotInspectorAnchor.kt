@@ -1,6 +1,11 @@
 package com.mobixournal.ui
 
 import android.graphics.RectF
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -337,42 +342,49 @@ private fun PlotInspectorBody(
     tab: PlotInspectorTab,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    AnimatedContent(
+        targetState = tab,
+        transitionSpec = { fadeIn(tween(140)) togetherWith fadeOut(tween(110)) },
+        label = "plotInspectorTab",
         modifier = modifier
             .fillMaxWidth()
             .heightIn(max = 330.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        when (tab) {
-            PlotInspectorTab.CURVES -> {
-                DialogInputsColumn(
-                    modifier = Modifier.weight(1f, fill = false),
-                    modeTab = state.modeTab,
-                    onModeTabChange = { state.modeTab = it },
-                    curves = state.curves,
-                    paramX = state.paramX,
-                    paramY = state.paramY,
-                    onParamXChange = { state.paramX = it },
-                    onParamYChange = { state.paramY = it },
-                    xMinText = state.xMinText,
-                    onXMinChange = { state.xMinText = it },
-                    xMaxText = state.xMaxText,
-                    onXMaxChange = { state.xMaxText = it },
-                    rangeOk = state.rangeOk,
-                    shade = state.shade,
-                )
-            }
-            PlotInspectorTab.OPTIONS -> {
-                OptionsRow(
-                    showCriticalPoints = state.showCriticalPoints,
-                    onShowCriticalPointsChange = { state.showCriticalPoints = it },
-                    includeDerivative = state.includeDerivative,
-                    onIncludeDerivativeChange = { state.includeDerivative = it },
-                    includeSummary = state.includeSummary,
-                    onIncludeSummaryChange = { state.includeSummary = it },
-                    infoSide = state.infoSide,
-                    onInfoSideChange = { state.infoSide = it },
-                )
+    ) { activeTab ->
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            when (activeTab) {
+                PlotInspectorTab.CURVES -> {
+                    DialogInputsColumn(
+                        modifier = Modifier.weight(1f, fill = false),
+                        modeTab = state.modeTab,
+                        onModeTabChange = { state.modeTab = it },
+                        curves = state.curves,
+                        paramX = state.paramX,
+                        paramY = state.paramY,
+                        onParamXChange = { state.paramX = it },
+                        onParamYChange = { state.paramY = it },
+                        xMinText = state.xMinText,
+                        onXMinChange = { state.xMinText = it },
+                        xMaxText = state.xMaxText,
+                        onXMaxChange = { state.xMaxText = it },
+                        rangeOk = state.rangeOk,
+                        shade = state.shade,
+                    )
+                }
+                PlotInspectorTab.OPTIONS -> {
+                    OptionsRow(
+                        showCriticalPoints = state.showCriticalPoints,
+                        onShowCriticalPointsChange = { state.showCriticalPoints = it },
+                        includeDerivative = state.includeDerivative,
+                        onIncludeDerivativeChange = { state.includeDerivative = it },
+                        includeSummary = state.includeSummary,
+                        onIncludeSummaryChange = { state.includeSummary = it },
+                        infoSide = state.infoSide,
+                        onInfoSideChange = { state.infoSide = it },
+                    )
+                }
             }
         }
     }

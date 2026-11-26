@@ -1,5 +1,10 @@
 package com.mobixournal.ui
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
@@ -149,39 +154,47 @@ private fun ShapeInspectorPanel(
         })
         HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.22f))
 
-        Column(
+        AnimatedContent(
+            targetState = tab,
+            transitionSpec = { fadeIn(tween(140)) togetherWith fadeOut(tween(110)) },
+            label = "shapeInspectorTab",
             modifier = Modifier
                 .weight(1f, fill = false)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            when (tab) {
-                ShapeInspectorTab.GEOMETRY -> ShapeGeometryTab(
-                    shape = shape,
-                    selectedIndex = safeIndex,
-                    editVersion = editVersion,
-                    activeField = keyboard?.activeFieldId,
-                    onSelectIndex = {
-                        selectedIndex = it
-                        keyboard?.close()
-                    },
-                    onFocusField = { _ -> },
-                    onUpdate = { next ->
-                        editVersion++
-                        onApply(next)
-                    },
-                )
-                ShapeInspectorTab.STYLE -> ShapeStyleTab(
-                    shape = shape,
-                    editVersion = editVersion,
-                    activeField = keyboard?.activeFieldId,
-                    onFocusField = { _ -> },
-                    onUpdate = { next ->
-                        editVersion++
-                        onApply(next)
-                    },
-                )
+                .fillMaxWidth(),
+        ) { activeTab ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                when (activeTab) {
+                    ShapeInspectorTab.GEOMETRY -> ShapeGeometryTab(
+                        shape = shape,
+                        selectedIndex = safeIndex,
+                        editVersion = editVersion,
+                        activeField = keyboard?.activeFieldId,
+                        onSelectIndex = {
+                            selectedIndex = it
+                            keyboard?.close()
+                        },
+                        onFocusField = { _ -> },
+                        onUpdate = { next ->
+                            editVersion++
+                            onApply(next)
+                        },
+                    )
+                    ShapeInspectorTab.STYLE -> ShapeStyleTab(
+                        shape = shape,
+                        editVersion = editVersion,
+                        activeField = keyboard?.activeFieldId,
+                        onFocusField = { _ -> },
+                        onUpdate = { next ->
+                            editVersion++
+                            onApply(next)
+                        },
+                    )
+                }
             }
         }
 

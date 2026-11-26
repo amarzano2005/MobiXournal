@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import android.graphics.RectF
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.mobixournal.design.DesignTokens
 import com.mobixournal.ui.theme.FloatingSurface
 import com.mobixournal.ui.theme.LocalFloatingSurfaceClosing
+import com.mobixournal.ui.theme.liquidGlassContentSize
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import kotlin.math.roundToInt
 
@@ -218,7 +220,7 @@ internal fun LivingInspectorAnchor(
             .alpha(if (computedOffset == null) 0f else 1f)
             .offset { computedOffset ?: IntOffset.Zero }
             .liquidGlassSpringAnimation(
-                expanded = !LocalFloatingSurfaceClosing.current && computedOffset != null,
+                expanded = !LocalFloatingSurfaceClosing.current,
                 origin = TransformOrigin(0.5f, 0.5f),
                 role = DesignTokens.GlassMotion.SurfaceRole.POPOVER,
             )
@@ -227,6 +229,8 @@ internal fun LivingInspectorAnchor(
             .heightIn(max = maxH)
             .padding(4.dp),
     ) {
-        content(dragModifier)
+        Box(modifier = Modifier.liquidGlassContentSize()) {
+            content(dragModifier)
+        }
     }
 }
