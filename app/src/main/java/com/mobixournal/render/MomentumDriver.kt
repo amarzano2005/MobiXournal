@@ -27,6 +27,8 @@ internal class MomentumDriver(
     private val paintFrame: () -> Unit,
     /** Drop any repaint already queued for the coming vsync, so one vsync posts one buffer. */
     private val cancelQueuedPaint: () -> Unit,
+    /** Invoked once when an active glide stops (settled or interrupted). */
+    private val onStopped: () -> Unit = {},
 ): ScrollMomentum {
 
     /** Scales the release velocity fed into a fling; 1 = as-flung, 0 disables momentum. */
@@ -114,11 +116,13 @@ internal class MomentumDriver(
 
     /** Halt any in-flight glide (a new touch, a cancel, or detachment). */
     fun stop() {
-        if (isFlinging) {
+        val wasFlinging = isFlinging
+        if (wasFlinging) {
             isFlinging = false
             choreographer.removeFrameCallback(frameCallback)
         }
         fling.stop()
+        if (wasFlinging) onStopped()
     }
 
     /** One animation frame of the glide: decay velocity, scroll by the step, stop when done/stuck. */

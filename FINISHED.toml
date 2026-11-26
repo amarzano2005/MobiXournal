@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "android-scroll-zoom-cache-throttle"
+title = "Optimize Android scroll/zoom ink prefetch, pinch stand-in, and Compose throttling"
+description = "Added InkCache.prefetch for first-1/last+1 adjacent pages in DrawingSurfacePaint.prefetchAround; tracked active pinch state in ScrollGesture (pinching flag cleared on rebase/lift) to skip background ink/PDF rasterization and tile scheduling while blitting cached stand-ins smoothly until lift; added ViewportReportThrottle (~20 Hz during active scroll/pinch/fling with immediate settled flush on lift/fling stop). Verified with InkRetentionTest, ScrollGestureTest, ViewportReportThrottleTest, ViewportStateTest, MomentumTest, SourceStructureTest, PackageStructureTest, :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "none: internal Android render cache prefetch, pinch raster deferral, and Compose callback throttling optimization with no UI chrome changes"
+
+[[task]]
 id = "xournalpp-continuous-edge-pan"
 title = "Adopt Xournal++-style continuous edge panning adapted for tablet chrome bounds"
 description = "Implemented computeAxisPanSpeed and live DragBounds continuous edge panning in CanvasScroll.kt with DrawingSurfaceConstants.kt parameters (28dp inner safe margin, 20%/s base, 5x max); wired liveSelectionBounds in DrawingSurfaceView.kt and reordered moveSelect before updateDrag in DrawingSurfaceInput.kt; updated ScrollGestureTest.kt and docs/interface-contract.md. Verified via ScrollGestureTest, SourceStructureTest, ColorContractGuardTest, :desktop:createDistributable, and scripts/release-apk.sh."

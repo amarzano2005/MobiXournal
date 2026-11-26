@@ -338,8 +338,13 @@ internal fun DrawingSurfaceView.onPointerUp(event: MotionEvent) {
     }
     // The span also jumps when a finger leaves; re-baseline it so the drop isn't read as a pinch-out,
     // mirroring the focus/velocity reset that goes with it.
+    val wasPinching = scroll.pinching
     scroll.rebaseSpan()
     scroll.rebaseFocus(focusX(event, skip = upIdx), focusY(event, skip = upIdx), event.eventTime)
+    if (wasPinching) {
+        flushViewportReports()
+        render()
+    }
 }
 
 /** Drop any in-progress draw/erase/place/band/move without committing (a stylus is taking over). */
@@ -358,6 +363,8 @@ internal fun DrawingSurfaceView.abandonInProgress() {
 }
 
 internal fun DrawingSurfaceView.cancelGesture() {
+    val wasPinching = scroll.pinching
+    val wasScrolling = scroll.active
     dismissRadialHud(commit = false)
     momentum.stop(); scroll.stopAutoScroll(); holdSnap.reset()
     guideDrag.end(null)
@@ -368,6 +375,8 @@ internal fun DrawingSurfaceView.cancelGesture() {
     // Nothing a cancelled gesture did is undoable, and it leaves no owner behind for the next one.
     session.abort(); multiTap.reset()
     ink.pointerRouter.reset()
+    if (wasPinching || wasScrolling) flushViewportReports()
+    if (wasPinching) render()
 }
 
 /**
@@ -443,6 +452,7 @@ internal fun DrawingSurfaceView.endGesture(upX: Float = placeDownX, upY: Float =
     // Snapshot then clear the mode flags first, so any render() inside a commit (e.g. the
     // rubber-band) sees the gesture already ended and doesn't paint a stale marquee/overlay.
     val wasScrolling = scroll.active
+    val wasPinching = scroll.pinching
     val wasErasing = erasing
     val wasPlacing = placing
     val wasMoving = gestures.moving
@@ -482,6 +492,8 @@ internal fun DrawingSurfaceView.endGesture(upX: Float = placeDownX, upY: Float =
     // The router holds no contact of it either.
     ink.pointerRouter.reset()
     if (wasScrolling) scroll.glide()
+    if (wasPinching || (wasScrolling && !momentum.isFlinging)) flushViewportReports()
+    if (wasPinching) render()
     if (committed && (wasErasing || wasMoving || wasTransforming || wasVspacing)) {
         search.edited(midGesture = false)
     }

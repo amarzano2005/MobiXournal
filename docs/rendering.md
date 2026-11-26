@@ -55,7 +55,12 @@ full-screen page-flicking on a large tablet crawled while the identical gesture 
 split-screen window stayed smooth. On the GPU canvas fill rate is effectively free and the cached page
 bitmaps are plain textured blits — and those bitmaps are produced on `InkCache`'s **own worker**, never
 inside a frame, so neither a page entering the viewport during a fling nor a pinch crossing a zoom
-bucket makes the canvas wait for a page to be drawn (the same shape `PdfPageCache` uses for its tiles). The `DrawingSurfaceView` holds the whole [Document] and renders every
+bucket makes the canvas wait for a page to be drawn (the same shape `PdfPageCache` uses for its tiles).
+`prefetchAround` warms both PDF backgrounds and adjacent `InkCache` pages (`first - 1`, `last + 1`),
+active pinch (`ScrollGesture.pinching`) defers new background ink/PDF rasters and PDF tile scheduling
+(`deferRaster()`) so cached stand-ins scale smoothly until lift, and `ViewportReportThrottle` rate-limits
+Compose scroll/zoom callbacks (~20 Hz) during active scroll, pinch, and fling before flushing exact
+settled values on release. The `DrawingSurfaceView` holds the whole [Document] and renders every
 page in a single vertical stack, each page scaled to fit the view width via `PageStacker` and
 drawn with its background ruling (`BackgroundRenderer`, using the pure `BackgroundGrid` offsets and
 colours — lined rules in desktop Xournal++'s `xopp_dodgerblue`, graph/dotted in its `xopp_silver`),

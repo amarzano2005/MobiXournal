@@ -17,7 +17,7 @@ fun DrawingSurfaceView.resetZoom() = setZoomValue(1f, user = false)
 private fun DrawingSurfaceView.setZoomValue(target: Float, user: Boolean = true) {
     if (!viewport.zoomTo(target) { relayout() }) return
     render()
-    onZoomChanged?.invoke(zoom)
+    reportZoom(force = true)
 }
 
 /**
@@ -26,5 +26,5 @@ private fun DrawingSurfaceView.setZoomValue(target: Float, user: Boolean = true)
  * render; the pan frame that drives it renders once at the end. No-op if the clamp bites.
  */
 internal fun DrawingSurfaceView.zoomAbout(focusVx: Float, focusVy: Float, factor: Float) {
-    if (viewport.zoomAbout(focusVx, focusVy, factor) { relayout() }) onZoomChanged?.invoke(zoom)
+    if (viewport.zoomAbout(focusVx, focusVy, factor) { relayout() }) reportZoom(force = false)
 }

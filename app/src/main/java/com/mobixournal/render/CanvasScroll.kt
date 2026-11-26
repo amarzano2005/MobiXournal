@@ -132,6 +132,14 @@ internal class ScrollGesture(
      * two-finger gesture is in flight (a stroking pen and a panning hand never coexist).
      */
     var active = false
+        set(value) {
+            field = value
+            if (!value) pinching = false
+        }
+
+    /** True once a two-finger gesture has changed span, so rasters/tiles hold a stand-in until lift. */
+    var pinching = false
+        private set
 
     /** Mean pointer position of the previous frame, in view px — the delta's origin. */
     var lastFocusX = 0f
@@ -166,6 +174,7 @@ internal class ScrollGesture(
      */
     fun begin(focusX: Float, focusY: Float, span: Float, timeMs: Long) {
         active = true
+        pinching = false
         lastFocusX = focusX
         lastFocusY = focusY
         lastSpan = span
@@ -194,6 +203,7 @@ internal class ScrollGesture(
         if (lastSpan > DrawingSurfaceDefaults.PINCH_MIN_SPAN_PX &&
             span > DrawingSurfaceDefaults.PINCH_MIN_SPAN_PX
         ) {
+            pinching = true
             zoomAbout(focusX, focusY, span / lastSpan)
         }
         lastSpan = span
@@ -209,6 +219,7 @@ internal class ScrollGesture(
     /** Re-baseline the span after a finger leaves, so the drop is not read as a pinch-out. */
     fun rebaseSpan() {
         lastSpan = 0f
+        pinching = false
     }
 
     /** Adopt the remaining pointers' focus after one lifts, without treating the jump as a pan. */

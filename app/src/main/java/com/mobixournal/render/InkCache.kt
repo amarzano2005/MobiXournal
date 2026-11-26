@@ -164,6 +164,19 @@ class InkCache(
         return true
     }
 
+    /** Warm a nearby page's ink raster in the background if not already cached at its target bucket. */
+    internal fun prefetch(box: PageBox, hidden: Set<Int>) {
+        if (box.widthPx <= 0f || box.heightPx <= 0f) return
+        val targetW = bucketWidth(box.widthPx) ?: return
+        val targetH = ((box.heightPx / box.widthPx) * targetW).toInt().coerceAtLeast(1)
+        if (targetW.toLong() * targetH > budgetPx) return
+        val cached = synchronized(lock) {
+            val entry = entries[box.index]
+            entry != null && entry.page === box.page && entry.hidden == hidden && entry.widthPx == targetW
+        }
+        if (!cached) request(box.index, box.page, hidden, targetW, targetH)
+    }
+
     /** Drop every cached page not in [keep] — off-screen pages are the bulk of the memory. */
     fun retain(keep: Set<Int>) {
         var freed = 0L

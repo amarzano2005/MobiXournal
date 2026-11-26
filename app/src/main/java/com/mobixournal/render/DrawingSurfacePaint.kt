@@ -115,7 +115,7 @@ internal fun DrawingSurfaceView.paint() {
             drawPageOutline(canvas, box)
             drawBookmarkFlag(canvas, box)
         }
-        if (!chromeAnimating) {
+        if (!deferRaster()) {
             inkCache.retain(retainedAround(visible, layout.boxes.size)); retainPdfPins(visible); prefetchAround(visible)
         }
         drawSearchHighlights(canvas)
@@ -187,11 +187,17 @@ private fun DrawingSurfaceView.reportMissingBackgrounds() {
  * image for a `pixmap` one, null for anything else (the renderer then draws sheet and ruling).
  * Both caches fill asynchronously, so this never stalls a frame.
  */
+internal fun DrawingSurfaceView.deferRaster(): Boolean = chromeAnimating || scroll.pinching
+
+internal fun DrawingSurfaceView.hiddenLayersFor(box: PageBox): Set<Int> =
+    if (hiddenLayers.isEmpty()) emptySet() else box.page.layers.indices.filterTo(HashSet()) { isLayerHidden(box.index, it) }
+
 internal fun DrawingSurfaceView.pageBitmapFor(box: PageBox): Bitmap? {
     val width = box.widthPx.toInt()
+    val defer = deferRaster()
     return when (val bg = box.page.background) {
-        is Background.Pdf -> pdfSourceFor(bg)?.let { if (chromeAnimating) it.requestCachedOnly(bg.pageNo, width) else it.request(bg.pageNo, width) }
-        is Background.Pixmap -> if (chromeAnimating) imageSource.requestCachedOnly(bg.filename, width) else imageSource.request(bg.filename, width)
+        is Background.Pdf -> pdfSourceFor(bg)?.let { if (defer) it.requestCachedOnly(bg.pageNo, width) else it.request(bg.pageNo, width) }
+        is Background.Pixmap -> if (defer) imageSource.requestCachedOnly(bg.filename, width) else imageSource.request(bg.filename, width)
         else -> null
     }
 }
@@ -245,7 +251,7 @@ internal fun DrawingSurfaceView.openBackgroundImage(reference: String): java.io.
  * that isn't cached yet is queued and arrives on a later frame.
  */
 internal fun DrawingSurfaceView.pdfTilesFor(box: PageBox): List<PdfTile> {
-    if (chromeAnimating) return emptyList()
+    if (deferRaster()) return emptyList()
     val bg = box.page.background as? Background.Pdf ?: return emptyList()
     val src = pdfSourceFor(bg) ?: return emptyList()
     if (box.widthPx <= 0f || box.heightPx <= 0f) return emptyList()
@@ -269,19 +275,17 @@ internal fun DrawingSurfaceView.retainPdfPins(visible: List<PageBox>) {
     src.retain(visible.mapNotNullTo(HashSet()) { (it.page.background as? Background.Pdf)?.pageNo })
 }
 
-/**
- * Warm the pages just outside the viewport so scrolling meets a filled cache rather than a
- * rasterise. One page either side is enough to cover a flick at reading speed.
- */
+/** Warm PDF and ink caches just outside the viewport so scrolling meets filled caches. */
 internal fun DrawingSurfaceView.prefetchAround(visible: List<PageBox>) {
-    val src = pdfSource ?: return
     if (visible.isEmpty()) return
     val first = visible.first().index
     val last = visible.last().index
     for (i in intArrayOf(first - 1, last + 1)) {
         val box = layout.boxes.getOrNull(i) ?: continue
-        val bg = box.page.background as? Background.Pdf ?: continue
-        pdfSourceFor(bg)?.prefetch(bg.pageNo, box.widthPx.toInt())
+        if (pdfSource != null) {
+            (box.page.background as? Background.Pdf)?.let { pdfSourceFor(it)?.prefetch(it.pageNo, box.widthPx.toInt()) }
+        }
+        if (inkCacheUsable && !scroll.pinching) inkCache.prefetch(box, hiddenLayersFor(box))
     }
 }
 
@@ -332,11 +336,7 @@ private val bookmarkFlagRect = RectF()
  * those fall through to submitting elements directly — as does any page too large to cache.
  */
 internal fun DrawingSurfaceView.drawPageElements(canvas: Canvas, box: PageBox) {
-    val hidden = if (hiddenLayers.isEmpty()) {
-        emptySet()
-    } else {
-        box.page.layers.indices.filterTo(HashSet()) { isLayerHidden(box.index, it) }
-    }
+    val hidden = hiddenLayersFor(box)
     // A recording playing back paints its page at the playhead instead of blitting the cache: the cached
     // bitmap holds the recording's strokes as finished, and no blit can un-draw one that is still being
     // written ([DrawingSurfaceKaraoke] — one page drawn directly, and only while a clip sounds).
@@ -346,7 +346,7 @@ internal fun DrawingSurfaceView.drawPageElements(canvas: Canvas, box: PageBox) {
         return
     }
     val scrolling = scroll.active || momentum.isFlinging || chromeAnimating
-    if (inkCacheUsable && inkCache.draw(canvas, box, scrollX, scrollY, hidden, preferStandIn = scrolling, skipRasterize = chromeAnimating)) return
+    if (inkCacheUsable && inkCache.draw(canvas, box, scrollX, scrollY, hidden, preferStandIn = scrolling, skipRasterize = deferRaster())) return
     PageRenderer.drawElements(
         canvas, box.page, box.scale, box.leftPx - scrollX, box.topPx - scrollY,
         strokePainter, elementRenderer, hidden, visibleBounds(box),

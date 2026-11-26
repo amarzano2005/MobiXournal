@@ -233,4 +233,26 @@ class ScrollGestureTest {
         insetScroll.autoScrollFrame()
         assertTrue("dragged element edge pushes scroll right", pans.last().first > 0f)
     }
+
+    @Test
+    fun `pinching tracks active pinch span and clears on lift, rebase, or single-finger pan`() {
+        scroll.begin(100f, 200f, span = 0f, timeMs = 1_000)
+        assertFalse(scroll.pinching)
+
+        scroll.move(110f, 210f, span = 0f, timeMs = 1_016, holdForGesture = false)
+        assertFalse("single-finger pan never enters pinching", scroll.pinching)
+
+        scroll.begin(100f, 200f, span = 100f, timeMs = 1_100)
+        scroll.move(100f, 200f, span = 140f, timeMs = 1_116, holdForGesture = false)
+        assertTrue("span change marks active pinch", scroll.pinching)
+
+        scroll.rebaseSpan()
+        assertFalse("lifting extra finger clears pinching", scroll.pinching)
+
+        scroll.begin(100f, 200f, span = 100f, timeMs = 1_200)
+        scroll.move(100f, 200f, span = 150f, timeMs = 1_216, holdForGesture = false)
+        assertTrue(scroll.pinching)
+        scroll.active = false
+        assertFalse("ending scroll clears pinching", scroll.pinching)
+    }
 }

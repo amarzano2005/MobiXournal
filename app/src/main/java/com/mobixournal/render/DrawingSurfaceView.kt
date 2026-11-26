@@ -205,6 +205,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
                 paintPosted = false
             }
         },
+        onStopped = { flushViewportReports() },
     )
 
     /** Scales the release velocity fed into a fling; 1 = as-flung, 0 disables momentum. Driven by the
@@ -246,8 +247,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
     )
     /** Which page index was last reported to [onCurrentPageChanged], to suppress duplicate calls. */
     private var lastReportedPage = -1
-    /** Last (scrollY, totalHeightPx, viewportPx) reported to [onScrollChanged], to suppress duplicate calls. */
-    private var lastScrollReport = ScrollReport(-1f, -1f, -1f, -1f)
+    /** Last (scrollY, totalHeightPx, viewportPx, zoom) throttle state for [onScrollChanged]/[onZoomChanged]. */
+    internal val viewportReporter = ViewportReportThrottle()
     /**
      * The boxes already reported to the chrome, so a redraw that moved neither selection stays silent.
      *
@@ -1103,13 +1104,27 @@ class DrawingSurfaceView @JvmOverloads constructor(
         }
     }
 
-    /** Emit [onScrollChanged] if the scroll offset or content extent changed since last time. */
-    internal fun reportScroll() {
+    /** Emit [onScrollChanged] if changed, throttled during active pan/pinch/fling unless [force]d. */
+    internal fun reportScroll(force: Boolean = false) {
         val t = ScrollReport(scrollY, layout.totalHeightPx, height.toFloat(), scrollX)
-        if (t != lastScrollReport) {
-            lastScrollReport = t
+        val gesturing = !force && (scroll.active || momentum.isFlinging)
+        if (viewportReporter.shouldEmitScroll(t, System.nanoTime() / 1_000_000L, gesturing)) {
             onScrollChanged?.invoke(t.scrollY, t.totalPx, t.viewportPx, t.scrollX)
         }
+    }
+
+    /** Emit [onZoomChanged] if changed, throttled during active pan/pinch/fling unless [force]d. */
+    internal fun reportZoom(force: Boolean = false) {
+        val gesturing = !force && (scroll.active || momentum.isFlinging)
+        if (viewportReporter.shouldEmitZoom(zoom, System.nanoTime() / 1_000_000L, gesturing)) {
+            onZoomChanged?.invoke(zoom)
+        }
+    }
+
+    /** Push exact settled scroll and zoom state to the Compose overlay host. */
+    internal fun flushViewportReports() {
+        reportScroll(force = true)
+        reportZoom(force = true)
     }
 
     // --- authoring: place text boxes, images, and LaTeX images by tapping ------------------------
