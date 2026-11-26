@@ -17,13 +17,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.ui.theme.MeterGreen
 import com.mobixournal.ui.theme.PanelScrim
+import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 
 /**
  * The on-canvas **pen diagnostics** panel: the raw stylus stream as the app receives it — input
@@ -53,6 +56,10 @@ fun PenDiagnosticsPanel(
     Column(
         modifier
             .widthIn(max = 380.dp)
+            .liquidGlassSpringAnimation(
+                origin = TransformOrigin(0f, 0f),
+                role = DesignTokens.GlassMotion.SurfaceRole.POPOVER,
+            )
             .clip(RoundedCornerShape(8.dp))
             .background(PanelScrim)
             .padding(horizontal = 10.dp, vertical = 6.dp),

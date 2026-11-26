@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "floating-bars-exit-motion"
+title = "Add DialogPresence and GlassMotion exit animations to remaining Android overlays"
+description = "Wrapped SelectionActionAnchor, TextSelectionAnchor (SelectionBars.kt) and PenDiagnosticsPanel (EditorRegions.kt) in DialogPresence; retained closing bounds/spans via rememberClosingArgument in SelectionActionAnchor.kt and TextSelectionAnchor.kt; added liquidGlassSpringAnimation(POPOVER) to PenDiagnosticsPanel.kt; updated docs/interface-contract.md §7. Verified with unit/guard tests (77/78 passed; pre-existing README.md 163/160 line budget), :desktop:createDistributable, and scripts/release-apk.sh."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-26
+completed = 2026-11-26
+tags = []
+design = "material: floating surface (DialogPresence + POPOVER GlassMotion); tokens: DesignTokens.GlassMotion + MeterGreen/PanelScrim; glyph: unchanged; states: entry/exit presence + closing argument retention; copy: unchanged English; parity: tablet DialogPresence parity with desktop GlassPresence; docs: docs/interface-contract.md §7 updated; tests: SourceStructureTest and ColorContractGuardTest green"
+
+[[task]]
 id = "living-inspector-tab-flash-fix"
 title = "Fix popup entry double-flash and add smooth tab transitions"
 description = "Eliminated entry double-flash in LivingInspectorAnchor, restored liquidGlassContentSize(), and added AnimatedContent crossfade transitions in ShapeEditorDialog and PlotInspectorAnchor."

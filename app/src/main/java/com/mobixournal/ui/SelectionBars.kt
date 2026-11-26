@@ -7,6 +7,7 @@ import com.mobixournal.render.clearTextSelection
 import com.mobixournal.render.copyTextSelection
 import com.mobixournal.render.highlightTextSelection
 import com.mobixournal.render.underlineTextSelection
+import com.mobixournal.ui.theme.DialogPresence
 
 /**
  * **Both of a pane's selection bars**, in one place: the element selection's action bar and the PDF text
@@ -28,7 +29,10 @@ internal fun PaneSelectionBars(
     modifier: Modifier = Modifier,
 ) {
     // The element bar: the selection's own options, and Paste when nothing is selected.
-    if (pane.selectionRect != null || canPasteOnCanvas(pane, ui)) {
+    val showElementBar = (pane.selectionRect != null || canPasteOnCanvas(pane, ui)) &&
+        ui.editingTableCell == null && ui.editingPlot == null &&
+        ui.editingCircuit == null && ui.editingShape == null
+    DialogPresence(showElementBar) {
         SelectionActionAnchor(
             pane = pane,
             ui = ui,
@@ -39,7 +43,7 @@ internal fun PaneSelectionBars(
         )
     }
     // The PDF text bar: three verbs, against the words they act on, whatever tool the pen is holding.
-    if (pane.textSelectionRect != null) {
+    DialogPresence(pane.textSelectionPhase.showsBar && pane.textSelectionRect != null) {
         TextSelectionAnchor(
             pane = pane,
             canvasSizePx = canvasSizePx,

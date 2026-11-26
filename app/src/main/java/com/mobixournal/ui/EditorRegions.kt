@@ -1651,7 +1651,7 @@ fun EditorPaneView(
             )
             // The pen diagnostics panel floats over the canvas it reports on, in the corner the
             // chrome leaves free — the events it logs are then exactly the ones it describes.
-            if (ui.penDiagnostics) {
+            DialogPresence(ui.penDiagnostics) {
                 PenDiagnosticsPanel(
                     lines = state.penDebugLines,
                     onClear = { state.surface?.clearPenDebug() },

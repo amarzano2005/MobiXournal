@@ -60,11 +60,12 @@ fun SelectionActionAnchor(
     modifier: Modifier = Modifier,
 ) {
     val surface = pane.surface
-    val rect = pane.selectionRect
+    val closing = com.mobixournal.ui.theme.LocalFloatingSurfaceClosing.current
+    val rect = com.mobixournal.ui.theme.rememberClosingArgument(pane.selectionRect)
     val canPaste = canPasteOnCanvas(pane, ui)
-    if (rect == null && !canPaste) return
-    if (ui.editingTableCell != null || ui.editingPlot != null || ui.editingCircuit != null ||
-        ui.editingShape != null
+    if (!closing && rect == null && !canPaste) return
+    if (!closing && (ui.editingTableCell != null || ui.editingPlot != null || ui.editingCircuit != null ||
+        ui.editingShape != null)
     ) {
         return
     }

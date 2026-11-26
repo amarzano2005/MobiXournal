@@ -168,7 +168,7 @@ Only `DesignTokens.GlassMotion` (role-based scale, slide, stiffness, damping, fa
   numbers and their reasoning live in [`ui-modernization.md`](ui-modernization.md).
 - **The surface is held composed for the exit.** A dialog's window and a pop-up's window are torn down
   between two frames the instant the flag clears, so a bare `if (open) { … }` cannot animate out: gate it
-  with `DialogPresence(visible)` on the tablet or `GlassPresence(visible)` in the window, and open the
+  with `DialogPresence(visible)` on the tablet (including `PaneSelectionBars` and `PenDiagnosticsPanel`) or `GlassPresence(visible)` in the window, and open the
   window's native pop-up through `GlassPopup`, which preserves visibility and input policy without that spring.
   `GlassPopupGuardTest` fails the build on a raw `Popup(`.
 - **The spring goes outside the fill**: the animation modifier comes *before* the `background` /

@@ -55,12 +55,17 @@ internal fun TextSelectionAnchor(
     // Measured before the gates, so a settled range that reappears (another selection, a scroll back into view)
     // is placed at its real size on the first frame instead of being parked at the margin and then moved.
     var barSize by remember { mutableStateOf(IntSize.Zero) }
-    if (!pane.textSelectionPhase.showsBar || pane.textSelectionRect == null) return
+    val closing = com.mobixournal.ui.theme.LocalFloatingSurfaceClosing.current
+    val spans = com.mobixournal.ui.theme.rememberClosingArgument(
+        pane.textSelectionSpans.takeIf { pane.textSelectionPhase.showsBar && pane.textSelectionRect != null },
+    ) ?: return
+    val active = com.mobixournal.ui.theme.rememberClosingArgument(pane.textSelectionActiveSpan)
+    if (!closing && (!pane.textSelectionPhase.showsBar || pane.textSelectionRect == null)) return
     val gapPx = with(LocalDensity.current) { TEXT_BAR_GAP.roundToPx() }
     val marginPx = with(LocalDensity.current) { TEXT_BAR_MARGIN.roundToPx() }
     val placed = PdfTextBarPlacement.offset(
-        spans = pane.textSelectionSpans.map { it.toBarBox() },
-        active = pane.textSelectionActiveSpan?.toBarBox(),
+        spans = spans.map { it.toBarBox() },
+        active = active?.toBarBox(),
         barWidth = barSize.width.toFloat(),
         barHeight = barSize.height.toFloat(),
         canvasWidth = canvasSizePx.width.toFloat(),
