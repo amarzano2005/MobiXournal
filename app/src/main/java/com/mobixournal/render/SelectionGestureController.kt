@@ -97,11 +97,11 @@ internal class SelectionGestureController(
 
     // Live move of the current selection (also the base snapshot for resize/rotate, so a live
     // transform recomputes from the gesture-start document each frame and never drifts).
-    var moving = false
-        private set
+    var moving = false; private set
+    var livePointerPtX = 0.0; private set
+    var livePointerPtY = 0.0; private set
     private var startDoc: Document? = null
-    private var moveStartPtX = 0.0
-    private var moveStartPtY = 0.0
+    private var moveStartPtX = 0.0; private var moveStartPtY = 0.0
 
     // Live resize about a fixed anchor (the opposite corner, or the opposite edge for a one-axis
     // stretch), in page-local pt.
@@ -254,15 +254,10 @@ internal class SelectionGestureController(
             box.scale,
         )
         if (!inBody && beginHandleResize(event, box, b, page)) return true
-        val ptX = box.toPtX(event.x, viewport.scrollX)
-        val ptY = box.toPtY(event.y, viewport.scrollY)
-        val singleShape = sel.refs.singleOrNull()?.let { ref ->
-            page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? ParametricShapeElement
-        }
-        val hitsBody = if (singleShape != null && !aspectLocked) {
-            if (ParametricShapes.isConic(singleShape)) ParametricShapes.conicContains(singleShape, ptX, ptY, DrawingSurfaceDefaults.MOVE_GRAB_PAD)
-            else ElementHitTester.hits(singleShape, ptX, ptY, DrawingSurfaceDefaults.MOVE_GRAB_PAD) || SelectionResizeMath.pointInPolygon(singleShape.vertices, ptX, ptY)
-        } else b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(ptX, ptY)
+        val ptX = box.toPtX(event.x, viewport.scrollX); val ptY = box.toPtY(event.y, viewport.scrollY)
+        val singleEl = sel.refs.singleOrNull()?.let { r -> page.layers.getOrNull(r.layerIndex)?.elements?.getOrNull(r.elementIndex) }
+        val hitsBody = if (singleEl != null) ElementInteraction.hitsMoveBody(singleEl, ptX, ptY, DrawingSurfaceDefaults.MOVE_GRAB_PAD)
+        else b.expand(DrawingSurfaceDefaults.MOVE_GRAB_PAD).contains(ptX, ptY)
         if (hitsBody) { beginMove(event, box); return true }
         return false
     }
@@ -486,8 +481,8 @@ internal class SelectionGestureController(
         snapshot()
         moveStartPtX = box.toPtX(event.x, viewport.scrollX)
         moveStartPtY = box.toPtY(event.y, viewport.scrollY)
-        // The whole outline is the selection's own area, the air inside it as much as the ink: only a press
-        // **outside** it lets go, where the marquee clears before it starts tracing ([beginBand]).
+        livePointerPtX = moveStartPtX
+        livePointerPtY = moveStartPtY
     }
 
     private fun beginRotate(event: MotionEvent, box: PageBox, pivotX: Double, pivotY: Double) {
@@ -516,8 +511,12 @@ internal class SelectionGestureController(
     fun moveSelectTo(viewX: Float, viewY: Float) = moveTo(viewX, viewY)
 
     private fun moveTo(viewX: Float, viewY: Float) = transform { sel, start, box ->
-        val rawDx = box.toPtX(viewX, viewport.scrollX) - moveStartPtX
-        val rawDy = box.toPtY(viewY, viewport.scrollY) - moveStartPtY
+        val curX = box.toPtX(viewX, viewport.scrollX)
+        val curY = box.toPtY(viewY, viewport.scrollY)
+        livePointerPtX = curX
+        livePointerPtY = curY
+        val rawDx = curX - moveStartPtX
+        val rawDy = curY - moveStartPtY
         // The reach is **screen** pixels whatever the zoom (`thresholdFor`), the magnet holds the pin it
         // caught between frames, and the pin the press went down on is asked before the nearest pair.
         val (dx, dy) = magnet.translation(
@@ -537,6 +536,8 @@ internal class SelectionGestureController(
      * the gesture-start snapshot each frame, so a long drag accumulates no rounding drift.
      */
     fun resizeSelect(event: MotionEvent) = transform { sel, start, box ->
+        livePointerPtX = box.toPtX(event.x, viewport.scrollX)
+        livePointerPtY = box.toPtY(event.y, viewport.scrollY)
         if (resizeAxis == ResizeAxis.SHAFT) {
             // A line's or an arrow's end follows the hand's own travel from where the end was — not from the
             // press, which lands up to a fingertip off the ink — and lands on the pin it is aimed at
@@ -545,7 +546,7 @@ internal class SelectionGestureController(
                 start.pages, sel.pageIndex, sel.refs,
                 resizeAnchorX, resizeAnchorY,
                 resizeStartPtX, resizeStartPtY,
-                box.toPtX(event.x, viewport.scrollX), box.toPtY(event.y, viewport.scrollY),
+                livePointerPtX, livePointerPtY,
                 box.scale, endMagnet,
             )
         } else {

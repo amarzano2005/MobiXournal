@@ -132,43 +132,14 @@ internal fun pickPlacedElement(page: Page, xPt: Double, yPt: Double, kind: Shape
  * placement would make the handles of a fresh object unreachable without picking Select first.
  */
 internal fun DrawingSurfaceView.beginPlacementPress(event: MotionEvent, pointerIndex: Int): Boolean {
-    // The **Plot** slot is a placement mode rather than a shape, and it asks the page the same question: a press
-    // on a plot it made is the pick (`pickPlotRef`), and paper is where the next graph goes.
     val plotSlot = placeKind == PlaceKind.PLOT
-    val kind = if (plotSlot) null else shapeKind ?: return false
-    val chosen = selection
-    val claimed = when {
-        chosen == null -> false
-        kind != null -> claims(chosen, kind)
-        else -> matchesFamily(chosen, LivingEditFamily.PLOT)
-    }
-    if (claimed && gestures.pressSelection(event)) return true
-    val x = event.getX(pointerIndex)
-    val y = event.getY(pointerIndex)
-    val box = layout.pageAt(x + scrollX, y + scrollY) ?: return false
-    val page = pageAt(box.index) ?: return false
-    val xPt = box.toPtX(x, scrollX)
-    val yPt = box.toPtY(y, scrollY)
-    val ref = (if (kind == null) {
-        pickPlotRef(page, xPt, yPt)
-    } else {
-        // A press **on a pin** is where the drawing starts, not a pick of the object the pin belongs to: the
-        // press falls through to the stroke, whose draft snaps its first sample onto the mark
-        // (`DrawingSurfaceStrokes.snappedShapePoint`), so a wire leaves the terminal. Asked first, because the
-        // mark is the finer target — the part behind it is only the ink it was drawn on.
-        if (pinUnderPress(page, kind, xPt, yPt, CircuitSnapping.thresholdFor(box.scale)) != null) return false
-        pickPlacedElement(page, xPt, yPt, kind)
-    }) ?: run {
-        // Paper that holds nothing of the slot's own **lets go** of the selection (`letGoOfSelection`).
-        letGoOfSelection(chosen)
-        return false
-    }
-    selection = ActiveSelection(box.index, setOf(ref))
-    onSelectionChanged?.invoke(true)
+    if (!plotSlot && shapeKind == null) return false
+    val chosen = selection ?: return false
+    // Interact with the currently active selection's handles or body first.
+    if (gestures.pressSelection(event)) return true
+    // Model 1: tapping outside the active selection always deselects it without immediately drawing a new object.
+    clearSelection()
     reportSelectionRect()
-    // The press that picked the object is the one that may drag it: a tap selects, a drag sizes or
-    // carries it, which is the whole point of selecting with the tool still in hand.
-    gestures.pressSelection(event)
     render()
     return true
 }

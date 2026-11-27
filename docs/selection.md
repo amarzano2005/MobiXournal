@@ -270,3 +270,13 @@ the rectangle marquee selects by, so a cut never takes ink the user can't curren
 background is a page attribute rather than part of the region, so it is copied but never erased. The
 region is view state only — never recorded in history — and clears on a new marquee drag, on a tool
 change (the `backgroundSelectMode` setter), on Back, and on `load`.
+
+## Unified interaction contract (`ElementInteraction`)
+
+`mobix-core`'s `ElementInteraction` defines one exhaustive `ElementInteractionProfile` per `Element` subtype (`HitMode`, `ChromeMode`, `supportsAspectLock`, `PinRole`, `rotatable`), shared by both Android and Desktop:
+
+- **Outline-only move for hollow elements (`hitsMoveBody`):** hollow figures and strokes grab for move only near their outline (including when `aspectLocked` is on), leaving their interior transparent so notes, formulas, or nested elements inside a frame remain clickable. Filled shapes, tables, plots, circuits, text, and images grab across their body.
+- **Pure creation tools (Model 1):** while a creation/placement tool is active and a selection exists, presses interact with that selection's grips/handles/body; tapping outside **deselects without immediately creating a new object**. When no selection is active, creation tools always draw/place rather than picking existing objects underneath — selecting existing elements is the Select/Lasso tool's job.
+- **Handle visual vocabulary:** corner handles draw as rounded squares, X/Y edge-midpoint handles draw as oriented pills and hide automatically on axes shorter than `MIN_EDGE_HANDLE_SPAN_PX` (48 px), vertex/spline nodes draw as circles, and magnetic pins draw as diamonds.
+- **Proximity-only pins (no tap-to-teleport):** magnetic pins (including circuit terminals) stay hidden at rest and reveal only within `PIN_REVEAL_RADIUS_PX` (84 px) of the live pointer during drawing, selection drags, or stylus hover. Snapping occurs exclusively via dragging/drawing; tapping another element or its pin never teleports the current selection.
+

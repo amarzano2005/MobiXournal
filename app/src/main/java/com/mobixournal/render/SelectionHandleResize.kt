@@ -95,7 +95,12 @@ internal fun handleResizeStart(
         Triple(midXpt to b.bottom, midXpt to b.top, ResizeAxis.Y),
     )
     for ((handle, anchor, axis) in edges) {
-        if ((axis == ResizeAxis.X && flatX) || (axis == ResizeAxis.Y && flatY)) continue
+        val allowed = when (axis) {
+            ResizeAxis.X -> !flatX && ElementInteraction.showEdgeHandlesForSpan(boxHpx, flatY)
+            ResizeAxis.Y -> !flatY && ElementInteraction.showEdgeHandlesForSpan(boxWpx, flatX)
+            else -> false
+        }
+        if (!allowed) continue
         val hx = (handle.first * box.scale + box.leftPx - viewport.scrollX).toFloat() +
             if (handle.first == b.left) -pad else if (handle.first == b.right) pad else 0f
         val hy = (handle.second * box.scale + box.topPx - viewport.scrollY).toFloat() +

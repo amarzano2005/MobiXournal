@@ -55,21 +55,30 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
     val isSingleSpline = singleSelectedSpline() != null
     val aspectLocked = gestures.aspectLocked && !isSingleSpline
     val showBoxHandles = !isSingleSpline && (!isSingleShape || aspectLocked)
+    val cornerHalf = HANDLE_DRAW_PX
+    val cornerRadius = 2.5f
     if (shaft == null && !flatX && !flatY && showBoxHandles) {
         for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bottom)) {
-            canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)
+            canvas.drawRoundRect(
+                hx - cornerHalf, hy - cornerHalf,
+                hx + cornerHalf, hy + cornerHalf,
+                cornerRadius, cornerRadius,
+                chrome.handle,
+            )
         }
     }
-    // Edge-midpoint handles: one axis each (X on left/right, Y on top/bottom).
+    // Edge-midpoint handles: oriented pills (X on left/right, Y on top/bottom), hidden on small axes (< 48 px).
     val midX = (l + r) / 2f
     val midY = (t + bottom) / 2f
-    if (shaft == null && !flatY && showBoxHandles) {
-        canvas.drawCircle(midX, t, HANDLE_DRAW_PX, chrome.handle)
-        canvas.drawCircle(midX, bottom, HANDLE_DRAW_PX, chrome.handle)
+    val pillLong = HANDLE_DRAW_PX * 1.45f
+    val pillShort = HANDLE_DRAW_PX * 0.65f
+    if (shaft == null && showBoxHandles && ElementInteraction.showEdgeHandlesForSpan(r - l, flatX) && !flatY) {
+        canvas.drawRoundRect(midX - pillLong, t - pillShort, midX + pillLong, t + pillShort, pillShort, pillShort, chrome.handle)
+        canvas.drawRoundRect(midX - pillLong, bottom - pillShort, midX + pillLong, bottom + pillShort, pillShort, pillShort, chrome.handle)
     }
-    if (shaft == null && !flatX && showBoxHandles) {
-        canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
-        canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
+    if (shaft == null && showBoxHandles && ElementInteraction.showEdgeHandlesForSpan(bottom - t, flatY) && !flatX) {
+        canvas.drawRoundRect(l - pillShort, midY - pillLong, l + pillShort, midY + pillLong, pillShort, pillShort, chrome.handle)
+        canvas.drawRoundRect(r - pillShort, midY - pillLong, r + pillShort, midY + pillLong, pillShort, pillShort, chrome.handle)
     }
     // Rotate knob: on a shaft it hangs from its ink; on a single figure/stroke it anchors to the figure's rightmost outline.
     if (gestures.isAllStrokes(sel)) {

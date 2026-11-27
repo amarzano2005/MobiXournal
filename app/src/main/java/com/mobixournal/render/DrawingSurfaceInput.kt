@@ -201,7 +201,8 @@ internal fun DrawingSurfaceView.handleHover(event: MotionEvent): Boolean? {
         render()
         return true
     }
-    if (!showHover || (kind != PointerKind.STYLUS && kind != PointerKind.ERASER_TIP)) {
+    val needsPinHover = shapeKind?.let { FigurePins.familyOf(it) != null } == true
+    if ((!showHover && !needsPinHover) || (kind != PointerKind.STYLUS && kind != PointerKind.ERASER_TIP)) {
         if (hovering) { hovering = false; render() }
         return null
     }
@@ -248,12 +249,6 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
         return
     }
     val intent = InputClassifier.classify(kind, barrelButton.held, activeTool(), inputSettings)
-    // A press aimed at a **pin the selection wears** is the join that mark promises, before anything is
-    // picked: the selected element lands on the pin instead of the part behind it being selected
-    // (`SelectionPinConnect.kt`). Asked for the select tool only: with a drawing tool in hand the press is
-    // the drawing's, and it starts **on** the pin (`PlacementPick.pinUnderPress`), which is the connection
-    // the hand was already making. One press, one answer — the tool in hand says which.
-    if (intent == GestureIntent.SELECT && beginPinConnect(event, pointerIndex)) return
     // A top-bar **placement** tool — the Table slot, a circuit part, a figure, the Plot slot — asks the page
     // first: the object the tool itself made under the press is selected (and the press drags it), and a new
     // one is placed only where there is none. Asked for a press that would draw, and for the Plot slot's own

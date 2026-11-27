@@ -178,12 +178,13 @@ private fun DrawScope.paintConnectionMarks(
     selected: Element?,
     actorRefs: Set<ElementRef>,
     pxPerPt: Float,
-    /** True when nothing is in flight: the slot in hand shows what its object could join. */
+    /** True when nothing is in flight: proximity-only policy keeps the sheet bare at rest. */
     armed: Boolean = false,
 ) {
-    drawConnectionPins(page, markedKind, previewLiving, pxPerPt, actorRefs)
-    if (armed) drawArmedMarks(page, markedKind, pxPerPt)
-    drawSelectionPins(page, selection, selected, pxPerPt)
+    if (armed) return
+    if (previewLiving != null) {
+        drawConnectionPins(page, markedKind, previewLiving, pxPerPt, actorRefs)
+    }
 }
 
 /**
@@ -353,52 +354,49 @@ private fun DrawScope.drawFigureDraftPins(
     // The marks are worth showing only when the page holds something the drawing could join — the same rule
     // the tablet applies (`FigurePins.hasCompany`): on a page with no company the draft is bare.
     if (!FigurePins.hasCompany(page, kind)) return
-    // The other half of the join: the wires' ends and arrows' tips already on the page, so the figure can be
-    // lined up against them before the lift (`FigurePins.joinedBy`).
-    for (target in FigurePins.joinedBy(page, kind)) drawPinTarget(target, pxPerPt)
+    val allTargets = if (FigurePins.aimFamily(kind) != null) {
+        CircuitSnapping.gestureTargets(kind, page).orEmpty()
+    } else {
+        FigurePins.joinedBy(page, kind)
+    }
     for (draft in drafts) {
         if (draft.size < 2) continue
-        val points = draft.map { StrokePoint(it.x, it.y, 1.0) }
-        for ((x, y) in FigurePins.pinsOf(kind, points)) drawPinDot(x, y, pxPerPt)
+        val last = draft.last()
+        val first = draft.first()
+        val nearEnd = com.mobixournal.render.ElementInteraction.filterTargetsByProximity(allTargets, last.x, last.y, pxPerPt)
+        val nearStart = com.mobixournal.render.ElementInteraction.filterTargetsByProximity(allTargets, first.x, first.y, pxPerPt)
+        for (target in (nearEnd + nearStart).distinctBy { it.absX to it.absY }) {
+            drawPinTarget(target, pxPerPt)
+        }
     }
 }
 
-/**
- * One pin of the page, as the tablet paints it: a **wire's end is a square**, every other pin a filled dot,
- * both in the solid pin red (`CircuitPinOverlay.drawPinTargets`).
- *
- * The window drew every target as a small circle at 85 % of the accent, so a wire's end looked like any other
- * pin and a dot over a ruled page read as part of the ruling: the marks were there and still invisible, which
- * is the report the tablet's own marks were changed for.
- */
 private fun DrawScope.drawPinTarget(
     target: CircuitSnapping.PinTarget,
     pxPerPt: Float,
     radiusPx: Float = PIN_DOT_PX,
 ) {
-    val x = (target.absX * pxPerPt).toFloat()
-    val y = (target.absY * pxPerPt).toFloat()
-    if (target.isWireEnd) {
-        val half = WIRE_END_PX / pxPerPt
-        val halo = (WIRE_END_PX + PIN_HALO_PX) / pxPerPt
-        drawRect(DesktopTheme.desk, topLeft = Offset(x - halo, y - halo), size = Size(halo * 2f, halo * 2f))
-        drawRect(DesktopTheme.pin, topLeft = Offset(x - half, y - half), size = Size(half * 2f, half * 2f))
-    } else {
-        drawPinDot(target.absX, target.absY, pxPerPt, radiusPx)
-    }
+    drawPinDot(target.absX, target.absY, pxPerPt, radiusPx)
 }
 
-/**
- * A figure's **own** pin — the thing being joined — in the solid pin red, as the tablet's `chrome.pin`.
- *
- * Edged by a hairline of the desk ([PIN_HALO_PX]), the same trick the pointer wears: a solid dot over a
- * black wire or a ruled grid line lost its edge, and a mark with no edge is a mark that is not seen.
- */
+/** Draw a magnetic pin as a distinct diamond with a desk-coloured halo. */
 private fun DrawScope.drawPinDot(x: Double, y: Double, pxPerPt: Float, radiusPx: Float = PIN_PENDING_PX) {
-    val at = Offset((x * pxPerPt).toFloat(), (y * pxPerPt).toFloat())
-    drawCircle(DesktopTheme.desk, radius = (radiusPx + PIN_HALO_PX) / pxPerPt, center = at)
-    drawCircle(DesktopTheme.pin, radius = radiusPx / pxPerPt, center = at)
+    val cx = (x * pxPerPt).toFloat()
+    val cy = (y * pxPerPt).toFloat()
+    val r = radiusPx / pxPerPt
+    val halo = (radiusPx + PIN_HALO_PX) / pxPerPt
+    drawPath(diamondPath(cx, cy, halo), DesktopTheme.desk)
+    drawPath(diamondPath(cx, cy, r), DesktopTheme.pin)
 }
+
+private fun diamondPath(cx: Float, cy: Float, r: Float): androidx.compose.ui.graphics.Path =
+    androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy - r)
+        lineTo(cx + r, cy)
+        lineTo(cx, cy + r)
+        lineTo(cx - r, cy)
+        close()
+    }
 
 /**
  * A connection point's dot, in screen pixels.

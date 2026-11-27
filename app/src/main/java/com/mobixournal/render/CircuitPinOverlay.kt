@@ -1,243 +1,137 @@
 package com.mobixournal.render
 
 import android.graphics.Canvas
-import com.mobixournal.format.model.CircuitElement
+import android.graphics.Path
 import kotlin.math.hypot
 
-/**
- * Radius of a connection point's dot, in view px.
- *
- * Read against the page, not against a design sheet: at 3.5 px a pin was a speck on a ruled sheet, so the
- * targets were drawn and still not seen. These sizes are the ones a hand can aim at.
- */
-private const val PIN_DOT_PX = 7f
+/** Half-diagonal of a proximity pin diamond, in view px. */
+private const val PIN_DIAMOND_PX = 6.5f
 
-/** Radius of the pin a live gesture has caught, in view px. */
-private const val PIN_CAUGHT_PX = 10f
+/** Half-diagonal of a caught (snapped) pin diamond, in view px. */
+private const val PIN_CAUGHT_PX = 9.5f
 
-/** Radius of a pin the placement in flight is about to mint, in view px. */
-private const val PIN_PENDING_PX = 8.5f
-
-/** Radius of the **ring** a selected element's own pins wear, in view px — the hollow counterpart of a dot. */
-private const val PIN_RING_PX = 8.5f
-
-/** Side of the square that marks an existing wire's end, in view px. */
-private const val WIRE_END_PX = 7f
+/** White halo padding around every pin diamond, in view px. */
+private const val PIN_HALO_PX = 2.5f
 
 /** How close (page pt) a gesture's end must be to a pin to count as having caught it. */
 private const val CAUGHT_EPSILON_PT = 0.5
 
-/** The white edge every pin wears, in view px — the sheet showing through, so a dot keeps its outline. */
-private const val PIN_HALO_PX = 2.5f
-
-/** The `pinId` [CircuitSnapping.collectPlacementTargets] gives a wire's ends. */
-private const val WIRE_END_PIN = "wire-end"
+/** Reusable diamond path (main-thread canvas paint only). */
+private val pinDiamondPath = Path()
 
 /**
- * Draw every component pin on the visible pages while a **connector** is armed — the line tool or a
- * circuit symbol — plus, while a component is actually being dragged, the pins that drag is about to
- * mint.
+ * Draw magnetic pins **only by pointer proximity** (during active drawing, active selection drag,
+ * or stylus hover). At rest — idle selection or armed tool with no pointer nearby — the sheet stays clean.
  *
- * Pins were invisible and the magnet's reach is only a few points wide, so a wire joined a component
- * only when the user happened to aim at a spot nothing marked: the connection "worked" now and then,
- * with no way to tell why. Showing the targets before the gesture starts (and filling the one a live
- * gesture has caught) turns the magnet into something the user can aim at. The pins of the part being
- * placed are drawn the same way and at the same time: they only existed once the part had been
- * released, so there was no way to line them up with a wire that was already on the page.
- *
- * With a **component** armed, a wire's ends are marked too (a small square): placing a part aims at
- * them ([CircuitSnapping.collectPlacementTargets]), and an invisible target is exactly the bug the
- * rings were added to fix. They are not drawn for the line tool, which never joins onto a wire's end.
- *
- * A **selected** component arms the same marks, because the selection tool is the other way a part is
- * joined: pick up a part that was placed and drag it onto a pin, and what it may join answers
- * [CircuitSnapping.collectMoveTargets] — the page's pins plus both ends of every wire. The window has
- * always drawn these for a selected part; the tablet drew nothing at all with the selection tool, so a
- * moved part could be aimed at a wire end nobody could see.
- *
- * Chrome only: nothing here is written to the document, and nothing is drawn for a tool that cannot
- * connect, so ordinary ink and shapes are unaffected.
+ * Pins are rendered as distinct **diamonds** (rombi) so they never visually collide with square corner
+ * resize handles, pill edge handles, or circular vertex/spline nodes.
  */
 internal fun DrawingSurfaceView.drawCircuitPins(canvas: Canvas) {
-    // The marks belong to a **gesture**, not to a state: they are there while a figure is being drawn and
-    // while the selection is moving it, and are gone otherwise — a part merely selected marks nothing.
+    // 1. Active drawing gesture: reveal only pins near the live stylus/pointer tip.
     val drawing = ink.current != null || ink.currentStrokes != null
     val drawingKind = if (drawing) shapeKind else null
     if (drawingKind != null) {
-        val page = pageAt(ink.currentPage)
-        if (CircuitElementFactory.isConnectorKind(drawingKind)) {
-            drawTargetPins(canvas, drawingKind)
-        } else if (page != null) {
-            // A **figure** being laid down shows both halves of the join: the wires' ends and arrows' tips it
-            // could attach to (`FigurePins.joinedBy`), under its own pins, so the pairing is made in flight.
-            drawPinTargets(canvas, ink.currentPage, FigurePins.joinedBy(page, drawingKind))
+        val page = pageAt(ink.currentPage) ?: return
+        val box = layout.boxes.getOrNull(ink.currentPage) ?: return
+        val targets = if (CircuitElementFactory.isConnectorKind(drawingKind)) {
+            CircuitSnapping.gestureTargets(drawingKind, page).orEmpty()
+        } else {
+            FigurePins.joinedBy(page, drawingKind)
         }
-        // The inserted object's own pins are drawn only when the page holds something it could join
-        // (`FigurePins.hasCompany`): on a page with nothing compatible they are dots on empty paper.
-        if (page != null && FigurePins.hasCompany(page, drawingKind)) drawPendingPins(canvas, drawingKind)
+        val nearEnd = ElementInteraction.filterTargetsByProximity(
+            targets, shapeDraft.endX, shapeDraft.endY, box.scale,
+        )
+        val nearStart = ElementInteraction.filterTargetsByProximity(
+            targets, shapeDraft.startX, shapeDraft.startY, box.scale,
+        )
+        val visible = (nearEnd + nearStart).distinctBy { it.absX to it.absY }
+        drawPinTargets(canvas, ink.currentPage, visible, highlightCaught = true)
         return
     }
-    // A **selected** element wears the marks it can be paired with, at rest as well as in hand.
-    if (drawSelectionPins(canvas)) return
-    // An **armed** placement tool shows what its object could join **before** the hand goes down: the slot is
-    // picked for a place on the sheet, and the pins the part or the figure can attach to are part of picking
-    // it. The marks used to arrive with the gesture, so an armed tool read as a sheet with no pins at all
-    // until the press had already been made — the answer came too late to aim with.
+
+    // 2. Active selection move/shaft-resize: reveal only compatible pins near the live drag pointer.
+    if (gestures.moving || gestures.resizing) {
+        drawSelectionDragPins(canvas)
+        return
+    }
+
+    // 3. Stylus hover with a pin-capable tool armed: reveal only targets near the hovering nib.
     val armed = shapeKind ?: return
-    if (FigurePins.aimFamily(armed) != null) drawTargetPins(canvas, armed) else drawJoinedPins(canvas, armed)
+    if (!hovering || FigurePins.familyOf(armed) == null) return
+    val hoverBox = layout.pageAt(hoverX + scrollX, hoverY + scrollY) ?: return
+    val hoverPage = pageAt(hoverBox.index) ?: return
+    val curXPt = hoverBox.toPtX(hoverX, scrollX)
+    val curYPt = hoverBox.toPtY(hoverY, scrollY)
+    val allTargets = if (FigurePins.aimFamily(armed) != null) {
+        CircuitSnapping.gestureTargets(armed, hoverPage).orEmpty()
+    } else {
+        FigurePins.joinedBy(hoverPage, armed)
+    }
+    val nearHover = ElementInteraction.filterTargetsByProximity(allTargets, curXPt, curYPt, hoverBox.scale)
+    drawPinTargets(canvas, hoverBox.index, nearHover, highlightCaught = false)
 }
 
-/**
- * The marks a **selected** element wears, painted — and whether there was a selection to paint at all.
- *
- * Both ends of the pairing, which is what makes it readable: the element's own pins *and* the compatible ones
- * it may be joined to ([FigurePins.selectionMarks]) — a figure's border against the wires' ends and arrows'
- * tips, a connector's pins against everything it may reach. The slot that placed it is gone, so the selection
- * is the only thing left to answer *what can this join*. Nothing at all on a page that holds nothing
- * compatible.
- */
-private fun DrawingSurfaceView.drawSelectionPins(canvas: Canvas): Boolean {
-    val sel = selection ?: return false
-    if (sel.refs.size != 1) return false
-    val page = pageAt(sel.pageIndex) ?: return false
+/** Compatible pins near the live pointer while dragging or shaft-resizing a single selection. */
+private fun DrawingSurfaceView.drawSelectionDragPins(canvas: Canvas) {
+    val sel = selection ?: return
+    if (sel.refs.size != 1) return
+    val page = pageAt(sel.pageIndex) ?: return
+    val box = layout.boxes.getOrNull(sel.pageIndex) ?: return
     val ref = sel.refs.first()
-    val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return false
+    val element = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) ?: return
     val marks = FigurePins.selectionMarks(page, element, exclude = sel.refs)
-    if (marks.own.isEmpty() && marks.compatible.isEmpty()) return false
-    val box = layout.boxes.getOrNull(sel.pageIndex) ?: return false
-    fun at(x: Double, y: Double) =
-        (x * box.scale + box.leftPx - scrollX).toFloat() to (y * box.scale + box.topPx - scrollY).toFloat()
-    // The selection's own pins: a **hollow ring**, never a filled dot — a filled dot is a handle's own shape,
-    // and the two were read as one mark on the same sheet. A pin a handle already sits on is not drawn at
-    // all ([FigurePins.withoutHandles]): a figure's border pins *are* its box's corners and side midpoints,
-    // so drawing both put two dots on one point and left the reader unable to say which was which.
-    val bounds = SelectionTester.boundsOf(page, sel.refs)
-    val own = when {
-        // A line's or an arrow's only handles are its two ends, and its pins are those very points.
-        gestures.shaftOfSelection(sel) != null -> emptyList()
-        bounds == null -> marks.own
-        else -> FigurePins.withoutHandles(
-            marks.own,
-            bounds,
-            DrawingSurfaceDefaults.isFlat((bounds.width * box.scale).toFloat(), box.scale),
-            DrawingSurfaceDefaults.isFlat((bounds.height * box.scale).toFloat(), box.scale),
-        )
+    if (marks.joinable.isEmpty()) return
+
+    val nearPointer = ElementInteraction.filterTargetsByProximity(
+        marks.joinable, gestures.livePointerPtX, gestures.livePointerPtY, box.scale,
+    ).toMutableList()
+    // Also reveal pins near any of the dragged element's own pins (e.g. when dragging a wide rectangle's side toward a wire).
+    val radiusPt = (ElementInteraction.PIN_REVEAL_RADIUS_PX / box.scale).toDouble()
+    for (target in marks.joinable) {
+        if (marks.own.any { (ox, oy) -> hypot(ox - target.absX, oy - target.absY) <= radiusPt }) {
+            nearPointer += target
+        }
     }
-    for ((px, py) in own) {
-        val (x, y) = at(px, py)
-        canvas.drawCircle(x, y, PIN_RING_PX + PIN_HALO_PX, chrome.pinHalo)
-        canvas.drawCircle(x, y, PIN_RING_PX, chrome.pinRing)
-    }
-    // And what it may join — the other end of the pairing. A compatible mark that sits **on** one of the
-    // figure's own pins is the same joint (`FigurePins.selectionMarks` answers both ends): marking it twice
-    // stacked a square and a dot on one point, which read as a mark that had missed its pin. The unjoined
-    // marks are the shared answer (`SelectionMarks.joinable`), so the marks painted here are exactly the ones
-    // a press joins (`FigurePins.pressJoin`).
-    drawPinTargets(canvas, sel.pageIndex, marks.joinable)
-    return true
+    gestures.magnetTarget?.let { nearPointer += it }
+    val visible = nearPointer.distinctBy { it.absX to it.absY }
+    drawPinTargets(canvas, sel.pageIndex, visible, highlightCaught = false, caughtTarget = gestures.magnetTarget)
 }
 
-/**
- * The pins an **armed figure tool's** object could be paired with, page by page: a wire's ends and an arrow's
- * tip ([FigurePins.joinedBy]) — the same halves the figure shows once it is drawn, so an armed rectangle
- * already says what it will attach to.
- */
-private fun DrawingSurfaceView.drawJoinedPins(canvas: Canvas, kind: ShapeKind) {
-    for (box in layout.visible(scrollY, height.toFloat())) {
-        val page = pageAt(box.index) ?: continue
-        drawPinTargets(canvas, box.index, FigurePins.joinedBy(page, kind))
-    }
-}
-
-/**
- * Pins on **one page**, drawn the way the sheet marks a target: a wire's end is a square, every other pin a
- * dot. One place, because a gesture's marks and a selection's must look identical.
- */
+/** Paint each visible pin target as a diamond with a white halo. */
 private fun DrawingSurfaceView.drawPinTargets(
     canvas: Canvas,
     pageIndex: Int,
     targets: List<CircuitSnapping.PinTarget>,
+    highlightCaught: Boolean,
+    caughtTarget: CircuitSnapping.PinTarget? = null,
 ) {
     if (targets.isEmpty()) return
     val box = layout.boxes.getOrNull(pageIndex) ?: return
     for (target in targets) {
         val x = (target.absX * box.scale + box.leftPx - scrollX).toFloat()
         val y = (target.absY * box.scale + box.topPx - scrollY).toFloat()
-        // Filled marks (`chrome.pin`): a pin drawn with a stroke paint is a 2 px ring, and a ring at this
-        // size is invisible over a ruled page — which read as "the figure shows no pins".
-        val edge = PIN_HALO_PX
-        if (target.isWireEnd) {
-            canvas.drawRect(
-                x - WIRE_END_PX - edge, y - WIRE_END_PX - edge,
-                x + WIRE_END_PX + edge, y + WIRE_END_PX + edge, chrome.pinHalo,
-            )
-            canvas.drawRect(x - WIRE_END_PX, y - WIRE_END_PX, x + WIRE_END_PX, y + WIRE_END_PX, chrome.pin)
-        } else {
-            canvas.drawCircle(x, y, PIN_DOT_PX + edge, chrome.pinHalo)
-            canvas.drawCircle(x, y, PIN_DOT_PX, chrome.pin)
+        val caught = (highlightCaught && caughtByGesture(target)) ||
+            (caughtTarget != null && hypot(target.absX - caughtTarget.absX, target.absY - caughtTarget.absY) <= CAUGHT_EPSILON_PT)
+        val r = if (caught) PIN_CAUGHT_PX else PIN_DIAMOND_PX
+        drawDiamond(canvas, x, y, r + PIN_HALO_PX, chrome.pinHalo)
+        drawDiamond(canvas, x, y, r, chrome.pin)
+        if (caught) {
+            canvas.drawCircle(x, y, r + 4f, chrome.pinRing)
         }
     }
 }
 
-/** The pins a connector [kind] could join, as the sheet draws them while the gesture is live. */
-private fun DrawingSurfaceView.drawTargetPins(
-    canvas: Canvas,
-    kind: ShapeKind,
-    exclude: Set<ElementRef> = emptySet(),
-) {
-    val live = ink.current != null
-    for (box in layout.visible(scrollY, height.toFloat())) {
-        val page = pageAt(box.index) ?: continue
-        val targets = CircuitSnapping.gestureTargets(kind, page, exclude = exclude).orEmpty()
-        for (target in targets) {
-            val x = (target.absX * box.scale + box.leftPx - scrollX).toFloat()
-            val y = (target.absY * box.scale + box.topPx - scrollY).toFloat()
-            val radius = if (live && !target.isWireEnd && caughtByGesture(target)) PIN_CAUGHT_PX else PIN_DOT_PX
-            if (target.isWireEnd) {
-                canvas.drawRect(
-                    x - WIRE_END_PX - PIN_HALO_PX, y - WIRE_END_PX - PIN_HALO_PX,
-                    x + WIRE_END_PX + PIN_HALO_PX, y + WIRE_END_PX + PIN_HALO_PX, chrome.pinHalo,
-                )
-                canvas.drawRect(x - WIRE_END_PX, y - WIRE_END_PX, x + WIRE_END_PX, y + WIRE_END_PX, chrome.pin)
-            } else {
-                canvas.drawCircle(x, y, radius + PIN_HALO_PX, chrome.pinHalo)
-                canvas.drawCircle(x, y, radius, chrome.pin)
-            }
-        }
-    }
+private fun drawDiamond(canvas: Canvas, cx: Float, cy: Float, radius: Float, paint: android.graphics.Paint) {
+    pinDiamondPath.reset()
+    pinDiamondPath.moveTo(cx, cy - radius)
+    pinDiamondPath.lineTo(cx + radius, cy)
+    pinDiamondPath.lineTo(cx, cy + radius)
+    pinDiamondPath.lineTo(cx - radius, cy)
+    pinDiamondPath.close()
+    canvas.drawPath(pinDiamondPath, paint)
 }
 
-/**
- * The pins a **component drag in flight** would land, drawn where they would be.
- *
- * The rings come from [CircuitSnapping.previewTargets], the same placement rule the commit uses, so
- * the marks the user lines up against a wire end are the pins that get minted. They are filled rather
- * than hollow because they are not targets yet — they are the thing being placed.
- */
-private fun DrawingSurfaceView.drawPendingPins(canvas: Canvas, kind: ShapeKind) {
-    if (ink.current == null) return
-    val box = layout.boxes.getOrNull(ink.currentPage) ?: return
-    val draft = shapeDraft
-    // A component's pins are the factory's placement rule; every other figure's are its own corners and
-    // the middle of each side (`FigurePins`), which is what a connector will later attach to.
-    val pins = if (CircuitElementFactory.isCircuitKind(kind)) {
-        CircuitSnapping.previewTargets(kind, draft.startX, draft.startY, draft.endX, draft.endY)
-            .map { it.absX to it.absY }
-    } else {
-        FigurePins.pinsOf(
-            kind,
-            ShapeBuilder.build(kind, draft.startX, draft.startY, draft.endX, draft.endY, draft.widthPt),
-        )
-    }
-    for ((px, py) in pins) {
-        val x = (px * box.scale + box.leftPx - scrollX).toFloat()
-        val y = (py * box.scale + box.topPx - scrollY).toFloat()
-        canvas.drawCircle(x, y, PIN_PENDING_PX + PIN_HALO_PX, chrome.pinHalo)
-        canvas.drawCircle(x, y, PIN_PENDING_PX, chrome.pin)
-    }
-}
-
-/** Whether the gesture in progress has one of its ends on [target]. */
+/** Whether the drawing gesture in progress has one of its ends on [target]. */
 private fun DrawingSurfaceView.caughtByGesture(target: CircuitSnapping.PinTarget): Boolean {
     fun on(x: Double, y: Double) =
         hypot(target.absX - x, target.absY - y) <= CAUGHT_EPSILON_PT

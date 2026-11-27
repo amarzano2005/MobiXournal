@@ -172,18 +172,29 @@ private fun DrawScope.drawHandles(
         }
         val midX = (box.left + box.right) / 2.0
         val midY = (box.top + box.bottom) / 2.0
-        val edges = buildList {
-            if (!box.isFlatY) {
-                add(off(midX, box.top))
-                add(off(midX, box.bottom))
-            }
-            if (!box.isFlatX) {
-                add(off(box.right, midY))
-                add(off(box.left, midY))
+        val boxWpx = ((box.right - box.left) * pxPerPt).toFloat()
+        val boxHpx = ((box.bottom - box.top) * pxPerPt).toFloat()
+        val pillLong = HANDLE_SIZE * 1.45f
+        val pillShort = HANDLE_SIZE * 0.65f
+        if (!box.isFlatY && com.mobixournal.render.ElementInteraction.showEdgeHandlesForSpan(boxWpx, box.isFlatX)) {
+            for (edge in listOf(off(midX, box.top), off(midX, box.bottom))) {
+                drawRoundRect(
+                    color = DesktopTheme.accent,
+                    topLeft = Offset(edge.x - pillLong / 2f, edge.y - pillShort / 2f),
+                    size = Size(pillLong, pillShort),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(pillShort / 2f, pillShort / 2f),
+                )
             }
         }
-        for (edge in edges) {
-            square(edge)
+        if (!box.isFlatX && com.mobixournal.render.ElementInteraction.showEdgeHandlesForSpan(boxHpx, box.isFlatY)) {
+            for (edge in listOf(off(box.right, midY), off(box.left, midY))) {
+                drawRoundRect(
+                    color = DesktopTheme.accent,
+                    topLeft = Offset(edge.x - pillShort / 2f, edge.y - pillLong / 2f),
+                    size = Size(pillShort, pillLong),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(pillShort / 2f, pillShort / 2f),
+                )
+            }
         }
     }
     // The gap is a screen distance turned into page points, so the ring clears the ink at every zoom.

@@ -153,11 +153,6 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     val tol = (HANDLE_PX / pxPerPt).toDouble()
     val gap = (ROTATE_GAP_PX / pxPerPt).toDouble()
     val live = tab.selection; val page = runCatching { tab.document.page(tab.page) }.getOrNull()
-    // A press on a **compatible pin** is the join the mark promises (`joinSelectionToPin`, the tablet's press):
-    // asked before the grips and before the pick, because the mark is the finer target than the ink under it.
-    if (live != null && page != null &&
-        joinSelectionToPin(tab, page, x0, y0, CircuitSnapping.thresholdFor(pxPerPt), onEdited)
-    ) return
     // A **grip** on the selected element — a figure's corner, a table's divider — is found here and acted on
     // below the double-click: it is the finer control the tablet puts first, and a press a hair off the ink
     // should bend the figure rather than carry the whole selection.
@@ -170,7 +165,7 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     val handle = if (live == null) SelectionHandle.NONE else selectionHandleAt(
         live, x0, y0, tol, rotateGapPt = gap, includeRotate = !isLiveImage, shaft = shaft,
         includeBoxResize = living !is ParametricShapeElement,
-        bodyHit = (living as? ParametricShapeElement)?.let { shape -> { com.mobixournal.render.ElementHitTester.hits(shape, x0, y0, tol) } },
+        bodyHit = singleEl?.let { el -> { com.mobixournal.render.ElementInteraction.hitsMoveBody(el, x0, y0, tol) } },
         singleElement = singleEl,
     )
     // The ink's picker first, then the **pins**: a part is grabbed by its end as readily as by its middle,
@@ -643,24 +638,25 @@ internal suspend fun AwaitPointerEventScope.placementPress(
     taps: TapTracker,
     circuitKind: ShapeKind,
 ): Boolean {
-    val placement = placementOf(tool) ?: return false
-    val (x0, y0) = pagePointOf(down.position.x, down.position.y, density, view.current())
+    if (placementOf(tool) == null) return false
+    val live = tab.selection ?: return false
+    val viewport = view.current()
+    val (x0, y0) = pagePointOf(down.position.x, down.position.y, density, viewport)
     if (x0 !in 0.0..view.pageW.toDouble() || y0 !in 0.0..view.pageH.toDouble()) return false
     val page = runCatching { tab.document.page(tab.page) }.getOrNull() ?: return false
-    val reach = CircuitSnapping.thresholdFor(view.current().zoom * density)
-    // The mark is the finer target than the ink behind it: a press on a pin draws from the terminal.
-    val pinKind = placement.pinKind(circuitKind)
-    if (pinKind != null && pinUnderPress(page, pinKind, x0, y0, reach) != null) return false
-    val picked = placementPick(page, placement, x0, y0)
-    if (picked == null) {
-        letGoForSlot(tab)
-        return false
-    }
-    val one = selectionOf(page, picked) ?: return false
-    // The object the press found is **already the selection**: its grips and its body are what the next press
-    // is for, so the selection's own gesture answers it (the tablet's `pressSelection`) — a handle pressed
-    // with the slot still in hand resizes, exactly as it does under Select.
-    if (tab.selection?.refs == one.refs) {
+    val pxPerPt = viewport.zoom * density
+    val tol = (HANDLE_PX / pxPerPt).toDouble()
+    val gap = (ROTATE_GAP_PX / pxPerPt).toDouble()
+    val living = live.takeIf { it.refs.size == 1 }?.let { selectedLivingElement(tab) }
+    val grip = living?.let { gripAt(it, x0, y0, tol) }
+    val singleEl = singleElementOf(page, live)
+    val handle = selectionHandleAt(
+        live, x0, y0, tol, rotateGapPt = gap, includeRotate = singleEl !is ImageElement, shaft = shaftOf(singleEl),
+        includeBoxResize = living !is ParametricShapeElement,
+        bodyHit = singleEl?.let { el -> { com.mobixournal.render.ElementInteraction.hitsMoveBody(el, x0, y0, tol) } },
+        singleElement = singleEl,
+    )
+    if (grip != null || handle != SelectionHandle.NONE) {
         selectionDrag(
             start = down,
             tool = SelectionTool.MARQUEE,
@@ -674,11 +670,8 @@ internal suspend fun AwaitPointerEventScope.placementPress(
         )
         return true
     }
-    tab.selection = one
-    if (onEditLiving != null && taps.isSecond(down.uptimeMillis, down.position.x.toDouble(), down.position.y.toDouble())) {
-        onEditLiving(); return true
-    }
-    transformSelection(one, SelectionHandle.BODY, x0, y0, tab, view, density, onLiveDrag, onEdited)
+    // Model 1: clicking outside the active selection deselects it without immediately creating a new object.
+    tab.selection = null
     return true
 }
 
