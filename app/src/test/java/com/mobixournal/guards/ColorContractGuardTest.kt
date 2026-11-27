@@ -345,7 +345,7 @@ class ColorContractGuardTest {
             "PageCounter.kt" to listOf("surfaceContainerHighest.copy(alpha = 0.85f)"),
             "ScrollThumb.kt" to listOf("color = MaterialTheme.colorScheme.surface,\n"),
             "EditorOverlays.kt" to listOf("color = MaterialTheme.colorScheme.surface,\n"),
-            "EditorRegions.kt" to listOf(
+            "EditorSearchControls.kt" to listOf(
                 "shape = RoundedCornerShape(16.dp),\n            color = MaterialTheme.colorScheme.surfaceContainerHigh,",
             ),
             "ShortcutsSection.kt" to listOf("color = MaterialTheme.colorScheme.surface,\n"),

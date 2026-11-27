@@ -632,23 +632,9 @@ class SettingsStore(context: Context) {
             // wrong for one that is merely the *old* factory list written out by an earlier save
             // (the whole settings object is written together). The one-shot migration below hands
             // those rows the current factory order, and leaves anything hand-arranged alone.
-            topBarOrder = run {
-                val saved = decodeTopBarIds(prefs.getString(KEY_TOP_BAR_ORDER, null))
-                if (saved.isEmpty()) {
-                    d.topBarOrder
-                } else if (prefs.getBoolean(KEY_TOP_BAR_ORDER_MIGRATED, false)) {
-                    saved
-                } else {
-                    val migrated = migrateTopBarOrder(saved)
-                    // Written straight back: the flag alone would leave the stale list in prefs, and
-                    // the next launch would read it again.
-                    prefs.edit()
-                        .putBoolean(KEY_TOP_BAR_ORDER_MIGRATED, true)
-                        .putString(KEY_TOP_BAR_ORDER, encodeTopBarIds(migrated))
-                        .apply()
-                    migrated
-                }
-            },
+            topBarOrder = loadTopBarOrder(
+                prefs, d.topBarOrder, KEY_TOP_BAR_ORDER, KEY_TOP_BAR_ORDER_MIGRATED, KEY_TOP_BAR_DIVIDERS_SEEDED,
+            ),
             topBarHidden = decodeTopBarIds(prefs.getString(KEY_TOP_BAR_HIDDEN, null)).toSet(),
             audioFolderUri = prefs.getString(KEY_AUDIO_FOLDER, d.audioFolderUri) ?: d.audioFolderUri,
             saveStandaloneAudio = prefs.getBoolean(KEY_SAVE_STANDALONE_AUDIO, d.saveStandaloneAudio),
@@ -886,6 +872,7 @@ class SettingsStore(context: Context) {
 
         /** Set once the stale copy of an old factory Secondary Toolbar order has been refreshed. */
         const val KEY_TOP_BAR_ORDER_MIGRATED = "top_bar_order_migrated_v2"
+        const val KEY_TOP_BAR_DIVIDERS_SEEDED = "top_bar_dividers_seeded_v1"
         const val KEY_TOP_BAR_ORDER = "top_bar_order"
         const val KEY_TOP_BAR_HIDDEN = "top_bar_hidden"
         const val KEY_AUDIO_FOLDER = "audio_folder_uri"

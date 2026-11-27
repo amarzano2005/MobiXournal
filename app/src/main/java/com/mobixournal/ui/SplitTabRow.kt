@@ -1,9 +1,11 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -17,10 +19,12 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.chromeIsDark
 
 /**
- * The header's row of document tabs in split view: **one strip per pane**, each lying over its own
- * half of the canvas.
+ * The header's dedicated row of document tabs in split view: **one strip per pane**, each lying
+ * directly above its own half of the canvas.
  *
  * Spans the full viewport width so [splitPaneSpans] places the [SPLIT_HANDLE_WIDTH] gap directly
  * above [SplitLayout]'s divider; [startInset] / [endInset] clear the floating rail on the outer edge
@@ -36,6 +40,8 @@ internal fun SplitTabRow(
     endInset: Dp = 0.dp,
 ) {
     if (tabs.size < 2) return
+    val isDark = chromeIsDark()
+    val hairline = ModernTheme.hairlineBorder(isDark)
     val density = LocalDensity.current
     var rowWidthPx by remember { mutableFloatStateOf(1f) }
     val handlePx = with(density) { SPLIT_HANDLE_WIDTH.toPx() }
@@ -44,9 +50,15 @@ internal fun SplitTabRow(
         fraction = fraction,
         handleSpan = handlePx,
     )
-    Box(
+    Column(
         modifier = modifier.onSizeChanged { if (it.width > 0) rowWidthPx = it.width.toFloat() },
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(hairline),
+        )
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             TabStrip(
                 state = tabs[0],
@@ -54,7 +66,19 @@ internal fun SplitTabRow(
                     .weight(firstSpan.coerceAtLeast(1f))
                     .padding(start = startInset + TAB_STRIP_LEAD_IN),
             )
-            Spacer(Modifier.width(SPLIT_HANDLE_WIDTH))
+            Box(
+                modifier = Modifier
+                    .width(SPLIT_HANDLE_WIDTH)
+                    .height(22.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(20.dp)
+                        .background(hairline),
+                )
+            }
             TabStrip(
                 state = tabs[1],
                 modifier = Modifier

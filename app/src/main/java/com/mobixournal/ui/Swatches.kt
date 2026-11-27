@@ -23,14 +23,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.render.PlotPreviewPalette
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.rememberPopupPanelColor
 
 /** The default box size for a width dot swatch, and the largest dot that fits comfortably inside it. */
 private val DEFAULT_DOT_BOX = 28.dp
@@ -133,7 +137,7 @@ fun ColorSwatch(
         else -> colorDisplayName(color)
     }
     val isDark = chromeIsDark()
-    val hairline = ModernTheme.hairlineBorder(isDark)
+    val swatchBorder = swatchBorderColor(color = color, add = add, isDark = isDark)
     val outerRingColor = MaterialTheme.colorScheme.primary
 
     Box(
@@ -171,7 +175,7 @@ fun ColorSwatch(
                 .background(if (color == null) Color.Transparent else Color(color))
                 .border(
                     width = 1.dp,
-                    color = if (add || color == null) MaterialTheme.colorScheme.outlineVariant else hairline,
+                    color = swatchBorder,
                     shape = CircleShape,
                 ),
             contentAlignment = Alignment.Center,
@@ -195,5 +199,20 @@ fun ColorSwatch(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun swatchBorderColor(color: Int?, add: Boolean, isDark: Boolean): Color {
+    if (add || color == null) return MaterialTheme.colorScheme.outlineVariant
+    val popupBg = rememberPopupPanelColor()
+    val lowContrast = PlotPreviewPalette.contrast(
+        Color(color).compositeOver(popupBg).toArgb(),
+        popupBg.toArgb(),
+    ) < 2.2
+    return if (lowContrast) {
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f)
+    } else {
+        ModernTheme.hairlineBorder(isDark)
     }
 }

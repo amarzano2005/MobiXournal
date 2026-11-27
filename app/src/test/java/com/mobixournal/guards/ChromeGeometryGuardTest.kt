@@ -249,7 +249,7 @@ class ChromeGeometryGuardTest {
         // The header band: no elevation, and its own edge worn on the band's content.
         val headerBand = regions
             .substringAfter("fun EditorTopBar(")
-            .substringBefore("@Composable\nprivate fun SearchIndexingDialog")
+            .substringBefore("@Composable\nfun EditorToolbar(")
         // The band's own cast shadow is marked by its token: the controls standing *in* the band are
         // capsules and keep their small `4.dp` lift, which is a different object in the material table.
         assertFalse(

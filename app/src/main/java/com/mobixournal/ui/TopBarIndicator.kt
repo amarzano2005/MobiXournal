@@ -53,6 +53,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.toArgb
+import com.mobixournal.render.PlotPreviewPalette
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -337,8 +339,14 @@ internal fun StandaloneToolIndicator(
     val effectiveColor = if (isHighlighter) ui.highlighterColor else ui.color
     val hasColorAndSize = ui.tool !in NON_INKING_TOOLS
     val sizeLabel = sizeLetterFor(ui.width, styleCallbacks.widthSlots)
-    val ringColor = if (hasColorAndSize) Color(effectiveColor) else ModernTheme.hairlineBorder(chromeIsDark())
+    val isDark = chromeIsDark()
+    val chromeInk = rememberChromeInk()
+    val ringColor = if (hasColorAndSize) Color(effectiveColor) else ModernTheme.hairlineBorder(isDark)
     val badgeBg = rememberGlassSurfaceColor().compositeOver(rememberChromeColor())
+    val compositedRingArgb = ringColor.compositeOver(badgeBg).toArgb()
+    val lowContrast = hasColorAndSize && PlotPreviewPalette.contrast(compositedRingArgb, badgeBg.toArgb()) < 3.0
+    val badgeBorderColor = if (lowContrast) chromeInk.copy(alpha = 0.55f) else ringColor
+    val badgeTextColor = if (lowContrast) chromeInk else ringColor
 
     Box(
         modifier = modifier
@@ -358,6 +366,14 @@ internal fun StandaloneToolIndicator(
                         }
                     },
             ) {
+                if (lowContrast) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .align(Alignment.Center)
+                            .border(1.dp, chromeInk.copy(alpha = 0.55f), CircleShape),
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .size(36.dp)
@@ -374,7 +390,7 @@ internal fun StandaloneToolIndicator(
                     Icon(
                         imageVector = toolDisplayIcon(ui.tool, triangleKind, trapezoidKind),
                         contentDescription = null,
-                        tint = rememberChromeInk(),
+                        tint = chromeInk,
                         modifier = Modifier.size(ToolIconSize),
                     )
                 }
@@ -383,7 +399,7 @@ internal fun StandaloneToolIndicator(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .background(badgeBg, CircleShape)
-                            .border(1.dp, ringColor, CircleShape)
+                            .border(1.dp, badgeBorderColor, CircleShape)
                             .padding(horizontal = 4.dp, vertical = 0.5.dp),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -392,7 +408,7 @@ internal fun StandaloneToolIndicator(
                             fontSize = 9.sp,
                             lineHeight = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = ringColor,
+                            color = badgeTextColor,
                             maxLines = 1,
                         )
                     }

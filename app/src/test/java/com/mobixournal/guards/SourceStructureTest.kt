@@ -62,7 +62,7 @@ class SourceStructureTest {
         // the setting makes (it never names a document, never writes a read-only one).
         // +10 deliberate: the hold recogniser's own switch — one stored boolean, its key, the load that keeps
         // it exclusive with `recognizeShapes`, and the save beside them.
-        "ui/AppSettings.kt" to 1019,
+        "ui/AppSettings.kt" to 1002,
         // The two that carry the window's half of auto save, one deliberate line each over the budget: a stored
         // boolean in the settings file, and the state that the Documents switch and the quiet job both read.
         // The rule itself lives in `mobix-core` (`io/AutoSavePolicy.kt`), not here.
@@ -98,7 +98,6 @@ class SourceStructureTest {
      */
     private val longFunctions = setOf(
         "ui/EditorRegions.kt#TopBarToolsRow",
-        "ui/EditorRegions.kt#SearchControls",
         "ui/EditorRegions.kt#EditorTopBar",
         "ui/EditorRegions.kt#EditorPaneView",
         "ui/EditorRegions.kt#bindEditorActions",

@@ -35,9 +35,9 @@ class ToolbarDividersTest {
 
         val visible = visibleTopBarItems(
             order = FACTORY_TOP_BAR_ORDER_WITH_DIVIDERS,
-            hidden = setOf("axis", "graph", "table", "guides"),
+            hidden = setOf("arrow", "axis", "graph", "table", "guides"),
         )
-        assertFalse(visible.any { it.id == "div_3" })
+        assertFalse(visible.any { it.id == "div_4" })
         assertTrue(visible.count { isDividerId(it.id) } == 1)
         assertEquals("div_1", visible.first { isDividerId(it.id) }.id)
     }

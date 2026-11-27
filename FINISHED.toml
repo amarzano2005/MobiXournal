@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "fix-live-indicator-contrast-dual-side-splittabrow-default-mobile-dividers-and-searchcontrols-glass-animation"
+title = "Fix live indicator contrast, dual-side SplitTabRow, default mobile dividers, and SearchControls glass animation"
+description = "Added WCAG contrast halo and readable badge ink on low-contrast colors in StandaloneToolIndicator, FavoriteSwatch, and ColorSwatch; moved SplitTabRow to a dedicated aligned third header row in split view; seeded 4 family dividers on mobile Row 2; extracted SearchControls into EditorSearchControls.kt with header-matched glass chip styling and GlassMotion expand/shrink animations."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "material: header band and glass chip fills preserved; tokens: TabChipFillDark/Light, hairlineBorder, CAPSULE_CORNER_RADIUS_DP, GlassMotion POPOVER springs; docs: updated docs/chrome.md; tests: ToolbarDividersTest, ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
+
+[[task]]
 id = "capsule-free-docked-bars-and-editable-dividers"
 title = "Remove docked bar capsules on mobile and add user-editable toolbar dividers across both shells"
 description = "Added ToolbarDividers.kt and ToolbarDividersTest.kt; removed docked capsules from SideToolbar, TopBarToolsRow, and horizontal AudioMiniCapsule; added Add/Remove/drag-reorder dividers in Android ToolbarSection/SettingsWidgets (with default FACTORY_TOP_BAR_ORDER_WITH_DIVIDERS) and Desktop StripItems/StripOrderState/ToolbarOrderRows/SettingsSections/ToolStrips/DesktopShell; updated chrome.md, interface-contract.md, desktop-settings.md, StripItemsTest; verified unit tests, UI guards, androidTest compile, desktop distributable, and signed release APK (app/build/outputs/apk/release/MobiXournal-2.4.0.apk)."

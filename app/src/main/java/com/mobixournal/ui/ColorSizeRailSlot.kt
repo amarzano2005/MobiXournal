@@ -37,6 +37,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
@@ -44,9 +46,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.mobixournal.render.DrawingSurfaceView
+import com.mobixournal.render.PlotPreviewPalette
 import com.mobixournal.ui.theme.ModernTheme
 import com.mobixournal.ui.theme.chromeIsDark
+import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberChromeInk
+import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 import com.mobixournal.ui.theme.rememberPopupPanelColor
 
 /**
@@ -209,6 +214,9 @@ private fun FavoriteSwatch(
 ) {
     val isDark = chromeIsDark()
     val hairline = ModernTheme.hairlineBorder(isDark)
+    val surfaceBg = rememberGlassSurfaceColor().compositeOver(rememberChromeColor())
+    val lowContrast = PlotPreviewPalette.contrast(Color(color).compositeOver(surfaceBg).toArgb(), surfaceBg.toArgb()) < 2.2
+    val dotBorderColor = if (lowContrast) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.48f) else hairline
     val baseSize = minOf(width, height)
     val interactions = remember { MutableInteractionSource() }
     val hovered by interactions.collectIsHoveredAsState()
@@ -249,7 +257,7 @@ private fun FavoriteSwatch(
                 .background(Color(color))
                 .border(
                     width = 1.dp,
-                    color = hairline,
+                    color = dotBorderColor,
                     shape = CircleShape,
                 ),
         )
