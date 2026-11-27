@@ -99,8 +99,9 @@ fun SelectionActionAnchor(
 ) {
     val surface = pane.surface
     val closing = com.mobixournal.ui.theme.LocalFloatingSurfaceClosing.current
-    val rect = com.mobixournal.ui.theme.rememberClosingArgument(pane.selectionRect)
     val canPaste = canPasteOnCanvas(pane, ui)
+    val rememberedRect = com.mobixournal.ui.theme.rememberClosingArgument(pane.selectionRect)
+    val rect = if (canPaste) pane.selectionRect else rememberedRect
     if (!closing && rect == null && !canPaste) return
     if (!closing && (ui.editingTableCell != null || ui.editingPlot != null || ui.editingCircuit != null ||
         ui.editingShape != null)

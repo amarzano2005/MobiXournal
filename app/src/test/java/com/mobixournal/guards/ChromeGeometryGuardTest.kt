@@ -180,20 +180,26 @@ class ChromeGeometryGuardTest {
         val editorScreenFile = findSourceFile("EditorScreen.kt")
         val content = editorScreenFile.readText()
 
-        // In EditorScreen, EditorTopBar sits inside the vertical Column before EditorBody
-        val scaffoldBody = content.substringAfter("Scaffold(").substringAfter("Column(modifier = Modifier.fillMaxSize())")
-        val topBarIndex = scaffoldBody.indexOf("EditorTopBar(")
+        // In EditorScreen, EditorBody fills the Scaffold Box while AnimatedEditorTopBarHost overlays at TopStart
+        val scaffoldBody = content.substringAfter("Scaffold(")
         val bodyIndex = scaffoldBody.indexOf("EditorBody(")
+        val topBarHostIndex = scaffoldBody.indexOf("AnimatedEditorTopBarHost(")
 
-        assertTrue("Scaffold Column must place EditorTopBar first", topBarIndex >= 0)
-        assertTrue("Scaffold Column must place EditorBody after EditorTopBar", bodyIndex > topBarIndex)
+        assertTrue("Scaffold must place EditorBody", bodyIndex >= 0)
+        assertTrue("Scaffold must overlay AnimatedEditorTopBarHost at TopStart", topBarHostIndex > bodyIndex)
+        assertTrue(
+            "AnimatedEditorTopBarHost must align to Alignment.TopStart",
+            scaffoldBody.substring(topBarHostIndex).contains("Alignment.TopStart"),
+        )
 
         val editorBodyContent = content.substringAfter("private fun EditorBody(").substringBefore("\n/**")
         val workspace = findSourceFile("DocumentNavigationPanel.kt").readText()
         assertTrue("EditorBody must use the inline workspace below the header", editorBodyContent.contains("DocumentNavigationWorkspace("))
-        assertTrue("The workspace must pair RailLane and the live canvas in a Row",
-            workspace.contains("Row(Modifier.fillMaxSize())") &&
-                workspace.contains("RailLane(toolbar,") && workspace.contains("canvas(Modifier.weight(1f)"))
+        assertTrue(
+            "The workspace must render the full-size canvas behind the top-inset rail overlay",
+            workspace.contains("canvas(Modifier.fillMaxSize())") &&
+                workspace.contains("OverlayRailLane(") && workspace.contains("RailLane(toolbar,"),
+        )
 
     }
 

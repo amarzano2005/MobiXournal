@@ -5,7 +5,7 @@
 
 _A guide page for Android and Windows: the status of each capability that is not simply there. The internal map is [architecture.md](architecture.md)._
 
-Describes the Android build **2.4.0** and the desktop build **1.4.1**. The matrix is reviewed when a release
+Describes the Android build **2.5.0** and the desktop build **1.5.0**. The matrix is reviewed when a release
 is cut, so a row that is wrong for the version you installed is worth reporting.
 
 ## How to read the words

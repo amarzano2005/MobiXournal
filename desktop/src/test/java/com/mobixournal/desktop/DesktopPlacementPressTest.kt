@@ -107,13 +107,13 @@ class DesktopPlacementPressTest {
 
     @Test
     fun `a press on a rectangle picks it instead of drawing a second one`() {
-        val tab = tab(listOf(figure()))
+        val tab = tab(listOf(figure()), selectLast = true)
         val scene = scene(tab, DesktopTool.RECTANGLE)
         try {
-            pointer(scene, PointerEventType.Press, 160f, 100f, 1_000L)
-            pointer(scene, PointerEventType.Move, 180f, 120f, 1_016L)
-            pointer(scene, PointerEventType.Move, 200f, 140f, 1_032L)
-            pointer(scene, PointerEventType.Release, 200f, 140f, 1_048L, pressed = false)
+            pointer(scene, PointerEventType.Press, 130f, 100f, 1_000L)
+            pointer(scene, PointerEventType.Move, 150f, 120f, 1_016L)
+            pointer(scene, PointerEventType.Move, 170f, 140f, 1_032L)
+            pointer(scene, PointerEventType.Release, 170f, 140f, 1_048L, pressed = false)
 
             val page = tab.document.page(0)
             assertEquals("no second figure was written", 1, page.layers.sumOf { it.elements.size })

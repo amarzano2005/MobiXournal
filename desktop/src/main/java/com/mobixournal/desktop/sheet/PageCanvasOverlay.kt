@@ -86,6 +86,7 @@ internal fun DrawScope.paintLiveOverlay(
     guideAim: GuideAim? = null,
     pxPerPt: Float,
     measurer: TextMeasurer,
+    selectedSplineNodeIndex: Int = 0,
 ) {
     // The instrument first, under the stroke being drawn: the amber wash is 13 % of the sheet, so ink laid
     // along it reads as ink on paper ruled by a tool rather than as ink hidden under chrome.
@@ -129,7 +130,7 @@ internal fun DrawScope.paintLiveOverlay(
     )
     // The selection's marching outline and its handles, above the ink: what is caught stays visible.
     // A single living element also wears its own grips (a figure's corners, a table's dividers).
-    selection?.let { drawSelection(it, pxPerPt, living = livingElement) }
+    selection?.let { drawSelection(it, pxPerPt, living = livingElement, selectedSplineNodeIndex = selectedSplineNodeIndex) }
     // Above the outline: *what* the move will join, while the hand is still down. The tablet paints the
     // same ring from the same target (`drawMagnetTarget`), so the two shells answer one question.
     magnetTargets.forEach { drawMagnetTarget(it, pxPerPt) }
@@ -363,9 +364,11 @@ private fun DrawScope.drawFigureDraftPins(
         if (draft.size < 2) continue
         val last = draft.last()
         val first = draft.first()
-        val nearEnd = com.mobixournal.render.ElementInteraction.filterTargetsByProximity(allTargets, last.x, last.y, pxPerPt)
-        val nearStart = com.mobixournal.render.ElementInteraction.filterTargetsByProximity(allTargets, first.x, first.y, pxPerPt)
-        for (target in (nearEnd + nearStart).distinctBy { it.absX to it.absY }) {
+        val mid = draft[draft.size / 2]
+        val near = listOf(first, mid, last).flatMap { pt ->
+            com.mobixournal.render.ElementInteraction.filterTargetsByProximity(allTargets, pt.x, pt.y, pxPerPt)
+        }
+        for (target in near.distinctBy { it.absX to it.absY }) {
             drawPinTarget(target, pxPerPt)
         }
     }

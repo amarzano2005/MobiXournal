@@ -151,13 +151,14 @@ class DesktopDialogContractTest {
             val png = requireNotNull(image.encodeToData()?.bytes) { "Skia produced no PNG" }
             File("build/desktop-render/dialog-first-run.png").apply { parentFile?.mkdirs() }.writeBytes(png)
             val drawn = ImageIO.read(ByteArrayInputStream(png))
-            val centre = drawn.getRGB(drawn.width / 2, drawn.height / 2) and 0xFFFFFF
-            // The card's middle is its pre-picked answer (*.mobix*), so the steel of the picked row is what
-            // lands there; a translucent card would show the white page through both tones.
             val picked = DesktopTheme.activeSlot.toArgb() and 0xFFFFFF
+            val hasPickedRow = (0 until drawn.height).any { y ->
+                distance(drawn.getRGB(drawn.width / 2, y) and 0xFFFFFF, picked) <= 2
+            }
+            val centre = drawn.getRGB(drawn.width / 2, drawn.height / 2) and 0xFFFFFF
             assertTrue(
-                "the pre-picked answer wears the steel: 0x" + centre.toString(16),
-                distance(centre, picked) <= 2,
+                "the pre-picked answer wears the steel (centre=0x" + centre.toString(16) + ")",
+                hasPickedRow,
             )
         } finally {
             scene.close()

@@ -387,7 +387,7 @@ internal fun SheetCanvas(
             drawDesktopSplineDraft(tab, sheet.viewport, density, shapeInk)
         }
         sheetLayers(hud, pointer, mark, density, tab, sheet)
-        DesktopSplineBar(tab, shapeInk, onEdited, Modifier.align(androidx.compose.ui.Alignment.BottomCenter))
+        DesktopSplineBar(tool, tab, shapeInk, onEdited, Modifier.align(androidx.compose.ui.Alignment.BottomCenter))
     }
 }
 
@@ -521,7 +521,7 @@ internal fun DrawScope.paintSheet(
     /** The element the in-place field is retyping, left out of the recorded sheet. */
     skip: Element? = null,
     /** The karaoke driver: when it holds a clip, the sheet is painted directly rather than replayed. */
-    karaoke: DesktopKaraoke? = null,
+    karaoke: DesktopKaraoke? = null, selectedSplineNodeIndex: Int = 0,
 ) {
     // Resolved before the transform: inside it the receiver is a DrawTransform, which has no display
     // density of its own.
@@ -557,7 +557,7 @@ internal fun DrawScope.paintSheet(
             guide = guide,
             guideAim = guideAim,
             pxPerPt = pxPerPt,
-            measurer = measurer,
+            measurer = measurer, selectedSplineNodeIndex = selectedSplineNodeIndex,
         )
     }
     // The probe times the paint itself, after the ink was laid down: that is the frame the eye saw.

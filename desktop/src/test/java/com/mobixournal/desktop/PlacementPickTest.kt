@@ -167,9 +167,8 @@ class PlacementPickTest {
     @Test
     fun `a press inside a closed figure or on its outline picks it`() {
         val page = pageOf(figure(ShapeKind.RECTANGLE))
-        assertEquals(
-            "a closed figure hits from its border through its interior",
-            ElementRef(0, 0),
+        assertNull(
+            "interior of a closed figure is left open for ink inside it",
             pick(page, ShapeKind.RECTANGLE, 150.0, 130.0),
         )
         assertEquals(

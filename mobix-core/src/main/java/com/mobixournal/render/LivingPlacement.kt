@@ -132,13 +132,15 @@ object LivingPlacement {
         includeDerivative: Boolean = false,
         includeSummary: Boolean = false,
         shadeIntegral: PlotShading? = null,
+        lineStyle: LineStyle = LineStyle.PLAIN,
+        axisColor: Int = PlotElement.DEFAULT_AXIS,
     ): PlotElement = PlotElementFactory.plotElementIn(
         box = PlotBox(bounds.left, bounds.top, bounds.width, bounds.height),
         curves = listOf(
             PlotCurve(
                 source = formula,
                 color = colour,
-                lineStyle = LineStyle.PLAIN,
+                lineStyle = lineStyle,
                 kind = PlotKind.CARTESIAN,
             ),
         ),
@@ -146,6 +148,7 @@ object LivingPlacement {
         xMax = xMax,
         showCriticalPoints = showCriticalPoints,
         includeDerivative = includeDerivative,
+        axisColor = axisColor,
         includeSummary = includeSummary,
         shadeIntegral = shadeIntegral,
         strokeWidthPt = strokeWidthPt,
@@ -162,6 +165,8 @@ object LivingPlacement {
         rows: Int = DEFAULT_TABLE_ROWS,
         cols: Int = DEFAULT_TABLE_COLS,
         hasHeader: Boolean = true,
+        borderColor: Int = TableElement.DEFAULT_BORDER,
+        borderWidth: Double = TableElementFactory.DEFAULT_BORDER_WIDTH,
     ): TableElement = TableElementFactory.tableElementFor(
         startX = bounds.left,
         startY = bounds.top,
@@ -170,8 +175,8 @@ object LivingPlacement {
         rows = rows,
         cols = cols,
         hasHeader = hasHeader,
-        borderColor = TableElement.DEFAULT_BORDER,
-        borderWidth = TableElementFactory.DEFAULT_BORDER_WIDTH,
+        borderColor = borderColor,
+        borderWidth = borderWidth,
     )
 
     /**

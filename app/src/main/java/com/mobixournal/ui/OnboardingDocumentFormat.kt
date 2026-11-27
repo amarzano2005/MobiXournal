@@ -102,7 +102,7 @@ internal fun OnboardingStepDocumentFormat(
                 Text(
                     text = "Embed PDF backgrounds",
                     style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(

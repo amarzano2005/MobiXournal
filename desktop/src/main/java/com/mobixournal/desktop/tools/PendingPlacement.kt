@@ -66,6 +66,12 @@ class PendingPlacement(
      * started the card takes the tool's ink, so nothing changes colour unless the user asks.
      */
     val formulaColours = mutableStateListOf(defaultColour)
+    private var firstColourCustom = false
+
+    /** Keep the initial equation's colour in step with the toolbar until the user picks one in the card. */
+    fun syncDefaultColour(colour: Int) {
+        if (!firstColourCustom && formulaColours.isNotEmpty()) formulaColours[0] = colour
+    }
 
     /** The equations as the graph reads them: trimmed, blanks dropped, order kept — with their colours. */
     val curves: List<Pair<String, Int>>
@@ -86,12 +92,14 @@ class PendingPlacement(
     /** Drop equation [index]; the last one stays, because a graph with no equation is not a graph. */
     fun removeFormula(index: Int) {
         if (formulas.size <= 1 || index !in formulas.indices) return
+        if (index == 0) firstColourCustom = true
         formulas.removeAt(index)
         if (index in formulaColours.indices) formulaColours.removeAt(index)
     }
 
     /** Give equation [index] the colour [colour]. */
     fun setFormulaColour(index: Int, colour: Int) {
+        if (index == 0) firstColourCustom = true
         if (index in formulaColours.indices) formulaColours[index] = colour
     }
 
@@ -169,7 +177,12 @@ class PendingPlacement(
      * It is one function for two callers: [element] composes it into the page's box, and the lane's preview
      * composes it into a preview box, so what is promised before Place is what lands after it.
      */
-    fun plotIn(box: PlotBox, strokeWidthPt: Double): PlotElement? {
+    fun plotIn(
+        box: PlotBox,
+        strokeWidthPt: Double,
+        lineStyle: LineStyle = LineStyle.PLAIN,
+        axisColor: Int = PlotElement.DEFAULT_AXIS,
+    ): PlotElement? {
         val (from, to) = domain ?: return null
         val drawn = curves
         if (drawn.isEmpty()) return null
@@ -179,7 +192,7 @@ class PendingPlacement(
                 PlotCurve(
                     source = source,
                     color = ink,
-                    lineStyle = LineStyle.PLAIN,
+                    lineStyle = lineStyle,
                     kind = PlotKind.CARTESIAN,
                 )
             },
@@ -188,6 +201,7 @@ class PendingPlacement(
             showCriticalPoints = showCriticalPoints,
             includeDerivative = includeDerivative,
             strokeWidthPt = strokeWidthPt,
+            axisColor = axisColor,
             includeSummary = includeSummary,
             infoSide = infoSide,
             shadeIntegral = shading,
@@ -202,12 +216,15 @@ class PendingPlacement(
         LivingSlot.PLOT -> plotIn(
             box = PlotBox(bounds.left, bounds.top, bounds.width, bounds.height),
             strokeWidthPt = ink.width.toDouble(),
+            lineStyle = ink.lineStyle,
         )
         LivingSlot.TABLE -> LivingPlacement.table(
             bounds = bounds,
             rows = rows,
             cols = columns,
             hasHeader = header,
+            borderColor = ink.colour,
+            borderWidth = ink.width.toDouble(),
         )
         LivingSlot.CIRCUIT -> livingElementFor(slot, bounds, ink, circuitKind)
         LivingSlot.MATH -> mathSource.trim()

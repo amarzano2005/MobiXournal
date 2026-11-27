@@ -86,6 +86,12 @@ enum class SelectionAction {
 
     /** Open the selected living entity's editor — never an edit by itself, so the shell answers it. */
     EDIT,
+
+    /** Direct spline knot & loop operations on the floating selection bar. */
+    SPLINE_ADD_NODE,
+    SPLINE_TOGGLE_SMOOTH,
+    SPLINE_REMOVE_NODE,
+    SPLINE_TOGGLE_CLOSED,
 }
 
 /**
@@ -297,6 +303,8 @@ internal fun restyleSelection(
     val before = tab.document.snapshot()
     if (tab.document.editPage(index) { restyled } == null) return false
     tab.record(before)
+    val box = SelectionOps.boundsOf(SelectionOps.elementsAt(restyled, selection.refs))
+    if (box != null) tab.selection = PageSelection(rectRegion(box.left, box.top, box.right, box.bottom), selection.refs)
     onEdited(index)
     return true
 }
@@ -380,5 +388,61 @@ internal fun performSelection(
     SelectionAction.ALIGN_BOTTOM -> alignSelection(tab, SelectionOps.SelectionAlign.BOTTOM, onEdited)
     SelectionAction.DISTRIBUTE_H -> distributeSelection(tab, horizontal = true, onEdited = onEdited)
     SelectionAction.DISTRIBUTE_V -> distributeSelection(tab, horizontal = false, onEdited = onEdited)
+    SelectionAction.SPLINE_ADD_NODE -> splineAddMidpointNode(tab, onEdited)
+    SelectionAction.SPLINE_TOGGLE_SMOOTH -> splineToggleSelectedSmooth(tab, onEdited)
+    SelectionAction.SPLINE_REMOVE_NODE -> splineRemoveSelectedNode(tab, onEdited)
+    SelectionAction.SPLINE_TOGGLE_CLOSED -> splineToggleClosed(tab, onEdited)
     SelectionAction.EDIT -> false
 }
+
+private fun editSelectedSpline(
+    tab: DesktopTab,
+    onEdited: (Int) -> Unit,
+    transform: (com.mobixournal.format.model.SplineElement, Int) -> Pair<com.mobixournal.format.model.SplineElement, Int>?,
+): Boolean {
+    val ref = tab.selection?.refs?.singleOrNull() ?: return false
+    val pageIdx = tab.page
+    val page = runCatching { tab.document.page(pageIdx) }.getOrNull() ?: return false
+    val spline = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+        as? com.mobixournal.format.model.SplineElement ?: return false
+    val selIdx = tab.selectedSplineNodeIndex.coerceIn(0, (spline.nodes.size - 1).coerceAtLeast(0))
+    val (updated, nextIdx) = transform(spline, selIdx) ?: return false
+    val before = tab.document.snapshot()
+    val edited = withElement(page, ref, updated) ?: return false
+    if (tab.document.editPage(pageIdx) { edited } == null) return false
+    tab.record(before)
+    tab.selectedSplineNodeIndex = nextIdx.coerceIn(0, (updated.nodes.size - 1).coerceAtLeast(0))
+    val b = com.mobixournal.render.ElementBounds.of(updated)
+    tab.selection = com.mobixournal.render.PageSelection(com.mobixournal.render.SelectionRegion.Rect(b), setOf(ref))
+    onEdited(pageIdx)
+    return true
+}
+
+internal fun splineAddMidpointNode(tab: DesktopTab, onEdited: (Int) -> Unit = {}): Boolean =
+    editSelectedSpline(tab, onEdited) { spline, idx ->
+        val n = spline.nodes.size
+        if (n < 2) return@editSelectedSpline null
+        val nextIdx = if (idx < n - 1) idx + 1 else if (spline.closed) 0 else (idx - 1).coerceAtLeast(0)
+        val a = spline.nodes[idx]
+        val b = spline.nodes[nextIdx]
+        val insertAt = if (idx < n - 1) idx + 1 else if (spline.closed) n else idx
+        val mid = com.mobixournal.format.model.SplineNode(x = (a.x + b.x) / 2.0, y = (a.y + b.y) / 2.0)
+        spline.copy(nodes = spline.nodes.toMutableList().apply { add(insertAt, mid) }) to insertAt
+    }
+
+internal fun splineToggleSelectedSmooth(tab: DesktopTab, onEdited: (Int) -> Unit = {}): Boolean =
+    editSelectedSpline(tab, onEdited) { spline, idx ->
+        com.mobixournal.render.SplineInk.toggleNodeSmooth(spline, idx) to idx
+    }
+
+internal fun splineRemoveSelectedNode(tab: DesktopTab, onEdited: (Int) -> Unit = {}): Boolean =
+    editSelectedSpline(tab, onEdited) { spline, idx ->
+        val updated = com.mobixournal.render.SplineInk.removeNode(spline, idx) ?: return@editSelectedSpline null
+        updated to (idx - 1).coerceAtLeast(0)
+    }
+
+internal fun splineToggleClosed(tab: DesktopTab, onEdited: (Int) -> Unit = {}): Boolean =
+    editSelectedSpline(tab, onEdited) { spline, idx ->
+        if (!spline.closed && spline.nodes.size < 3) return@editSelectedSpline null
+        spline.copy(closed = !spline.closed) to idx
+    }

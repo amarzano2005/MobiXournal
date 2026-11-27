@@ -8,6 +8,7 @@ import com.mobixournal.render.PageThumbnail
 import com.mobixournal.render.PdfPageCache
 import com.mobixournal.render.blankDocument
 import com.mobixournal.render.captureStandInBitmap
+import com.mobixournal.render.clearSelection
 import com.mobixournal.render.setBackgroundResolver
 import com.mobixournal.tabs.DocColors
 import com.mobixournal.tabs.OpenTab
@@ -323,6 +324,9 @@ internal fun MainActivity.closeTab(index: Int, p: EditorPane = pane) {
     p.tabs.close(index) ?: return
     // A half of a split closes into a sheet of its own (see this function's note).
     if (splitView.value && p.tabs.isEmpty) p.tabs.open(blankTab(p))
+    if (p.tabs.isEmpty) {
+        p.surface?.clearSelection()
+    }
     // A document's stack outlives a tab switch, so it goes only when the **last** view of it closes — asked of
     // every pane, because the other half of a split may still be showing the same document.
     DocumentSessions.shared.retain(panes.flatMap { pane -> pane.tabs.tabs.map { it.docKey } }.toSet())

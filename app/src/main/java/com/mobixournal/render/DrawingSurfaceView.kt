@@ -709,7 +709,8 @@ class DrawingSurfaceView @JvmOverloads constructor(
         this.docValue = if (doc.pages.isEmpty()) doc.copy(pages = listOf(blankPage())) else doc
         scrollY = 0f
         scrollX = 0f
-        selection = null
+        gestures.clearSelection()
+        reportSelectionRect()
         clearBackgroundRegion()
         onSelectionChanged?.invoke(false)
         hiddenLayers.clear()

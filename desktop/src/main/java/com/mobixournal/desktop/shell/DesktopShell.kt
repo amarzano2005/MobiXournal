@@ -2,6 +2,7 @@ package com.mobixournal.desktop.shell
 import com.mobixournal.desktop.ink.ColourEditorTarget
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.DesktopInkState
+import com.mobixournal.desktop.ink.inkTool
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.io.DesktopAudioSession
 import com.mobixournal.desktop.io.DesktopRecovery
@@ -386,7 +387,7 @@ class DesktopShellState(
     /** What both strips draw — one value, so the rail and the ribbon cannot show different inks. */
     val stripState: ToolStripState
         get() = ToolStripState(
-            selection = tools, ink = ink, palette = palette,
+            selection = tools, ink = if (tools.current.inkTool() != null) ink else shapeInk, palette = palette,
             custom = paletteCustom, favourites = favourites, openGroup = openGroup,
             // The Toolbar section's arrangement, so a button moved on the settings page moves in both
             // strips — and the picker's index means the same slot in each of them.
@@ -415,10 +416,8 @@ class DesktopShellState(
 
     /** Pick the picked tool's ink colour, and remember it — what [DesktopInkState] keeps per tool. */
     fun pickColour(colour: Int) = inkState.pickColour(colour)
-
-    /** Pick the picked tool's stroke width, and remember it. */
-    fun pickWidth(width: Float) = inkState.pickWidth(width)
-
+    /** Pick the picked tool's stroke width, and sync figure/living width when a non-ink tool is active. */
+    fun pickWidth(width: Float) { inkState.pickWidth(width); if (tools.current.inkTool() == null && tools.current != DesktopTool.ERASER) prefs.figures.chooseWidth(width) }
     /** Pick the picked tool's stroke pattern (solid, dashed, dash-dot or dotted), and remember it. */
     fun pickLineStyle(style: LineStyle) = inkState.pickLineStyle(style)
 

@@ -339,6 +339,14 @@ internal fun DrawScope.drawStrokeShapes(
     if (pts.size < 2) return
     val color = colour ?: Color(InkGeometry.renderColor(stroke.tool, stroke.color))
 
+    stroke.fill?.let { fillAlpha ->
+        drawPath(
+            path = shapes.polyline,
+            color = color.copy(alpha = fillAlpha.coerceIn(0, 255) / 255f),
+            blendMode = if (stroke.tool == Tool.HIGHLIGHTER) BlendMode.Multiply else BlendMode.SrcOver,
+        )
+    }
+
     if (stroke.tool == Tool.HIGHLIGHTER) {
         // One translucent band, multiplied into the paper: the marker reads over ink instead of
         // veiling it, exactly as the Android painter's `drawBand` does.

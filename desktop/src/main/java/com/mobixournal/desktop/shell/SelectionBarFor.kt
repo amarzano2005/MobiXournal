@@ -33,5 +33,8 @@ internal fun selectionBarFor(state: DesktopShellState, tab: DesktopTab): Selecti
         onPickColour = { colour ->
             restyleSelection(tab, colour = colour) { index -> state.edited(tab, index) }
         },
+        onPickWidth = { width ->
+            restyleSelection(tab, widthPt = width.toDouble()) { index -> state.edited(tab, index) }
+        },
         onAction = { action -> state.runSelection(action) },
     )

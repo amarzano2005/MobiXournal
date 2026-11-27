@@ -2,6 +2,7 @@ package com.mobixournal.desktop.tools
 import com.mobixournal.desktop.shell.cancelPlacement
 import com.mobixournal.desktop.shell.confirmPlacement
 import com.mobixournal.desktop.sheet.label
+import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.settings.glyph
@@ -134,13 +135,13 @@ internal fun InspectorLane(
                     .padding(horizontal = 12.dp),
             ) {
                 when {
-                    shownPending != null -> PlacementBody(shownPending)
+                    shownPending != null -> PlacementBody(shownPending, state.shapeInk)
                     // The draft's own element is what the controls read and write: a restyle here changes
                     // what the commit will write, and the field above follows it as it is typed.
                     shownDrafting != null -> TextBody(shownDrafting.element()) { edited ->
                         if (edited is TextElement) state.textBox.restyle(edited)
                     }
-                    shownLive != null -> EditorBody(shownLive) { element -> state.commitLiving(element) }
+                    shownLive != null -> EditorBody(shownLive, tab) { element -> state.commitLiving(element) }
                     else -> Unit
                 }
             }
@@ -165,9 +166,9 @@ internal fun InspectorLane(
 
 /** The question a living slot asks before its element exists, in the lane's own cards. */
 @Composable
-private fun PlacementBody(pending: PendingPlacement) {
+private fun PlacementBody(pending: PendingPlacement, shapeInk: DesktopInk) {
     when (pending.slot) {
-        LivingSlot.PLOT -> PlotQuestion(pending)
+        LivingSlot.PLOT -> PlotQuestion(pending, shapeInk)
         LivingSlot.TABLE -> TableQuestion(pending)
         // A component's part was the palette's question, so a circuit never reaches this card.
         LivingSlot.CIRCUIT -> SectionCard("Component") { Readout("part", pending.slot.label()) }
@@ -207,10 +208,9 @@ private fun MathQuestion(pending: PendingPlacement) {
  * of a pending question is on the page yet), which is what lets the preview follow the keystrokes.
  */
 @Composable
-private fun PlotQuestion(pending: PendingPlacement) {
-    SectionCard("Preview") {
-        PlotQuestionPreview(pending)
-    }
+private fun PlotQuestion(pending: PendingPlacement, shapeInk: DesktopInk) {
+    LaunchedEffect(shapeInk.colour) { pending.syncDefaultColour(shapeInk.colour) }
+    SectionCard("Preview") { PlotQuestionPreview(pending, shapeInk) }
     SectionCard("Equations") {
         for (index in pending.formulas.indices) {
             EquationRow(
@@ -320,7 +320,11 @@ private fun TableQuestion(pending: PendingPlacement) {
 
 /** The editor of one element, dispatched by family — the lane's body once the element exists. */
 @Composable
-private fun EditorBody(live: LivingTarget, commit: (Element) -> Unit) {
+private fun EditorBody(
+    live: LivingTarget,
+    tab: com.mobixournal.desktop.shell.DesktopTab? = null,
+    commit: (Element) -> Unit,
+) {
     when (live.family) {
         LivingFamily.PLOT -> PlotBody(live.element as PlotElement, commit)
         LivingFamily.TABLE -> TableBody(live.element as TableElement, commit)
@@ -328,7 +332,7 @@ private fun EditorBody(live: LivingTarget, commit: (Element) -> Unit) {
         LivingFamily.CIRCUIT -> CircuitBody(live.element as CircuitElement, commit)
         LivingFamily.MATH -> MathBody(live.element as MathBlockElement, commit)
         LivingFamily.TEXT -> TextBody(live.element as TextElement, commit)
-        LivingFamily.SPLINE -> SplineBody(live.element as com.mobixournal.format.model.SplineElement, commit)
+        LivingFamily.SPLINE -> SplineBody(live.element as com.mobixournal.format.model.SplineElement, tab, commit)
     }
 }
 
@@ -392,11 +396,11 @@ private fun PlotBody(plot: PlotElement, commit: (Element) -> Unit) {
     }
     SectionCard("Look") {
         NumberField("width pt", curve?.strokeWidth ?: 1.0) { value ->
-            if (curve != null && value > 0 && value != curve.strokeWidth) {
-                commit(plot.copy(curves = listOf(curve.copy(strokeWidth = value)) + plot.curves.drop(1)))
-            }
+            if (curve != null && value > 0 && value != curve.strokeWidth) commit(plot.copy(curves = plot.curves.map { it.copy(strokeWidth = value) }))
         }
-        // The curve's own ink, not the axis': a colour row under "Look" is what the line will be drawn in.
+        PlotLineStyleField(curve?.lineStyle ?: com.mobixournal.format.model.LineStyle.PLAIN) { style ->
+            if (curve != null && style != curve.lineStyle) commit(plot.copy(curves = plot.curves.map { it.copy(lineStyle = style) }))
+        }
         ColourRow(current = curve?.color) { colour ->
             if (curve != null) {
                 commit(plot.copy(curves = listOf(curve.copy(color = colour)) + plot.curves.drop(1)))
@@ -591,16 +595,56 @@ private fun MathBody(block: MathBlockElement, commit: (Element) -> Unit) {
 @Composable
 private fun SplineBody(
     spline: com.mobixournal.format.model.SplineElement,
+    tab: com.mobixournal.desktop.shell.DesktopTab?,
     commit: (Element) -> Unit,
 ) {
+    val nodeCount = spline.nodes.size
+    val selectedIdx = (tab?.selectedSplineNodeIndex ?: 0).coerceIn(0, (nodeCount - 1).coerceAtLeast(0))
+    val selectedNode = spline.nodes.getOrNull(selectedIdx)
     SectionCard("Curve") {
-        Readout("knots", "${spline.nodes.size}")
+        Readout("knots", "$nodeCount (selected #${selectedIdx + 1})")
         SwitchRow("Closed loop", spline.closed) { closed ->
             if (spline.nodes.size >= 3 || !closed) commit(spline.copy(closed = closed))
         }
         NumberField("width pt", spline.width) { width ->
             if (width > 0 && width != spline.width) commit(spline.copy(width = width))
         }
+    }
+    SectionCard("Nodes") {
+        InspectorButton(
+            label = "Add midpoint node",
+            primary = false,
+            enabled = nodeCount >= 2,
+            onClick = {
+                val n = spline.nodes.size
+                val nextIdx = if (selectedIdx < n - 1) selectedIdx + 1 else if (spline.closed) 0 else (selectedIdx - 1).coerceAtLeast(0)
+                val a = spline.nodes[selectedIdx]
+                val b = spline.nodes[nextIdx]
+                val insertAt = if (selectedIdx < n - 1) selectedIdx + 1 else if (spline.closed) n else selectedIdx
+                val mid = com.mobixournal.format.model.SplineNode(x = (a.x + b.x) / 2.0, y = (a.y + b.y) / 2.0)
+                tab?.selectedSplineNodeIndex = insertAt
+                commit(spline.copy(nodes = spline.nodes.toMutableList().apply { add(insertAt, mid) }))
+            },
+        )
+        Spacer(Modifier.height(4.dp))
+        InspectorButton(
+            label = if (selectedNode?.smooth != false) "Make corner knot" else "Make smooth knot",
+            primary = false,
+            enabled = selectedNode != null,
+            onClick = { commit(com.mobixournal.render.SplineInk.toggleNodeSmooth(spline, selectedIdx)) },
+        )
+        Spacer(Modifier.height(4.dp))
+        InspectorButton(
+            label = "Remove selected node",
+            primary = false,
+            enabled = nodeCount > 2,
+            onClick = {
+                com.mobixournal.render.SplineInk.removeNode(spline, selectedIdx)?.let { updated ->
+                    tab?.selectedSplineNodeIndex = (selectedIdx - 1).coerceAtLeast(0)
+                    commit(updated)
+                }
+            },
+        )
     }
     SectionCard("Look") {
         ColourRow(current = spline.color) { colour -> commit(spline.copy(color = colour)) }

@@ -17,12 +17,25 @@ kind = "finished"
 purpose = "The archive of completed work for this project."
 documentation_map = "AGENTS.md"
 order = "newest first"
-latest_release = "2.4.0"
+latest_release = "2.5.0"
 
 [meta.rules]
 finish_work = "Tasks arrive here via `todo.py done <id> --shipped`, which replaces the plan with what actually shipped; newest first, append-only."
 growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
+
+[[task]]
+id = "desktop-spline-plot-shade-and-ink-sync"
+title = "Align desktop spline, plot shade, line width, and element ink sync with mobile"
+description = "Aligned desktop spline drafting pill, floating bar knot/loop actions, accent pin colours, Line width popup, plot shadeIntegral fill, plot/table ink/lineStyle sync, and mobile selection clearing on tab close; refreshed docs/assets/preview-desktop.png."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-27
+completed = 2026-11-27
+release = "2.5.0"
+tags = []
+design = "glyph: added ChromeGlyph.LOOP and ChromeGlyph.TIMELINE; parity: matched DesktopSplineBar, SelectionBar, and StrokeSlot with mobile; tests: ChromeGlyphPathsTest, ChromeGlyphsTest, DesktopSelectionBarTest, DesktopLivingSlotsTest, SourceStructureTest, DocsGuardTest"
 
 [[task]]
 id = "readme-v2-landing-and-guard"
@@ -33,6 +46,7 @@ level = "task"
 category = "feature"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "docs: updated README.md and docs/guide-index.md; tests: DocsGuardTest, DocClaimsTest, and SourceStructureTest passed"
 
@@ -45,6 +59,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "states: Existing header SavingArc spinner indicates saving without floating text; tests: DesktopShellTest, SourceStructureTest, and desktop createDistributable passed."
 
@@ -57,6 +72,7 @@ level = "task"
 category = "bug"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "states: Existing liquidGlassSpringAnimation + rememberClosingArgument freezes all spline buttons during exit; tests: InteractionContractGuardTest, SourceStructureTest, ColorContractGuardTest, and desktop createDistributable passed."
 
@@ -69,6 +85,7 @@ level = "task"
 category = "bug"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "tokens: Uses chrome.handleArm ring, chrome.pinHalo, and chrome.handle for active knot highlight and sharp square vs smooth circle distinction; tests: SourceStructureTest, ColorContractGuardTest, and desktop createDistributable passed."
 
@@ -81,6 +98,7 @@ level = "task"
 category = "bug"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "tokens: Existing SwitchRow and SettingsDivider inside Files & Data SettingsGroup; tests: SourceStructureTest and ColorContractGuardTest passed."
 
@@ -93,6 +111,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "none: pure format codec optimization in mobix-core verified by DocumentEncoderTest, FileKindTest, XoppZipTest, TextImportRoundTripTest, PixmapBackgroundRoundTripTest, SourceStructureTest, and desktop createDistributable"
 
@@ -105,6 +124,7 @@ level = "task"
 category = "feature"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "tokens: Existing Material3 Switch/SettingsSwitch and chrome badge tokens used across onboarding, settings, import, and Save As; copy: English labels and size readouts across both shells; parity: Android and Desktop both expose onboarding, settings, import, and save embedding; tests: SourceStructureTest, ColorContractGuardTest, SettingsBackupGuardTest, InteractionContractGuardTest, and desktop createDistributable passed."
 
@@ -117,6 +137,7 @@ level = "task"
 category = "test"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "none: test-only architectural guard verified by InteractionContractGuardTest, SourceStructureTest, and ColorContractGuardTest"
 
@@ -129,6 +150,7 @@ level = "task"
 category = "feature"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "tokens: Existing accent and pin chrome tokens used for corner rounded squares, oriented X/Y edge pills (hidden below 48 px), circular vertex nodes, and proximity diamond pins; parity: Shared ElementInteraction rules wired into both Android and Desktop; docs: Updated docs/selection.md; tests: ElementInteractionTest, SelectionResizeMathTest, FigurePinsTest, SourceStructureTest, ColorContractGuardTest, PlacementPickTest passed and desktop distributable rebuilt."
 
@@ -141,6 +163,7 @@ level = "task"
 category = "bug"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "tokens: Existing canvas accent handle dots (HANDLE_DRAW_PX) on edge midpoints matching corner handles; tests: SourceStructureTest, ColorContractGuardTest, and SelectionResizeMathTest passed"
 
@@ -153,6 +176,7 @@ level = "task"
 category = "feature"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "glyph: ToolGlyph.SPLINE; tokens: MaterialTheme and DesktopButton; copy: English UI labels; parity: tap/drag drafting and handle editing on Android and Desktop; docs: living-entities, element-fields, xopp-bridge, guide-stem-tools; tests: SplineInkTest, MobixSplineCodecTest, XoppExportCoverageTest, LivingEditCoverageTest, ToolGlyphCoverageTest"
 
@@ -165,6 +189,7 @@ level = "task"
 category = "bug"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "tokens: uniform 32dp rounded-8dp plate inside 36dp target; states: clipped ripple and active plate on all Row 1 actions; tests: ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
 
@@ -177,6 +202,7 @@ level = "task"
 category = "bug"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "glyph: PlayArrow/drawPlayTriangle for resume; tokens: uniform 30dp plate inside 36dp touch target with 8dp corner; parity: updated both Android and Desktop; tests: ColorContractGuardTest, SourceStructureTest, DesktopTextFeedbackContractTest, release APK and desktop distributable"
 
@@ -189,6 +215,7 @@ level = "task"
 category = "feature"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "parity: identical 3-mode transport across AudioMiniCapsule and HeaderAudioPill; tokens: DocumentRed/SignalAmber/SignalGreen/DesktopTheme danger+accent and GlassMotion POPOVER; docs: updated docs/audio.md; tests: ColorContractGuardTest, SourceStructureTest, DesktopTextFeedbackContractTest, release APK and desktop distributable"
 
@@ -201,6 +228,7 @@ level = "task"
 category = "bug"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "material: header band remains seamless into SplitTabRow without horizontal rule; tokens: RAIL_MAX_SCALE=1.0 and RAIL_MIN_SCALE=0.80; docs: updated docs/chrome.md; tests: RailSizingTest, ToolbarDividersTest, ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
 
@@ -213,6 +241,7 @@ level = "task"
 category = "bug"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "tokens: GlassMotion POPOVER spring and chromeSlideSpring; states: stationary NavigationCapsule fade with zero Bookmark shear; tests: ToolbarDividersTest, ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
 
@@ -225,6 +254,7 @@ level = "task"
 category = "bug"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "tokens: GlassMotion POPOVER spring and chromeSlideSpring; states: clipped monotonic expand/shrink without Bookmark overlap; tests: ToolbarDividersTest, ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
 
@@ -237,6 +267,7 @@ level = "task"
 category = "feature"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "glyph: Canvas stroke-pattern glyphs for PLAIN/DASHED/DASH_DOT/DOTTED; parity: mirrored in Desktop LineStylePicker; states: ColorSizePopup stays open until outside tap; tests: ToolbarDividersTest, ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
 
@@ -249,6 +280,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "material: TabChipFillDark/Light hub fill on header band; tokens: TopBarToolDivider and RailRule hairlines; docs: updated docs/chrome.md; tests: ToolbarDividersTest, ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
 
@@ -261,6 +293,7 @@ level = "task"
 category = "bug"
 created = 2026-11-27
 completed = 2026-11-27
+release = "2.5.0"
 tags = []
 design = "material: header band and glass chip fills preserved; tokens: TabChipFillDark/Light, hairlineBorder, CAPSULE_CORNER_RADIUS_DP, GlassMotion POPOVER springs; docs: updated docs/chrome.md; tests: ToolbarDividersTest, ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
 
@@ -273,6 +306,7 @@ level = "task"
 category = "feature"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: docked Android bars are frameless inside the L-band while Liquid Glass stays on floating overlays; tokens: ModernTheme/DesignTokens only; states: DesktopButton Ghost remove and primaryContainer/primary active slots; parity: both Android and Desktop support editable toolbar dividers; docs: chrome.md, interface-contract.md, desktop-settings.md; tests: ToolbarDividersTest, StripItemsTest, UI/Desktop guards, signed release APK"
 
@@ -285,6 +319,7 @@ level = "task"
 category = "feature"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: naked Row 1 header controls and seamless L-frame fillet via ChromeCornerFillet; tokens: DesignTokens and rememberChromeColor/ModernTheme only; glyph: ToolIconSize kept across TopBarToolsRow and StandaloneToolIndicator; states: primaryContainer/primary active plates with clipped shapes; docs: updated chrome.md (295 lines) and interface-contract.md; tests: CompactTopBarGroupingTest, UI guards, androidTest compile, signed release APK"
 
@@ -297,6 +332,7 @@ level = "task"
 category = "bug"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "parity: desktop marquee/lasso tightens to SelectionTester.boundsOf like Android; tests: DesktopSelectionTest, SelectionTest, mobix-core:test, SourceStructureTest"
 
@@ -309,6 +345,7 @@ level = "task"
 category = "chore"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: existing SaveAsFormatRow, FormatOption, and SettingsSelect preserved; states: unchanged enabled/selected states; copy: English UI copy updated to Xournal++ package and PDF embedded inside across Android and Desktop"
 
@@ -321,6 +358,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "none: .mobix ZIP container compression policy for pre-compressed assets and canvas guard cleanup, no UI surface"
 
@@ -333,6 +371,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "none: internal Android render cache prefetch, pinch raster deferral, and Compose callback throttling optimization with no UI chrome changes"
 
@@ -345,6 +384,7 @@ level = "task"
 category = "feature"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: unchanged chrome surfaces; tokens: unchanged; glyph: unchanged; states: zero-jump continuous edge pan from 0 proportional to overshoot inside visible safe bounds; copy: unchanged English; parity: matches Xournal++ EditSelection::handleEdgePan adapted for Android tablet edge insets; docs: docs/interface-contract.md updated; tests: ScrollGestureTest, SourceStructureTest, ColorContractGuardTest green"
 
@@ -357,6 +397,7 @@ level = "task"
 category = "feature"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: unchanged FloatingSurface inspector panels; tokens: unchanged; glyph: unchanged; states: canvas vertex/rotation/divider edits stream into open inspector previews and numeric readouts in real time without altering panel anchor/session; copy: unchanged English; parity: Android UI parity with canvas-live element state; docs: docs/mobix-living-entities.md updated; tests: ShapeInspectorHelpersTest, TableCellEditorDialogTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest green"
 
@@ -369,6 +410,7 @@ level = "task"
 category = "feature"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: unchanged FloatingSurface inspector panels on Android and flat section cards on Desktop; tokens: MaterialTheme scheme + CanvasChrome paints + DesktopTheme; glyph: unchanged Edit/Lock glyphs; states: conic Rx/Ry/Make circle + Lock rectangular box vs Unlock curve outline + visible-edge drag scroll; copy: English labels (Radius X, Radius Y, Show radii, Make circle); parity: full Android + Desktop + mobix-core parity; docs: docs/mobix-living-entities.md updated; tests: :mobix-core:test and :app:testDebugUnitTest guards green"
 
@@ -381,6 +423,7 @@ level = "task"
 category = "bug"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: unchanged selection bar surface; tokens: unchanged ChromeGlyph and CanvasChrome; glyph: ASPECT_LOCK/ASPECT_UNLOCK; states: persisted per-stroke aspect lock restored on reselection and unlocked/locked shape interior drag; copy: unchanged English; parity: shared SelectionResizeMath.pointInPolygon and stroke aspect-lock helpers in mobix-core; docs: none (no UI contract change beyond existing lock/scroll behavior); tests: SelectionResizeMathTest, ScrollGestureTest, SelectionResizeTest, SelectionActionAnchorTest, SourceStructureTest, ColorContractGuardTest green"
 
@@ -393,6 +436,7 @@ level = "task"
 category = "feature"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface + POPOVER GlassMotion for compact formula bar; tokens: existing MaterialTheme + CanvasChrome selectionStroke/selectionFill; glyph: KeyboardArrow/KeyboardHide + FormatAlign/FormatBold + ASPECT_LOCK; states: IME open/closed mode transition, locked/unlocked handle distinction, frozen exit capabilities; copy: English descriptions; parity: centralized SelectionResizeMath.supportsAspectLockToggle in mobix-core; docs: docs/mobix-living-entities.md and docs/interface-contract.md updated; tests: SelectionResizeMathTest, ScrollGestureTest, TableCellEditorDialogTest, SelectionActionAnchorTest, SelectionResizeTest, SourceStructureTest, ColorContractGuardTest green"
 
@@ -405,6 +449,7 @@ level = "task"
 category = "feature"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: floating surface via LivingInspectorAnchor (DialogPresence + POPOVER GlassMotion + InspectorTabBar + InspectorChip); tokens: PenPalette.COLORS + MaterialTheme scheme tokens; glyph: TableChart + DragIndicator + FormatAlign/FormatBold + Add/Remove; states: entry/exit presence + active cell focus highlight + live undo coalescing; copy: English labels (Table, Cells, Layout & Style, Distribute evenly, Header row, Border width, Border colour, Done); parity: Android reaches Grid/Header/BorderWidth/BorderColor parity with desktop TableBody; docs: docs/mobix-living-entities.md and docs/interface-contract.md updated; tests: TableCellEditorDialogTest, LivingInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest green"
 
@@ -417,6 +462,7 @@ level = "task"
 category = "bug"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: floating surface (DialogPresence + POPOVER GlassMotion); tokens: DesignTokens.GlassMotion + MeterGreen/PanelScrim; glyph: unchanged; states: entry/exit presence + closing argument retention; copy: unchanged English; parity: tablet DialogPresence parity with desktop GlassPresence; docs: docs/interface-contract.md §7 updated; tests: SourceStructureTest and ColorContractGuardTest green"
 
@@ -429,6 +475,7 @@ level = "task"
 category = "bug"
 created = 2026-11-26
 completed = 2026-11-26
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface; tokens: DesignTokens.GlassMotion POPOVER + liquidGlassContentSize + AnimatedContent; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, PlotInspectorAnchorTest, ShapeInspectorHelpersTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -441,6 +488,7 @@ level = "task"
 category = "bug"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface; tokens: DesignTokens.GlassMotion POPOVER/SHEET in place; states: 1:1 SelectionActionAnchor tracking; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, PlotInspectorAnchorTest, ShapeInspectorHelpersTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -453,6 +501,7 @@ level = "task"
 category = "feature"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface; tokens: DesignTokens.GlassMotion POPOVER/SHEET + liquidGlassContentSize + animateIntOffsetAsState; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, PlotInspectorAnchorTest, ShapeInspectorHelpersTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -465,6 +514,7 @@ level = "task"
 category = "feature"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "parity: LivingInspectorAnchor aligns cleanly beside Plot, Shape, and Circuit across expanded/compact states; tests: LivingInspectorAnchorTest, PlotInspectorAnchorTest, SourceStructureTest"
 
@@ -477,6 +527,7 @@ level = "task"
 category = "bug"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "parity: LivingPlacement shared across Android and Desktop; tests: LivingPlacementTest, PlotInspectorAnchorTest, SourceStructureTest"
 
@@ -489,6 +540,7 @@ level = "task"
 category = "chore"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "parity: Android and Desktop both default showCriticalPoints to false; tests: DesktopLivingSlotsTest, PlotInspectorAnchorTest, SourceStructureTest"
 
@@ -501,6 +553,7 @@ level = "task"
 category = "bug"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface + visible hairline divider; tokens: MaterialTheme.colorScheme without literals; parity: Plot lands selected in Select tool matching desktop; docs: interface-contract.md updated; tests: PlacementPickTest, LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -513,6 +566,7 @@ level = "task"
 category = "bug"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface + hairline divider; tokens: MaterialTheme.colorScheme without literals; states: double-tap on lift preserves drag-to-move; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -525,6 +579,7 @@ level = "task"
 category = "bug"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface; tokens: MaterialTheme.colorScheme without literals; states: 8dp clipped ripples; parity: clean 3-level hierarchy across Plot and Shape; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -537,6 +592,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface + unified InspectorChip/InspectorTabBar; tokens: MaterialTheme.colorScheme without literals; states: 8dp clip before clickable; parity: clean live canvas editing without redundant preview; docs: interface-contract.md updated; tests: LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -549,6 +605,7 @@ level = "task"
 category = "bug"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface + framed preview; tokens: MaterialTheme.colorScheme without literals; states: 8dp clip before clickable; parity: post-placement SELECT matches desktop; tests: LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -561,6 +618,7 @@ level = "task"
 category = "bug"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface preserved; tokens: MaterialTheme.colorScheme without literals; parity: PlotInspectorAnchor now matches desktop live preview + tabbed sections; tests: LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -573,6 +631,7 @@ level = "task"
 category = "feature"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface for docked keyboards; tokens: MaterialTheme.colorScheme without literals; parity: Desktop InspectorLane vs Android LivingInspectorAnchor + docked in-app keyboards; tests: LivingInspectorAnchorTest, ShapeInspectorHelpersTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -585,6 +644,7 @@ level = "task"
 category = "feature"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface via LivingInspectorAnchor; tokens: MaterialTheme.colorScheme and PenPalette without literals; parity: Desktop InspectorLane vs Android LivingInspectorAnchor; docs: docs/interface-contract.md updated; tests: ShapeInspectorHelpersTest, LivingInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest, ColorContractGuardTest"
 
@@ -597,6 +657,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface and FloatingDialog preserved; tokens: WindowInsets.ime + existing gap/margin/width tokens; parity: Desktop InspectorLane vs Android LivingInspectorAnchor/FloatingDialog; docs: interface-contract.md and new-living-element/SKILL.md updated; tests: LivingInspectorAnchorTest, PlotInspectorAnchorTest, LivingEditCoverageTest, SourceStructureTest"
 
@@ -609,6 +670,7 @@ level = "task"
 category = "feature"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "parity: both Android FiguresSection and Desktop FiguresSettings expose the same Default lock selector (SettingsCopyParityTest, SettingsWriteGuardTest); tests: MobixLivingCodecTest, SettingsBackupGuardTest, SourceStructureTest, and release APK verified"
 
@@ -621,6 +683,7 @@ level = "task"
 category = "feature"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "glyph: ChromeGlyphCatalogue 24-unit grid with 2u outlined weight matching selection bar siblings (ChromeGlyphsTest, ChromeGlyphPathsTest); states: BarToggleButton selected/unselected states preserved with default locked state"
 
@@ -633,6 +696,7 @@ level = "task"
 category = "feature"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "material: FloatingSurface and BarToggleButton unchanged on both shells; glyph: custom 24x24 ChromeGlyph.ASPECT_LOCK and ChromeGlyph.ASPECT_UNLOCK paths with diagonal resize arrows and closed/open shackle; states: locked vs unlocked toggle swaps icon and contentDescription; parity: Align removed from both Android and Desktop selection bars; copy: English contentDescription strings unchanged."
 
@@ -645,6 +709,7 @@ level = "task"
 category = "docs"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "none: documentation and DocsGuardTest-only change with no UI or runtime surface."
 
@@ -657,6 +722,7 @@ level = "task"
 category = "feature"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = []
 design = "parity: double-tap/double-click opens matching living editors while a figure/placement tool is active on both Android and Desktop; docs: updated docs/mobix-living-entities.md; tests: verified SourceStructureTest, LivingEdit, CanvasTaps, DesktopSelectionTest, and signed release APK."
 
@@ -669,6 +735,7 @@ level = "task"
 category = "feature"
 created = 2026-11-25
 completed = 2026-11-25
+release = "2.5.0"
 tags = ["geometry", "selection", "parity"]
 design = "glyph: ChromeGlyph.ASPECT_LOCK added to ChromeGlyphs.kt with unique SVG path verified by ToolGlyphCoverageTest; tokens: BarToggleButton uses MaterialTheme.colorScheme.primaryContainer/onPrimaryContainer when active; copy: English Lock/Unlock proportions labels; parity: Shift corner aspect-lock on Desktop and Lock proportions toggle on Android SelectionActionBar share SelectionResizeMath."
 
@@ -681,6 +748,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: rotate handle stem anchored on element outline in SelectionHandlesPaint and SelectionOverlay; states: consistent knob hit-test and rendering across single shapes, strokes, and group selections; parity: right-side stem on Android and top-side stem on Desktop both anchor via shared ElementHitTester"
 
@@ -693,6 +761,7 @@ level = "task"
 category = "feature"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: polygon-hugging dashed selection path and translucent fill in DrawingSurfaceFigures and SelectionOverlay; states: single parametric shape shows vertices + rotate knob while multi-selection keeps group box; parity: identical hit-testing, PlacementPick matching, and polygon outline across Android and Desktop"
 
@@ -705,6 +774,7 @@ level = "task"
 category = "feature"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: FloatingDialog and InspectorLane cards with shared PenPalette swatches; states: default/active/focus numeric fields and None fill chip; copy: English labels and snap guidance across ShapeEditorDialog and ShapeInspector; parity: identical editable geometry, labels, fill, vertex grips, and table dividers across Android and Desktop"
 
@@ -717,6 +787,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "none: format I/O, bridge revival, and session snapshot persistence with no UI surface"
 
@@ -729,6 +800,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: Liquid Glass dialog and preview strip unchanged; tokens: unused arrow icons removed cleanly; states: FocusBarSlotStatusRow renders slot label and count without clutter; docs: no behavioral doc claim changed; tests: FocusBarGeometryTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, ShapeFeedbackTest, and ToolbarMenuGuardTest pass."
 
@@ -741,6 +813,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: MaterialTheme.colorScheme.background veil cleanly separates the SurfaceView sheet from the offscreen Home overlay in both directions; tokens: chromeSlideSpring and theme background tokens unchanged; states: editor unmounts once fully veiled (p >= 0.48) and veil unmounts at rest (p <= 0.005); docs: docs/chrome.md updated in same commit; tests: DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, and ToolbarMenuGuardTest pass."
 
@@ -753,6 +826,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: offscreen Home layer and opaque chrome rails never bleed through one another during crossfade; tokens: chromeSlideSpring and 16.dp micro-slide read in draw phase only (zero recomposition or SurfaceView repaints); states: Focus mode keeps entryReveal at 1f while Home-Editor enter and exit play exact dual two-phase choreography; docs: docs/chrome.md updated in same commit; tests: DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, and ToolbarMenuGuardTest pass."
 
@@ -765,6 +839,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: symmetric offscreen Home overlay over live editor preserves seamless transition in both directions; tokens: chromeSlideSpring and 2.5% lift/settle delta shared symmetrically; states: closing the last tab keeps the sheet steady underneath while Home lands back to 1.0x and defers disk I/O past the spring; docs: docs/chrome.md updated in same commit; tests: DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, and ToolbarMenuGuardTest pass."
 
@@ -777,6 +852,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: offscreen GPU compositing of Home overlay over already-settled editor chrome removes micro-stutters; tokens: chromeSlideSpring unchanged; states: Home cards stay visually frozen while fading out and Focus mode top bar slide remains intact; docs: docs/chrome.md updated in same commit; tests: DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, FocusBarGeometryTest, and ToolbarMenuGuardTest pass."
 
@@ -789,6 +865,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: pure-Compose Home overlay and steady DrawingSurfaceView unchanged; tokens: restored chromeSlideSpring() pace with zero frame-0 inflation clock loss; states: Home-to-Editor transition starts on a clean vsync with zero synchronous main-thread disk I/O; docs: docs/chrome.md updated in same commit; tests: DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, and FocusBarGeometryTest pass."
 
@@ -801,6 +878,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: entry overlay and steady DrawingSurfaceView unchanged; tokens: critically-damped 1400f/1100f springs tuned for 144Hz responsiveness with zero bounce; states: faster exit fade removes lingering Home ghosting over the canvas; docs: docs/chrome.md updated in same commit; tests: DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, and FocusBarGeometryTest pass."
 
@@ -813,6 +891,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: FocusBarCustomizeDialog preserves 24.dp Liquid Glass Surface, floatingRim, and liquidGlassSpringAnimation while reducing footer height; tokens: no hardcoded Color(0x...), compact padding and chromeSlideSpring reused across Home-Editor transition; states: DocumentArea keeps DrawingSurfaceView steady at scale 1f during entry fade-out and closes back to Home without bounce or frame-0 flash; docs: docs/chrome.md updated in same commit; tests: FocusBarGeometryTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, ShapeFeedbackTest, and ToolbarMenuGuardTest pass."
 
@@ -825,6 +904,7 @@ level = "task"
 category = "feature"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: both dialogs use FloatingDialog Liquid Glass surfaces with floatingRim and theme primaryContainer/surfaceVariant tokens; tokens: no hardcoded Color(0x...) verified by ColorContractGuardTest and TypeContractGuardTest; glyph: catalog chips reuse FocusPreviewSlotGlyph icons and FocusBarCustomizeTitle uses Material HelpOutline; states: first-launch guide shows once after delay(260L) on Focus entry, filter chips show All/Default/Extra/Panels/STEM with active/in-bar/add-disabled states, preview supports tap/drag/remove/add; copy: concise English UI labels; docs: docs/chrome.md updated in same commit; tests: FocusBarGeometryTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, TypeContractGuardTest, ShapeFeedbackTest, and ToolbarMenuGuardTest pass."
 
@@ -837,6 +917,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: SplitPaneStandIn bounded drawRect over canvas backdrop and graphicsLayer clip=true preserve Pane 0 and overlay isolation; tokens: chromeSlideSpring and canvas chrome tokens unchanged; states: opening, closing, and settled split states keep Pane 0 visible and Pane 1 covered by stand-in until first live frame; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, InkCacheTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, and ToolbarMenuGuardTest pass."
 
@@ -849,6 +930,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: SplitPaneStandIn renders live sheet paper/ruling/outline over canvas chrome backdrop so no black hole appears during slide or handoff; tokens: critically-damped chromeSlideSpring (1.0f, 560f) and canvas chrome tokens preserve visual hierarchy; states: opening, closing, emptyEntry, and settled split states synchronize Pane 0 and Pane 1 pixel-for-pixel without frame-0 I/O or subcomposition stalls; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, InkCacheTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, and ToolbarMenuGuardTest pass."
 
@@ -861,6 +943,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: SplitLayout overlay and SurfaceView first-frame veil both use rememberCanvasChromeColors().backdrop so desk color matches seamlessly with zero black flash; tokens: chromeSlideSpring and canvas chrome tokens unchanged; states: opening/closing split view syncs Pane 0 insets on the same Choreographer frame and masks Pane 1 SurfaceView creation until first frame; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, and ToolbarMenuGuardTest pass."
 
@@ -873,6 +956,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: SplitLayout opaque rememberChromeColor overlay and chrome bands unchanged; tokens: chromeSlideSpring, SPLIT_HANDLE_WIDTH, TAB_STRIP_LEAD_IN, and SideToolbarModernTotalWidth unchanged; states: stylus/touch taps on chrome buttons no longer canceled in PointerEventPass.Final, TabStrip '+' hugs last tab and stays pinned on overflow, SplitLayout defers Pane 1 mount until settled; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, and ToolbarMenuGuardTest pass."
 
@@ -885,6 +969,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = []
 design = "material: TopAppBar status-bar consume fix preserves Chrome/Sheet backdrop while SplitLayout overlay backs Pane 1 with opaque rememberChromeColor; tokens: chromeSlideSpring and TOP_BAR_ROW_HEIGHT unchanged and checked by ColorContractGuardTest/TypeContractGuardTest; states: ChromeInsetController live splitRightInsetPx and settledForPane keep active, animating, emptyEntry, and settled split bounds aligned; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, and ToolbarMenuGuardTest pass."
 
@@ -897,6 +982,7 @@ level = "task"
 category = "feature"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = ["ui", "render", "android"]
 design = "material: keeps opaque chrome bands over rememberChromeColor and existing SplitHandleLane styling; states: zero-recomposition spring transitions for Focus mode, sidebar, and split view with cached stand-in blitting; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, SplitLayoutTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest pass."
 
@@ -909,6 +995,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = ["ui", "render", "android"]
 design = "material: AnimatedEditorTopBarHost composites over rememberChromeColor matching RailLane opacity with no bleed-through; states: spring-driven zero-recomposition transitions with same-vsync SurfaceView paint; docs: docs/chrome.md updated in same commit; tests: ViewportStateTest, DocClaimsTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest pass."
 
@@ -921,6 +1008,7 @@ level = "task"
 category = "docs"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = ["docs", "guards"]
 design = "docs: aligned docs/chrome.md, docs/chrome-settings.md, and docs/guide-inking-and-gestures.md within 300-line budgets; tests: DocClaimsTest, SourceStructureTest, and test-check-doc-sync.py pass."
 
@@ -933,6 +1021,7 @@ level = "task"
 category = "feature"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = ["ui", "render", "android"]
 design = "material: keeps Band glass and bandSideEdge on RailLane and DocumentNavigationLane, and floating surface/rim on FocusModeExitButton and FocusGlassBarCapsule; states: overlays slide smoothly without detaching the SurfaceView and block canvas pointers on chrome; copy: unchanged English copy; tests: ViewportStateTest, FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest pass."
 
@@ -945,6 +1034,7 @@ level = "task"
 category = "feature"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = ["ui", "android"]
 design = "material: keeps floating surface and rim on Focus bar preview and rounded chips with clip-before-click state layers; glyph: reuses shared ToolGlyph/ChromeGlyph icons at 20 dp in preview and 16 dp in chips; states: highlights current slot with primaryContainer and 1.5 dp border, marks swappable in-bar tools with an accent dot, disables current slot in replace mode and in-bar slots in add mode; copy: English labels with hold-and-drag hint and no Liquid Glass user copy; tests: FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest pass."
 
@@ -957,6 +1047,7 @@ level = "task"
 category = "feature"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = ["ui", "android"]
 design = "material: keeps floating surface and rim on Focus bar preview and rounded chips with clip-before-click state layers; glyph: uses SettingsGlyph.FOCUS_MODE at 20 dp in EditorOverflowViews and shared ToolGlyph/ChromeGlyph icons at 16 dp in chips; states: disables inactive chips at 10-slot max and active chips at 3-slot min with distinct primaryContainer vs muted styling; copy: English labels with no Liquid Glass user copy; tests: FocusBarGeometryTest, SourceStructureTest, ColorContractGuardTest, ShapeFeedbackTest, TypeContractGuardTest, ToolbarMenuGuardTest pass."
 
@@ -969,6 +1060,7 @@ level = "task"
 category = "feature"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = ["ui", "android"]
 design = "material: keeps floating surface and rim on Focus bar and SettingsActionShape OutlinedButton in PenInputSection; glyph: uses shared ToolGlyph and ChromeGlyph icons for all new Focus bar slots and SettingsGlyph.FOCUS_MODE on the link button; copy: English labels without parenthetical hints or internal Liquid Glass terminology; tests: FocusBarGeometryTest, SourceStructureTest, and ColorContractGuardTest pass."
 
@@ -981,6 +1073,7 @@ level = "task"
 category = "bug"
 created = 2026-11-24
 completed = 2026-11-24
+release = "2.5.0"
 tags = ["ui", "android"]
 design = "material: keeps existing floating-sheet surface and switch track in SheetSwitchRow with a 12 dp horizontal gap between weighted text column and toggle; copy: English label and subtitle unchanged; tests: DocsGuardTest, SourceStructureTest, and ColorContractGuardTest pass."
 
@@ -993,6 +1086,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "none: internal rendering, caching, and ZIP streaming optimizations with no UI surface change"
 
@@ -1005,6 +1099,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "none: pure composable helper extraction with zero visual or behavioral change"
 
@@ -1017,6 +1112,7 @@ level = "task"
 category = "refactor"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "none: internal rendering, I/O, recomposition scoping, and Wintab frame pacing optimizations with no visual or component change"
 
@@ -1029,6 +1125,7 @@ level = "task"
 category = "bug"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "none: gesture drag state machine and live morph offset smoothing inside existing Focus floating bar capsule"
 
@@ -1041,6 +1138,7 @@ level = "task"
 category = "bug"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "none: Focus bar gesture state machine fix using existing Liquid Glass capsule"
 
@@ -1053,6 +1151,7 @@ level = "task"
 category = "feature"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "none: background handwriting search indexing and caching with no UI surface change"
 
@@ -1065,6 +1164,7 @@ level = "task"
 category = "bug"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "none: Focus bar drag physics and edge-docking fix using existing Liquid Glass capsule"
 
@@ -1077,6 +1177,7 @@ level = "task"
 category = "bug"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "none: dirty-state and auto-save trigger when audio recording finishes with no new chrome surface"
 
@@ -1089,6 +1190,7 @@ level = "task"
 category = "bug"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "none: selection-clearing behavior on tool switch with no new chrome surface."
 
@@ -1101,6 +1203,7 @@ level = "task"
 category = "feature"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "states: direct 1:1 finger tracking without magnetic pull during drag, horizontal bottom-edge resting dock matching side-edge margins; tests: FocusBarGeometryTest verifies BOTTOM_EDGE docking and snap"
 
@@ -1113,6 +1216,7 @@ level = "task"
 category = "bug"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "material: removed blue EdgeDockGlow overlay so only the Liquid Glass capsule sits over the page; states: symmetric left/right edge morphing and trap-free undocking; tests: FocusBarGeometryTest covers left-handle push to right edge and undock grab fraction"
 
@@ -1125,6 +1229,7 @@ level = "task"
 category = "bug"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "states: free horizontal dragging across the full middle viewport, clean 56 dp edge dock and 92 dp undock with zero trap; tests: FocusBarGeometryTest covers free middle zone, dock, and undock on both phones and tablets"
 
@@ -1137,6 +1242,7 @@ level = "task"
 category = "bug"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "states: edge-proximity horizontal-to-vertical morphing with inward-pull undock hysteresis and zero oscillation; tests: FocusBarGeometryTest covers tablet and compact phone edge-proximity morphing"
 
@@ -1149,6 +1255,7 @@ level = "task"
 category = "bug"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "states: zero-lag synchronous drag tracking without offset ping-pong; tests: FocusBarGeometryTest verifies all 11 FocusBarSlotKind IDs survive encode/decode and phone/tablet edge thresholds"
 
@@ -1161,6 +1268,7 @@ level = "task"
 category = "bug"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "states: smooth finger-tracked drag, magnetic edge glow, jelly morph pulse, and spring snap preserved across edge dock; tests: FocusBarGeometryTest verifies compact phone and tablet edge thresholds and hysteresis"
 
@@ -1173,6 +1281,7 @@ level = "task"
 category = "feature"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "material: Floating Surface Liquid Glass via rememberFloatingSurfaceColor() + floatingRim(20.dp) + liquidGlassSpringAnimation; tokens: COMPACT_BUTTON_SIZE_DP, panelCornerRadiusDp, zero raw Color(0x) literals (ColorContractGuardTest passed); glyph: SettingsGlyph.FOCUS_MODE in mobix-core + ToolGlyphCatalogue + ChromeGlyph (SettingsGlyphParityTest & DesktopSettingsGlyphTest passed); states: active accent/container highlight, disabled undo/redo tint, jelly morph feedback, edge glow; copy: English UI copy across FocusBarSlots, FocusModeSection, FocusBarCustomizeDialog; docs: updated docs/chrome.md, docs/chrome-settings.md, docs/guide-inking-and-gestures.md (DocsGuardTest passed); tests: FocusBarGeometryTest, SettingsOverviewTest, AppSettingsBackupTest, DesktopSettingsGlyphTest passed"
 
@@ -1185,6 +1294,7 @@ level = "task"
 category = "feature"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "copy: updated Touch double-tap note, Focus mode subtitle, and filtered FingerGesturesSection options; docs: updated README.md and docs/guide-inking-and-gestures.md (DocsGuardTest passed); tests: TapClassifierTest and MultiFingerTapDetectorTest passed"
 
@@ -1197,6 +1307,7 @@ level = "task"
 category = "feature"
 created = 2026-11-23
 completed = 2026-11-23
+release = "2.5.0"
 tags = []
 design = "copy: English UI copy, bodySmall secondary ink subtitle in SheetSwitchRow, SettingsNote in FingerGesturesSection, unified Focus mode naming; tokens: uses rememberChromeInk() and MaterialTheme.typography without raw colour literals (ColorContractGuardTest passed); docs: updated README.md and docs/guide-inking-and-gestures.md (DocsGuardTest passed)"
 
@@ -1209,6 +1320,7 @@ level = "task"
 category = "chore"
 created = 2026-11-22
 completed = 2026-11-22
+release = "2.5.0"
 tags = []
 design = "none: developer and agent automation scripts, git hooks, CI checks, and tooling docs only (no app UI surface changed)"
 

@@ -110,8 +110,9 @@ class DesktopStripLayoutTest {
      */
     private fun sheetTop(pixels: IntArray): Int {
         val x = width / 2
-        return (0 until height).firstOrNull { y -> paper(pixels, x, y) }
-            ?: error("no sheet in the middle column")
+        return (0..height - 20).firstOrNull { y ->
+            (y until y + 20).all { row -> paper(pixels, x, row) }
+        } ?: error("no sheet in the middle column")
     }
 
     /**

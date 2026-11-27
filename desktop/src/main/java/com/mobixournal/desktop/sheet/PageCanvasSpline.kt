@@ -3,11 +3,8 @@ package com.mobixournal.desktop.sheet
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -15,8 +12,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -25,17 +24,19 @@ import androidx.compose.ui.input.pointer.AwaitPointerEventScope
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
 import androidx.compose.ui.unit.dp
+import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.pagePointOf
+import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.shell.DesktopTab
-import com.mobixournal.desktop.tools.DesktopButton
-import com.mobixournal.desktop.tools.DesktopButtonVariant
 import com.mobixournal.desktop.tools.DesktopTool
+import com.mobixournal.desktop.tools.glassSurface
 import com.mobixournal.format.model.ElementId
 import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.SplineNode
 import com.mobixournal.render.ElementBounds
 import com.mobixournal.render.ElementRef
+import com.mobixournal.render.InkGeometry
 import com.mobixournal.render.PageSelection
 import com.mobixournal.render.SelectionRegion
 import com.mobixournal.render.SelectionTester
@@ -69,12 +70,23 @@ internal suspend fun AwaitPointerEventScope.splinePress(
     dragView: DragView,
     density: Float,
     onEdited: (Int) -> Unit,
+    onLiveDrag: ((() -> Unit)?) -> Unit = {},
+    onEditLiving: (() -> Unit)? = null,
+    taps: TapTracker = TapTracker(),
 ): Boolean {
     if (tool != DesktopTool.SPLINE) return false
     val (ptX, ptY) = pagePointOf(down.position.x, down.position.y, density, dragView.current())
+    if (ptX !in 0.0..dragView.pageW.toDouble() || ptY !in 0.0..dragView.pageH.toDouble()) return false
     val draft = splineDraftFor(tab)
 
     if (!draft.active) {
+        if (tab.selection != null && hitsActiveSelection(tab, ptX, ptY, dragView, density)) {
+            selectionDrag(
+                start = down, tool = SelectionTool.MARQUEE, tab = tab, view = dragView, density = density,
+                onLiveDrag = onLiveDrag, onEdited = onEdited, onEditLiving = onEditLiving, taps = taps,
+            )
+            return true
+        }
         val page = runCatching { tab.document.page(tab.page) }.getOrNull()
         val existing = page?.let { SelectionTester.pickTopmost(it, ptX, ptY) { el -> el is SplineElement } }
         if (existing != null) {
@@ -82,6 +94,10 @@ internal suspend fun AwaitPointerEventScope.splinePress(
             if (el != null) {
                 val b = ElementBounds.of(el)
                 tab.selection = PageSelection(SelectionRegion.Rect(b), setOf(existing))
+                selectionDrag(
+                    start = down, tool = SelectionTool.MARQUEE, tab = tab, view = dragView, density = density,
+                    onLiveDrag = onLiveDrag, onEdited = onEdited, onEditLiving = onEditLiving, taps = taps,
+                )
             }
             return true
         }
@@ -100,30 +116,8 @@ internal suspend fun AwaitPointerEventScope.splinePress(
         draft.pageIndex = tab.page
         draft.nodes.clear()
         draft.closed = false
-    } else {
-        // Active draft on this page: allow dragging existing knots/handles or closing loop on knot 0.
-        val tempSpline = SplineElement(nodes = draft.nodes.toList(), closed = draft.closed)
-        val tolPt = 10.0 / (dragView.current().zoom.coerceAtLeast(0.1f))
-        val grip = gripAt(tempSpline, ptX, ptY, tolPt)
-        if (grip != null) {
-            if (grip is LivingGrip.SplineKnot && grip.index == 0 && draft.nodes.size >= 3 && !draft.closed) {
-                draft.closed = true
-                down.consume()
-                return true
-            }
-            down.consume()
-            while (true) {
-                val event = awaitPointerEvent()
-                val change = event.changes.firstOrNull { it.id == down.id } ?: event.changes.firstOrNull() ?: break
-                if (change.changedToUpIgnoreConsumed()) { change.consume(); break }
-                val (cx, cy) = pagePointOf(change.position.x, change.position.y, density, dragView.current())
-                val updated = dragGrip(tempSpline, grip, cx - ptX, cy - ptY) as SplineElement
-                draft.nodes.clear()
-                draft.nodes.addAll(updated.nodes)
-                change.consume()
-            }
-            return true
-        }
+    } else if (tryEditDraftGrip(down, draft, ptX, ptY, dragView, density)) {
+        return true
     }
 
     draft.nodes.add(SplineNode(ptX, ptY))
@@ -156,6 +150,37 @@ internal suspend fun AwaitPointerEventScope.splinePress(
     return true
 }
 
+private suspend fun AwaitPointerEventScope.tryEditDraftGrip(
+    down: PointerInputChange,
+    draft: DesktopSplineDraft,
+    ptX: Double,
+    ptY: Double,
+    dragView: DragView,
+    density: Float,
+): Boolean {
+    val tempSpline = SplineElement(nodes = draft.nodes.toList(), closed = draft.closed)
+    val pxPerPt = (dragView.current().zoom * density).coerceAtLeast(0.1f)
+    val tolPt = (HANDLE_PX / pxPerPt).toDouble()
+    val grip = gripAt(tempSpline, ptX, ptY, tolPt) ?: return false
+    if (grip is LivingGrip.SplineKnot && grip.index == 0 && draft.nodes.size >= 3 && !draft.closed) {
+        draft.closed = true
+        down.consume()
+        return true
+    }
+    down.consume()
+    while (true) {
+        val event = awaitPointerEvent()
+        val change = event.changes.firstOrNull { it.id == down.id } ?: event.changes.firstOrNull() ?: break
+        if (change.changedToUpIgnoreConsumed()) { change.consume(); break }
+        val (cx, cy) = pagePointOf(change.position.x, change.position.y, density, dragView.current())
+        val updated = dragGrip(tempSpline, grip, cx - ptX, cy - ptY) as SplineElement
+        draft.nodes.clear()
+        draft.nodes.addAll(updated.nodes)
+        change.consume()
+    }
+    return true
+}
+
 internal fun confirmDesktopSplineDraft(
     tab: DesktopTab,
     shapeInk: DesktopInk,
@@ -176,6 +201,8 @@ internal fun confirmDesktopSplineDraft(
         lineStyle = shapeInk.lineStyle,
         id = ElementId.mint(ElementId.SPLINE),
     )
+    val before = tab.document.snapshot()
+    tab.record(before)
     var addedRef: ElementRef? = null
     tab.document.editPage(pageIdx) { page ->
         val layerIdx = page.layers.lastIndex.coerceAtLeast(0)
@@ -204,7 +231,8 @@ internal fun DrawScope.drawDesktopSplineDraft(
         return Offset(sx * density, sy * density)
     }
     val pts = SplineInk.samplePoints(draft.nodes, draft.closed, shapeInk.width.toDouble())
-    val accent = Color(shapeInk.colour)
+    val curveColor = Color(shapeInk.colour)
+    val chrome = com.mobixournal.desktop.settings.DesktopTheme.accent
     if (pts != null && pts.size >= 2) {
         val path = Path().apply {
             val p0 = toScreen(pts[0].x, pts[0].y)
@@ -214,10 +242,19 @@ internal fun DrawScope.drawDesktopSplineDraft(
                 lineTo(pi.x, pi.y)
             }
         }
+        val dash = InkGeometry.dashIntervalsPt(shapeInk.lineStyle, shapeInk.width.toDouble())
+        val pathEffect = if (dash != null && dash.size >= 2) {
+            PathEffect.dashPathEffect(dash.map { (it * viewport.zoom * density).toFloat() }.toFloatArray(), 0f)
+        } else null
         drawPath(
             path = path,
-            color = accent,
-            style = Stroke(width = (shapeInk.width * viewport.zoom * density).coerceAtLeast(1.5f), cap = StrokeCap.Round, join = StrokeJoin.Round),
+            color = curveColor,
+            style = Stroke(
+                width = (shapeInk.width * viewport.zoom * density).coerceAtLeast(1.5f),
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round,
+                pathEffect = pathEffect,
+            ),
         )
     }
     val nodes = draft.nodes.toList()
@@ -228,70 +265,94 @@ internal fun DrawScope.drawDesktopSplineDraft(
         if (SplineInk.hasActiveInHandle(nodes, draft.closed, i)) {
             val ih = toScreen(inH.first, inH.second)
             if (hypot((ih.x - k.x).toDouble(), (ih.y - k.y).toDouble()) > 3.0) {
-                drawLine(accent.copy(alpha = 0.55f), k, ih, strokeWidth = 1.2f * density)
-                drawCircle(accent, radius = 3.5f * density, center = ih)
+                drawLine(chrome.copy(alpha = 0.55f), k, ih, strokeWidth = 1.2f * density)
+                drawCircle(Color.White, radius = 4.2f * density, center = ih)
+                drawCircle(chrome, radius = 3.0f * density, center = ih)
             }
         }
         if (SplineInk.hasActiveOutHandle(nodes, draft.closed, i)) {
             val oh = toScreen(outH.first, outH.second)
             if (hypot((oh.x - k.x).toDouble(), (oh.y - k.y).toDouble()) > 3.0) {
-                drawLine(accent.copy(alpha = 0.55f), k, oh, strokeWidth = 1.2f * density)
-                drawCircle(accent, radius = 3.5f * density, center = oh)
+                drawLine(chrome.copy(alpha = 0.55f), k, oh, strokeWidth = 1.2f * density)
+                drawCircle(Color.White, radius = 4.2f * density, center = oh)
+                drawCircle(chrome, radius = 3.0f * density, center = oh)
             }
         }
-        drawCircle(Color.White, radius = 5.5f * density, center = k)
-        drawCircle(accent, radius = 4f * density, center = k)
+        if (i == nodes.lastIndex) {
+            drawCircle(chrome.copy(alpha = 0.45f), radius = 8.5f * density, center = k, style = Stroke(width = 1.5f * density))
+        }
+        val haloR = 5.5f * density
+        val knotR = 4f * density
+        if (n.smooth) {
+            drawCircle(Color.White, radius = haloR, center = k)
+            drawCircle(chrome, radius = knotR, center = k)
+        } else {
+            drawRect(Color.White, topLeft = Offset(k.x - haloR, k.y - haloR), size = Size(haloR * 2f, haloR * 2f))
+            drawRect(chrome, topLeft = Offset(k.x - knotR, k.y - knotR), size = Size(knotR * 2f, knotR * 2f))
+        }
     }
 }
 
 @Composable
 internal fun DesktopSplineBar(
+    tool: DesktopTool,
     tab: DesktopTab,
     shapeInk: DesktopInk,
     onEdited: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val draft = splineDraftFor(tab)
+    LaunchedEffect(tool, tab) {
+        if (tool != DesktopTool.SPLINE && draft.active) {
+            if (draft.nodes.size >= 2) confirmDesktopSplineDraft(tab, shapeInk, onEdited)
+            else draft.reset()
+        }
+    }
     if (!draft.active) return
-    Surface(
-        modifier = modifier.padding(bottom = 12.dp),
-        shape = RoundedCornerShape(20.dp),
-        shadowElevation = 6.dp,
-        color = com.mobixournal.desktop.settings.DesktopTheme.floating,
-        border = androidx.compose.foundation.BorderStroke(1.dp, com.mobixournal.desktop.settings.DesktopTheme.hairline),
+    Row(
+        modifier = modifier
+            .padding(bottom = 12.dp)
+            .glassSurface(cornerRadius = DesktopTheme.surfaceRadius)
+            .padding(horizontal = 4.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        BarButton(
+            glyph = ChromeGlyph.UNDO,
+            enabled = draft.nodes.isNotEmpty(),
+            tooltip = "Undo last knot",
+            shortcut = "",
         ) {
-            DesktopButton(
-                label = "Undo",
-                onClick = {
-                    if (draft.nodes.isNotEmpty()) draft.nodes.removeAt(draft.nodes.lastIndex)
-                    if (draft.nodes.size < 3) draft.closed = false
-                    if (draft.nodes.isEmpty()) draft.reset()
-                },
-                variant = DesktopButtonVariant.Ghost,
-                enabled = draft.nodes.isNotEmpty(),
-            )
-            DesktopButton(
-                label = if (draft.closed) "Open" else "Close",
-                onClick = { draft.closed = !draft.closed },
-                variant = DesktopButtonVariant.Ghost,
-                enabled = draft.nodes.size >= 3,
-            )
-            DesktopButton(
-                label = "Cancel",
-                onClick = { draft.reset() },
-                variant = DesktopButtonVariant.Ghost,
-            )
-            DesktopButton(
-                label = "Confirm",
-                onClick = { confirmDesktopSplineDraft(tab, shapeInk, onEdited) },
-                variant = DesktopButtonVariant.Primary,
-                enabled = draft.nodes.size >= 2,
-            )
+            if (draft.nodes.isNotEmpty()) draft.nodes.removeAt(draft.nodes.lastIndex)
+            if (draft.nodes.size < 3) draft.closed = false
+            if (draft.nodes.isEmpty()) draft.reset()
+        }
+        BarButton(
+            glyph = ChromeGlyph.LOOP,
+            enabled = draft.nodes.size >= 3,
+            tooltip = if (draft.closed) "Open curve" else "Close loop",
+            shortcut = "",
+            active = draft.closed,
+            accented = draft.closed,
+        ) {
+            draft.closed = !draft.closed
+        }
+        BarButton(
+            glyph = ChromeGlyph.CLOSE,
+            enabled = true,
+            tooltip = "Cancel spline",
+            shortcut = "",
+        ) {
+            draft.reset()
+        }
+        BarButton(
+            glyph = ChromeGlyph.CHECK,
+            enabled = draft.nodes.size >= 2,
+            tooltip = "Confirm spline",
+            shortcut = "",
+            accented = draft.nodes.size >= 2,
+        ) {
+            confirmDesktopSplineDraft(tab, shapeInk, onEdited)
         }
     }
 }

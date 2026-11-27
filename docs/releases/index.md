@@ -7,14 +7,16 @@
 
 ## What is current
 
-- **Android:** MobiXournal **2.4.0**, released 2026-11-22.
-- **Windows:** MobiXournal Desktop **1.4.1**, released 2026-11-22.
+- **Android:** MobiXournal **2.5.0**, released 2026-11-27.
+- **Windows:** MobiXournal Desktop **1.5.0**, released 2026-11-27.
 
 The two shells are built and released separately and therefore number separately. A note names the shell
 it belongs to, and a release note for one shell does not describe the other.
 
 | Version | Shell | Released | What it was | The note |
 |---|---|---|---|---|
+| **2.5.0** | Android | 2026-11-27 | Hybrid Splines, Focus mode floating bar, anchored inspectors, handwriting search cache, and 144 Hz chrome | [v2.5.0.md](v2.5.0.md) |
+| **1.5.0** | Windows | 2026-11-27 | Hybrid Splines, Plot shade integral, Line width popup, synchronized element ink, and toolbar dividers | [v2.5.0.md](v2.5.0.md) |
 | **2.4.0** | Android | 2026-11-22 | Command Sheet, Share Sheet, redesigned Settings & About, crisp role-based glass motion | [v2.4.0.md](v2.4.0.md) |
 | **1.4.1** | Windows | 2026-11-22 | Aligned Settings & About, crisp role-based glass motion, audio seek & UI polish | [v2.4.0.md](v2.4.0.md) |
 | **2.3.1** | Android | 2026-11-19 | A split run comes back whole, the selection holds inside its outline | [v2.3.1.md](v2.3.1.md) |

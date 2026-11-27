@@ -59,8 +59,12 @@ internal fun livingElementFor(
     ink: DesktopInk,
     circuitKind: ShapeKind,
 ): Element? = when (slot) {
-    LivingSlot.PLOT -> LivingPlacement.plot(bounds, ink.colour, ink.width.toDouble())
-    LivingSlot.TABLE -> LivingPlacement.table(bounds)
+    LivingSlot.PLOT -> LivingPlacement.plot(bounds, ink.colour, ink.width.toDouble(), lineStyle = ink.lineStyle)
+    LivingSlot.TABLE -> LivingPlacement.table(
+        bounds,
+        borderColor = ink.colour,
+        borderWidth = ink.width.toDouble(),
+    )
     LivingSlot.CIRCUIT -> LivingPlacement.circuit(circuitKind, bounds, ink.colour, ink.width.toDouble())
     // The starter source, so the default path places a block that typesets; the lane's question replaces it
     // with what was typed.

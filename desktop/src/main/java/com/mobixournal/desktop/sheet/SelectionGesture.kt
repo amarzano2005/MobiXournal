@@ -164,7 +164,7 @@ internal suspend fun AwaitPointerEventScope.selectionDrag(
     val shaft = shaftOf(singleEl)
     val handle = if (live == null) SelectionHandle.NONE else selectionHandleAt(
         live, x0, y0, tol, rotateGapPt = gap, includeRotate = !isLiveImage, shaft = shaft,
-        includeBoxResize = living !is ParametricShapeElement,
+        includeBoxResize = living !is ParametricShapeElement && living !is com.mobixournal.format.model.SplineElement,
         bodyHit = singleEl?.let { el -> { com.mobixournal.render.ElementInteraction.hitsMoveBody(el, x0, y0, tol) } },
         singleElement = singleEl,
     )
@@ -554,6 +554,7 @@ private suspend fun AwaitPointerEventScope.dragLivingGrip(
     val index = tab.page
     val original = runCatching { tab.document.page(index) }.getOrNull() ?: return
     val ref = livingTargetOf(tab) ?: return
+    grip.splineNodeIndex()?.let { tab.selectedSplineNodeIndex = it }
     val before = tab.document.snapshot()
     var recorded = false
     var cancelled = false
@@ -625,6 +626,31 @@ private suspend fun AwaitPointerEventScope.dragLivingGrip(
  * [taps] is the **canvas's** tracker and [onEditLiving] the canvas's editor, so double-clicking a placed
  * living element opens its editor even while its slot is in hand.
  */
+internal fun hitsActiveSelection(
+    tab: DesktopTab,
+    x0: Double,
+    y0: Double,
+    view: DragView,
+    density: Float,
+): Boolean {
+    val live = tab.selection ?: return false
+    val page = runCatching { tab.document.page(tab.page) }.getOrNull() ?: return false
+    val viewport = view.current()
+    val pxPerPt = viewport.zoom * density
+    val tol = (HANDLE_PX / pxPerPt).toDouble()
+    val gap = (ROTATE_GAP_PX / pxPerPt).toDouble()
+    val living = live.takeIf { it.refs.size == 1 }?.let { selectedLivingElement(tab) }
+    if (living?.let { gripAt(it, x0, y0, tol) } != null) return true
+    val singleEl = singleElementOf(page, live)
+    val handle = selectionHandleAt(
+        live, x0, y0, tol, rotateGapPt = gap, includeRotate = singleEl !is ImageElement, shaft = shaftOf(singleEl),
+        includeBoxResize = living !is ParametricShapeElement && living !is com.mobixournal.format.model.SplineElement,
+        bodyHit = singleEl?.let { el -> { com.mobixournal.render.ElementInteraction.hitsMoveBody(el, x0, y0, tol) } },
+        singleElement = singleEl,
+    )
+    return handle != SelectionHandle.NONE
+}
+
 internal suspend fun AwaitPointerEventScope.placementPress(
     down: PointerInputChange,
     tool: DesktopTool,
@@ -639,34 +665,13 @@ internal suspend fun AwaitPointerEventScope.placementPress(
     circuitKind: ShapeKind,
 ): Boolean {
     if (placementOf(tool) == null) return false
-    val live = tab.selection ?: return false
-    val viewport = view.current()
-    val (x0, y0) = pagePointOf(down.position.x, down.position.y, density, viewport)
+    if (tab.selection == null) return false
+    val (x0, y0) = pagePointOf(down.position.x, down.position.y, density, view.current())
     if (x0 !in 0.0..view.pageW.toDouble() || y0 !in 0.0..view.pageH.toDouble()) return false
-    val page = runCatching { tab.document.page(tab.page) }.getOrNull() ?: return false
-    val pxPerPt = viewport.zoom * density
-    val tol = (HANDLE_PX / pxPerPt).toDouble()
-    val gap = (ROTATE_GAP_PX / pxPerPt).toDouble()
-    val living = live.takeIf { it.refs.size == 1 }?.let { selectedLivingElement(tab) }
-    val grip = living?.let { gripAt(it, x0, y0, tol) }
-    val singleEl = singleElementOf(page, live)
-    val handle = selectionHandleAt(
-        live, x0, y0, tol, rotateGapPt = gap, includeRotate = singleEl !is ImageElement, shaft = shaftOf(singleEl),
-        includeBoxResize = living !is ParametricShapeElement,
-        bodyHit = singleEl?.let { el -> { com.mobixournal.render.ElementInteraction.hitsMoveBody(el, x0, y0, tol) } },
-        singleElement = singleEl,
-    )
-    if (grip != null || handle != SelectionHandle.NONE) {
+    if (hitsActiveSelection(tab, x0, y0, view, density)) {
         selectionDrag(
-            start = down,
-            tool = SelectionTool.MARQUEE,
-            tab = tab,
-            view = view,
-            density = density,
-            onLiveDrag = onLiveDrag,
-            onEdited = onEdited,
-            onEditLiving = onEditLiving,
-            taps = taps,
+            start = down, tool = SelectionTool.MARQUEE, tab = tab, view = view, density = density,
+            onLiveDrag = onLiveDrag, onEdited = onEdited, onEditLiving = onEditLiving, taps = taps,
         )
         return true
     }

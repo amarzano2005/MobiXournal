@@ -80,5 +80,6 @@ internal fun DrawScope.paintSheetOf(
         paintProbe = paintProbe,
         skip = editingText,
         karaoke = karaoke,
+        selectedSplineNodeIndex = tab.selectedSplineNodeIndex,
     )
 }

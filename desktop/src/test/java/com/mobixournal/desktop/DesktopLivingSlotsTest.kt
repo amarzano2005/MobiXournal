@@ -141,10 +141,10 @@ class DesktopLivingSlotsTest {
             tap(scene, x = 300f, y = 400f)
 
             val table = elements(tab).filterIsInstance<TableElement>().single()
-            val bounds = ElementBounds.of(table)
             val default = LivingPlacement.defaultSize(com.mobixournal.render.LivingSlot.TABLE, 595.0)
-            assertEquals(default.width, bounds.width, 1.5)
-            assertEquals(default.height, bounds.height, 1.5)
+            assertEquals(3.0, table.borderWidth, 1e-6)
+            assertEquals(default.width, table.colWidths.sum(), 1.5)
+            assertEquals(default.height, table.rowHeights.sum(), 1.5)
             assertEquals("three data rows plus the header above them", 4, table.rowHeights.size)
             assertEquals(3, table.colWidths.size)
             assertTrue("a table placed from the strip has a header", table.headerRow)

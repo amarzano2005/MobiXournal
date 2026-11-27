@@ -377,9 +377,13 @@ object SelectionOps {
             e
         }
         is SplineElement -> SplineInk.restyle(element, color, widthPt)
-        // The other living entities' colour is part of their own record (a plot's curves, a table's
-        // rules), not a single style this op could set, so they are left alone rather than half-restyled.
-        is TableElement, is PlotElement, is RawElement -> element
+        is TableElement -> element.copy(
+            borderColor = color ?: element.borderColor,
+            borderWidth = widthPt ?: element.borderWidth,
+        )
+        // The other living entities' colour is part of their own record (a plot's curves), not a single style
+        // this op could set, so they are left alone rather than half-restyled.
+        is PlotElement, is RawElement -> element
     }
 
     /**

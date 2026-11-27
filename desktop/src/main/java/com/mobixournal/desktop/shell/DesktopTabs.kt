@@ -96,6 +96,7 @@ class DesktopTab(
 
     var viewWidth: Float by mutableStateOf(0f)
     var viewHeight: Float by mutableStateOf(0f)
+    var selectedSplineNodeIndex: Int by mutableStateOf(0)
 
     /**
      * The zoom the status bar calls **100 %**: the page's width filling the canvas

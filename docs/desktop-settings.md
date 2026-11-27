@@ -52,7 +52,7 @@ One rule per kind of thing, so a reader can tell an answer from an action at a g
   (`SettingsSelect`);
 - a **toggle** ends in a square checkbox, and the whole row is the hit area (`Pressure sensitivity`);
 - a **readout** ends in a word or a number with no control at all, at the row's own inset so its small type sits
-  on the labels' column (`Version` → *1.4.1*);
+  on the labels' column (`Version` → *1.5.0*);
 - a **command** is the window's **secondary button**, its own inset landing the label on the rows' column
   (`Reset to defaults`, `Export settings…`, `SettingsCommand`) — one label for every way back to the
   factory values, in whichever section it stands.

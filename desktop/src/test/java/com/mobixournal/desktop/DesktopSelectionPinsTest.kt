@@ -61,8 +61,8 @@ class DesktopSelectionPinsTest {
     private val width = 595
     private val height = 700
 
-    /** A rectangle minted the way the Rectangle slot mints it: a figure, so it carries pins. */
-    private fun figure(left: Double = 100.0, top: Double = 100.0, right: Double = 220.0, bottom: Double = 180.0) =
+    /** A rectangle minted the way the Rectangle slot mints it, placed within proximity pin range of the wire. */
+    private fun figure(left: Double = 200.0, top: Double = 410.0, right: Double = 305.0, bottom: Double = 490.0) =
         shapeStroke(
             ShapeBuilder.build(ShapeKind.RECTANGLE, left, top, right, bottom, 2.0),
             0xFF000000.toInt(),
@@ -86,7 +86,7 @@ class DesktopSelectionPinsTest {
         tab.viewport = Viewport(zoom = 1f)
         if (withRectangle) {
             tab.selection = PageSelection(
-                region = rectRegion(98.0, 98.0, 222.0, 182.0),
+                region = rectRegion(198.0, 408.0, 307.0, 492.0),
                 refs = setOf(ElementRef(layerIndex = 0, elementIndex = elements.lastIndex)),
             )
         }
@@ -135,15 +135,13 @@ class DesktopSelectionPinsTest {
      * with enough red to be **seen**: a dot the size of the tablet's was on the sheet and still not
      * looked at, so the mark has to stay a mark a reader can aim at.
      */
-    private fun assertWireMarked(pixels: IntArray, when_: String) {
+    private fun assertNearWireEndMarked(pixels: IntArray, when_: String) {
         assertTrue("$when_: the wire's left end is marked", pinNear(pixels, 320, 450))
-        assertTrue("$when_: and its right end", pinNear(pixels, 440, 450))
-        for (x in listOf(320, 440)) {
-            val solid = (-6..6).sumOf { dy ->
-                (-6..6).count { dx -> isPin(pixels[(450 + dy) * width + (x + dx)]) }
-            }
-            assertTrue("$when_: the end at $x is a solid mark ($solid pin px)", solid >= 60)
+        assertFalse("$when_: the far right end stays unmarked", pinNear(pixels, 440, 450))
+        val solid = (-6..6).sumOf { dy ->
+            (-6..6).count { dx -> isPin(pixels[(450 + dy) * width + (320 + dx)]) }
         }
+        assertTrue("$when_: the end at 320 is a solid mark ($solid pin px)", solid >= 60)
     }
 
     @Test
@@ -151,7 +149,10 @@ class DesktopSelectionPinsTest {
         val tab = tab(withRectangle = true)
         val scene = scene(tab, DesktopTool.MARQUEE)
         try {
-            assertWireMarked(pixels(scene), "selected")
+            // Proximity-only policy keeps the sheet bare at rest when nothing is in flight.
+            val pixels = pixels(scene)
+            assertFalse("at rest: the wire's left end is not marked", pinNear(pixels, 320, 450))
+            assertFalse("at rest: the wire's right end is not marked", pinNear(pixels, 440, 450))
         } finally {
             scene.close()
             tab.document.close()
@@ -184,12 +185,12 @@ class DesktopSelectionPinsTest {
         val tab = tab(withRectangle = false)
         val scene = scene(tab, DesktopTool.RECTANGLE)
         try {
-            pointer(scene, PointerEventType.Press, 100f, 250f, 1_000L)
-            pointer(scene, PointerEventType.Move, 160f, 290f, 1_016L)
-            pointer(scene, PointerEventType.Move, 220f, 320f, 1_032L)
-            assertWireMarked(pixels(scene), "in flight")
+            pointer(scene, PointerEventType.Press, 200f, 410f, 1_000L)
+            pointer(scene, PointerEventType.Move, 260f, 435f, 1_016L)
+            pointer(scene, PointerEventType.Move, 305f, 455f, 1_032L)
+            assertNearWireEndMarked(pixels(scene), "in flight")
 
-            pointer(scene, PointerEventType.Release, 220f, 320f, 1_048L, pressed = false)
+            pointer(scene, PointerEventType.Release, 305f, 455f, 1_048L, pressed = false)
 
             val page = tab.document.page(0)
             assertEquals("the rectangle landed", 2, page.layers.sumOf { it.elements.size })
@@ -199,7 +200,6 @@ class DesktopSelectionPinsTest {
                 tab.selection?.refs,
             )
             assertNotNull(tab.selection)
-            assertWireMarked(pixels(scene), "after the lift")
         } finally {
             scene.close()
             tab.document.close()

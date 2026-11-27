@@ -126,6 +126,12 @@ enum class ChromeGlyph {
      */
     MINUS,
 
+    /** Circular arrows: close or open a spline loop (`Icons.Outlined.Loop`). */
+    LOOP,
+
+    /** Connected nodes: toggle smooth or sharp corner on a spline knot (`Icons.Outlined.Timeline`). */
+    TIMELINE,
+
     /** A sheet of ruled text: the tablet's **Pages** section, the menu of what a page can be. */
     DESCRIPTION,
 
@@ -293,6 +299,17 @@ object ChromeGlyphCatalogue {
         ChromeGlyph.CHECK -> "M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59Z"
         ChromeGlyph.ADD -> "M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2Z"
         ChromeGlyph.MINUS -> "M19 13H5v-2h14v2Z"
+        ChromeGlyph.LOOP ->
+            "M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 " +
+                "13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 " +
+                "7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"
+        ChromeGlyph.TIMELINE ->
+            "M23 8c0 1.1-.9 2-2 2-.18 0-.35-.02-.51-.07l-3.56 3.55c.05.16.07.34.07.52 0 1.1-.9 " +
+                "2-2 2s-2-.9-2-2c0-.18.02-.36.07-.52l-2.55-2.55c-.16.05-.34.07-.52.07s-.36-.02-.52" +
+                "-.07l-4.55 4.56c.05.16.07.33.07.51 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.18 0 .35.02" +
+                ".51.07l4.56-4.55C8.02 9.36 8 9.18 8 9c0-1.1.9-2 2-2s2 .9 2 2c0 .18-.02.36-.07.52" +
+                "l2.55 2.55c.16-.05.34-.07.52-.07s.36.02.52.07l3.55-3.56C19.02 8.35 19 8.18 19 8c0" +
+                "-1.1.9-2 2-2s2 .9 2 2z"
         ChromeGlyph.SEARCH ->
             "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 " +
                 "5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 " +

@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -47,8 +48,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.design.PenPalette
 import com.mobixournal.render.Bounds
 import com.mobixournal.render.SelectionOps
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -96,8 +99,17 @@ data class SelectionBarUi(
     val palette: List<Int> = emptyList(),
     /** Recolour what is caught with one swatch of [palette] — one undoable edit. */
     val onPickColour: (Int) -> Unit = {},
+    /** Width presets offered by the Line width popup. */
+    val widthSlots: List<Float> = PenPalette.DEFAULT_WIDTHS,
+    /** Re-width what is caught with one slot from [widthSlots] — one undoable edit. */
+    val onPickWidth: (Float) -> Unit = {},
     /** The tool the pencil names, printed in its tooltip (`Table`, `Plot`, …). */
     val editLabel: String = "",
+    /** Direct spline knot & loop actions when a single spline is selected. */
+    val splineSelected: Boolean = false,
+    val splineCanRemoveNode: Boolean = false,
+    val splineCanToggleClosed: Boolean = false,
+    val splineClosed: Boolean = false,
     val onAction: (SelectionAction) -> Unit = {},
 ) {
     /** The truth of one control, in the one place a test can read it. */
@@ -111,6 +123,9 @@ data class SelectionBarUi(
         -> canAlign
         SelectionAction.DISTRIBUTE_H, SelectionAction.DISTRIBUTE_V -> canDistribute
         SelectionAction.EDIT -> canEdit
+        SelectionAction.SPLINE_ADD_NODE, SelectionAction.SPLINE_TOGGLE_SMOOTH -> splineSelected
+        SelectionAction.SPLINE_REMOVE_NODE -> splineSelected && splineCanRemoveNode
+        SelectionAction.SPLINE_TOGGLE_CLOSED -> splineSelected && splineCanToggleClosed
     }
 }
 
@@ -163,7 +178,11 @@ internal fun SelectionBarHost(
     val box = if (pillOnly) {
         Size(barWidth(PASTE_ONLY_BUTTONS, 0, density), barHeight(density))
     } else {
-        Size(barWidth(BAR_BUTTONS, BAR_DIVIDERS, density), barHeight(density))
+        val extraButtons = if (bar.splineSelected) {
+            2 + (if (bar.splineCanRemoveNode) 1 else 0) + (if (bar.splineCanToggleClosed) 1 else 0)
+        } else 0
+        val extraDividers = if (bar.splineSelected) 1 else 0
+        Size(barWidth(BAR_BUTTONS + extraButtons, BAR_DIVIDERS + extraDividers, density), barHeight(density))
     }
     SelectionBar(bar) {
         if (selectionBounds != null) {
@@ -199,6 +218,8 @@ internal fun SelectionBar(
     // decided-by-a-tap command, not eight more squares on a bar that is already eight wide.
     var recolourOpen by remember { mutableStateOf(false) }
     val recolourGuard = remember { DismissGuard() }
+    var widthOpen by remember { mutableStateOf(false) }
+    val widthGuard = remember { DismissGuard() }
     if (!ui.hasSelection && !ui.hasClipboard) return
     // The placement **glides**: the bar's own width changes when a selection appears (a paste square ↔
     // eight), and the correction lands a frame late, so a hard switch flashed it at the paste spot before
@@ -219,6 +240,7 @@ internal fun SelectionBar(
             // stand-in draws: with nothing caught the bar *is* the paste button, not a bar of dimmed
             // squares that say nothing.
             if (ui.hasSelection) {
+                if (ui.splineSelected) SplineSelectionCommands(ui)
                 BarButton(ChromeGlyph.CUT, ui.enabled(SelectionAction.CUT), "Cut", "Ctrl+X") { ui.onAction(SelectionAction.CUT) }
                 BarButton(ChromeGlyph.COPY, ui.enabled(SelectionAction.COPY), "Copy", "Ctrl+C") { ui.onAction(SelectionAction.COPY) }
             }
@@ -227,7 +249,15 @@ internal fun SelectionBar(
                 SelectionCommands(
                     ui = ui,
                     recolourOpen = recolourOpen,
-                    onRecolour = { recolourOpen = !recolourOpen && recolourGuard.mayOpen(Unit) },
+                    widthOpen = widthOpen,
+                    onRecolour = {
+                        widthOpen = false
+                        recolourOpen = !recolourOpen && recolourGuard.mayOpen(Unit)
+                    },
+                    onWidth = {
+                        recolourOpen = false
+                        widthOpen = !widthOpen && widthGuard.mayOpen(Unit)
+                    },
                 )
             }
         }
@@ -249,7 +279,64 @@ internal fun SelectionBar(
                 }
             }
         }
+        GlassPresence(widthOpen && ui.hasSelection) {
+            GlassPopup(
+                offset = IntOffset(0, dropPx),
+                onDismissRequest = { widthGuard.closed(Unit); widthOpen = false },
+            ) {
+                WidthPickerStrip(widths = ui.widthSlots) { width ->
+                    ui.onPickWidth(width)
+                    widthGuard.closed(Unit)
+                    widthOpen = false
+                }
+            }
+        }
     }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+private fun WidthPickerStrip(widths: List<Float>, onPick: (Float) -> Unit) {
+    Row(
+        Modifier.glassSurface().padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        widths.forEachIndexed { index, width ->
+            var hovered by remember { mutableStateOf(false) }
+            val label = PenPalette.WIDTH_LABELS.getOrElse(index) { "${index + 1}" }
+            Row(
+                Modifier
+                    .background(
+                        if (hovered) DesktopTheme.hoverSlot else Color.Transparent,
+                        DesktopTheme.controlShape,
+                    )
+                    .onPointerEvent(PointerEventType.Enter) { hovered = true }
+                    .onPointerEvent(PointerEventType.Exit) { hovered = false }
+                    .pointerInput(width) { detectTapGestures { onPick(width) } }
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    Modifier
+                        .width(14.dp)
+                        .height(width.coerceIn(1f, 6f).dp)
+                        .background(DesktopTheme.chromeInk, DesktopTheme.controlShape),
+                )
+                Text(
+                    text = "$label · ${formatWidthPt(width)} pt",
+                    color = DesktopTheme.ink,
+                    style = DesktopTheme.numeric,
+                )
+            }
+        }
+    }
+}
+
+private fun formatWidthPt(pt: Float): String {
+    val s = "%.2f".format(Locale.US, pt)
+    return if ('.' in s) s.trimEnd('0').trimEnd('.') else s
 }
 
 /**
@@ -262,7 +349,9 @@ internal fun SelectionBar(
 private fun androidx.compose.foundation.layout.RowScope.SelectionCommands(
     ui: SelectionBarUi,
     recolourOpen: Boolean,
+    widthOpen: Boolean,
     onRecolour: () -> Unit,
+    onWidth: () -> Unit,
 ) {
     BarButton(ChromeGlyph.DUPLICATE, ui.enabled(SelectionAction.DUPLICATE), "Duplicate", "Ctrl+D") {
         ui.onAction(SelectionAction.DUPLICATE)
@@ -271,8 +360,8 @@ private fun androidx.compose.foundation.layout.RowScope.SelectionCommands(
     BarButton(ChromeGlyph.RECOLOUR, ui.enabled(SelectionAction.RECOLOUR), "Recolour", "", active = recolourOpen) {
         onRecolour()
     }
-    BarButton(ChromeGlyph.WIDTH, ui.enabled(SelectionAction.WIDTH), "Line width", "") {
-        ui.onAction(SelectionAction.WIDTH)
+    BarButton(ChromeGlyph.WIDTH, ui.enabled(SelectionAction.WIDTH), "Line width", "", active = widthOpen) {
+        onWidth()
     }
     BarDivider()
     BarButton(ChromeGlyph.EDIT, ui.enabled(SelectionAction.EDIT), ui.editLabel.ifEmpty { "Edit" }, "") {
@@ -284,6 +373,30 @@ private fun androidx.compose.foundation.layout.RowScope.SelectionCommands(
 }
 
 @Composable
+private fun androidx.compose.foundation.layout.RowScope.SplineSelectionCommands(ui: SelectionBarUi) {
+    BarButton(ChromeGlyph.ADD, true, "Add knot", "") { ui.onAction(SelectionAction.SPLINE_ADD_NODE) }
+    BarButton(ChromeGlyph.TIMELINE, true, "Toggle smooth or sharp corner", "") {
+        ui.onAction(SelectionAction.SPLINE_TOGGLE_SMOOTH)
+    }
+    if (ui.splineCanRemoveNode) {
+        BarButton(ChromeGlyph.MINUS, true, "Remove selected knot", "") {
+            ui.onAction(SelectionAction.SPLINE_REMOVE_NODE)
+        }
+    }
+    if (ui.splineCanToggleClosed) {
+        BarButton(
+            ChromeGlyph.LOOP,
+            true,
+            if (ui.splineClosed) "Open curve" else "Close loop",
+            "",
+            active = ui.splineClosed,
+            accented = ui.splineClosed,
+        ) { ui.onAction(SelectionAction.SPLINE_TOGGLE_CLOSED) }
+    }
+    BarDivider()
+}
+
+@Composable
 private fun BarDivider() {
     Box(Modifier.width(1.dp).height(16.dp).background(DesktopTheme.hairline))
 }
@@ -291,15 +404,17 @@ private fun BarDivider() {
 /** One square control: 32 dp, hover fill, the accent when it is the open menu, dimmed when unavailable. */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun BarButton(
+internal fun BarButton(
     glyph: ChromeGlyph,
     enabled: Boolean,
     tooltip: String,
     shortcut: String,
     active: Boolean = false,
+    accented: Boolean = false,
     onClick: () -> Unit,
 ) {
     var hovered by remember { mutableStateOf(false) }
+    val currentOnClick by rememberUpdatedState(onClick)
     val density = LocalDensity.current
     val sizePx = with(density) { BAR_BUTTON.roundToPx() }
     val gapPx = with(density) { 6.dp.toPx() }
@@ -317,16 +432,18 @@ private fun BarButton(
                 )
                 .onPointerEvent(PointerEventType.Enter) { hovered = true }
                 .onPointerEvent(PointerEventType.Exit) { hovered = false }
-                .pointerInput(glyph, enabled) { detectTapGestures { if (enabled) onClick() } },
+                .pointerInput(glyph, enabled) { detectTapGestures { if (enabled) currentOnClick() } },
             contentAlignment = Alignment.Center,
         ) {
             // The catalogue's filled art at the tablet's own 18 dp, not the bar's old 14 dp monoline: the
             // two shells draw one picture, which means one size and one kind of mark.
+            val tint = when {
+                !enabled -> DesktopTheme.chromeInk.copy(alpha = 0.32f)
+                accented -> DesktopTheme.accent
+                else -> DesktopTheme.chromeInk
+            }
             Canvas(Modifier.size(BAR_GLYPH)) {
-                drawChromeGlyph(
-                    glyph,
-                    if (enabled) DesktopTheme.chromeInk else DesktopTheme.chromeInk.copy(alpha = 0.32f),
-                )
+                drawChromeGlyph(glyph, tint)
             }
         }
         if (hovered) {
@@ -369,6 +486,8 @@ internal fun selectionBarUi(
     selectTool: Boolean = true,
     palette: List<Int> = emptyList(),
     onPickColour: (Int) -> Unit = {},
+    widthSlots: List<Float> = PenPalette.DEFAULT_WIDTHS,
+    onPickWidth: (Float) -> Unit = {},
     onAction: (SelectionAction) -> Unit = {},
 ): SelectionBarUi {
     val selection = tab?.selection
@@ -378,6 +497,7 @@ internal fun selectionBarUi(
     val element = target?.let { ref ->
         page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
     }
+    val spline = element as? com.mobixournal.format.model.SplineElement
     return SelectionBarUi(
         hasSelection = !refs.isEmpty(),
         hasClipboard = !clipboard.isEmpty || clipboard.hasSystemImage(),
@@ -386,8 +506,14 @@ internal fun selectionBarUi(
         canDistribute = refs.size >= 3,
         canEdit = element != null,
         editLabel = element?.let { labelOf(it) } ?: "",
+        splineSelected = spline != null,
+        splineCanRemoveNode = (spline?.nodes?.size ?: 0) > 2,
+        splineCanToggleClosed = spline?.let { it.nodes.size >= 3 || it.closed } == true,
+        splineClosed = spline?.closed == true,
         palette = palette,
         onPickColour = onPickColour,
+        widthSlots = widthSlots,
+        onPickWidth = onPickWidth,
         onAction = onAction,
     )
 }
@@ -399,6 +525,7 @@ private fun labelOf(element: com.mobixournal.format.model.Element): String = whe
     is com.mobixournal.format.model.ParametricShapeElement -> "Edit shape"
     is com.mobixournal.format.model.CircuitElement -> "Edit component"
     is com.mobixournal.format.model.MathBlockElement -> "Edit formula"
+    is com.mobixournal.format.model.SplineElement -> "Edit spline"
     else -> "Edit"
 }
 

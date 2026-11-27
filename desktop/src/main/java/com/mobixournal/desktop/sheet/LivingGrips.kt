@@ -45,6 +45,13 @@ internal sealed interface LivingGrip {
     data class RowEdge(val index: Int) : LivingGrip
 }
 
+internal fun LivingGrip.splineNodeIndex(): Int? = when (this) {
+    is LivingGrip.SplineKnot -> index
+    is LivingGrip.SplineInHandle -> index
+    is LivingGrip.SplineOutHandle -> index
+    else -> null
+}
+
 /** One grip's position on the sheet, in page points. */
 internal data class GripPoint(val grip: LivingGrip, val x: Double, val y: Double)
 

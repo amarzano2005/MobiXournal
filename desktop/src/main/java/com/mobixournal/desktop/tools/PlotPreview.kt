@@ -1,4 +1,5 @@
 package com.mobixournal.desktop.tools
+import com.mobixournal.desktop.ink.DesktopInk
 import com.mobixournal.desktop.ink.of
 import com.mobixournal.desktop.settings.DesktopTheme
 import com.mobixournal.desktop.sheet.PageInk
@@ -26,6 +27,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.format.model.Stroke as InkStroke
@@ -48,10 +50,14 @@ import kotlin.math.min
  * panel; the placed element and its exported colors remain unchanged.
  */
 @Composable
-internal fun PlotQuestionPreview(pending: PendingPlacement) {
+internal fun PlotQuestionPreview(
+    pending: PendingPlacement,
+    shapeInk: DesktopInk = DesktopInk(0xFF000000.toInt(), PREVIEW_STROKE_PT.toFloat()),
+) {
     // Reading the answers inside the `remember` keys is also what subscribes this composable to them.
     val source = remember(
         pending.sources,
+        pending.formulaColours.toList(),
         pending.xMin,
         pending.xMax,
         pending.showCriticalPoints,
@@ -60,8 +66,11 @@ internal fun PlotQuestionPreview(pending: PendingPlacement) {
         pending.shade,
         pending.shadeFrom,
         pending.shadeTo,
+        shapeInk.width,
+        shapeInk.lineStyle,
+        shapeInk.colour,
     ) {
-        pending.plotIn(PREVIEW_BOX, PREVIEW_STROKE_PT)
+        pending.plotIn(PREVIEW_BOX, shapeInk.width.toDouble(), shapeInk.lineStyle)
     }
     PlotInkPreview(source, "No graph yet — an equation and an open range draw it here")
 }
@@ -158,6 +167,12 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawPreviewInk(
         }
         // The width the stroke carries, but never a hairline the preview cannot show.
         val width = (points.first().width.toFloat() * scale).coerceAtLeast(1f)
+        stroke.fill?.let { fillAlpha ->
+            drawPath(
+                path = path,
+                color = Color(stroke.color).copy(alpha = fillAlpha.coerceIn(0, 255) / 255f),
+            )
+        }
         drawPath(
             path = path,
             color = Color(stroke.color),
@@ -208,3 +223,17 @@ private const val PREVIEW_STROKE_PT = 1.0
 
 /** How far below the frame's bottom text may start and still belong to the graph: ticks, then the key. */
 private const val LABEL_SLACK_PT = 40.0
+
+@Composable
+internal fun PlotLineStyleField(picked: LineStyle, onPick: (LineStyle) -> Unit) {
+    Field("Line style") {
+        ChoiceRow(
+            options = LineStyle.entries.map { it.name.lowercase().replace('_', '-').replaceFirstChar { c -> c.uppercase() } },
+            picked = picked.name.lowercase().replace('_', '-').replaceFirstChar { c -> c.uppercase() },
+        ) { label ->
+            LineStyle.entries.firstOrNull {
+                it.name.lowercase().replace('_', '-').replaceFirstChar { c -> c.uppercase() } == label
+            }?.let(onPick)
+        }
+    }
+}
