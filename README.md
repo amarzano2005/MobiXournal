@@ -55,6 +55,12 @@
 
 <table>
   <tr>
+    <td colspan="2" align="center">
+      <img src="docs/assets/demo.gif" alt="Live STEM editing and ink canvas demo on Android" width="760" /><br/>
+      <sub><b>Live Canvas Demo</b> — interactive STEM elements and ink on Android</sub>
+    </td>
+  </tr>
+  <tr>
     <td align="center" width="50%">
       <img src="docs/assets/preview-plot.jpg" alt="Interactive STEM function plot on canvas" width="100%" /><br/>
       <sub><b>Interactive Plots &amp; Geometry</b> — edit equations and axes directly on the page</sub>
