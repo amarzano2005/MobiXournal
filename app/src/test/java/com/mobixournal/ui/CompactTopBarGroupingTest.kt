@@ -25,7 +25,7 @@ class CompactTopBarGroupingTest {
 
         assertEquals(listOf("table", "logic", "guides"), singles)
         assertEquals(
-            setOf(EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.DIMENSION),
+            setOf(EditorTool.LINE, EditorTool.SPLINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.DIMENSION),
             groups.getValue("compact_lines").tools.toSet(),
         )
         assertEquals(

@@ -200,7 +200,6 @@ fun decodeTopBarIds(raw: String?): List<String> {
  * itself any more — a button that writes an element without a press of the page has nowhere to put it.
  */
 fun singleToolForTopBarId(id: String): EditorTool? = when (id) {
-    "line" -> EditorTool.LINE
     "rectangle" -> EditorTool.RECTANGLE
     "ellipse" -> EditorTool.ELLIPSE
     "axis" -> EditorTool.COORDINATE_AXIS

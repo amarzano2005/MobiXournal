@@ -109,7 +109,7 @@ class TopBarItemsTest {
 
     @Test
     fun `single tools resolve to their respective EditorTool`() {
-        assertEquals(EditorTool.LINE, singleToolForTopBarId("line"))
+        assertNull(singleToolForTopBarId("line"))
         assertEquals(EditorTool.RECTANGLE, singleToolForTopBarId("rectangle"))
         assertEquals(EditorTool.ELLIPSE, singleToolForTopBarId("ellipse"))
         assertEquals(EditorTool.COORDINATE_AXIS, singleToolForTopBarId("axis"))
