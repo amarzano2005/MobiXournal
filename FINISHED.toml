@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "xoppzip-stored-attachments"
+title = "Store PDF and image attachments with ZipEntry.STORED in XoppZip"
+description = "Updated XoppZip.putFile to compute streaming 64 KB CRC32 and write bg.pdf and image attachments with ZipEntry.STORED while keeping XML/metadata DEFLATED."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "none: pure format codec optimization in mobix-core verified by DocumentEncoderTest, FileKindTest, XoppZipTest, TextImportRoundTripTest, PixmapBackgroundRoundTripTest, SourceStructureTest, and desktop createDistributable"
+
+[[task]]
 id = "unified-pdf-embedding-option"
 title = "Add Embed PDF backgrounds option across onboarding, settings, import, and Save As"
 description = "Implemented Embed PDF backgrounds across first-run onboarding (default ON), Documents settings + backup, Import PDF dialog with file size, and simplified Save As (.mobix / .xopp) with contextual embed toggle and PDF status badge; removed .pmobix from export menus while keeping open compatibility."

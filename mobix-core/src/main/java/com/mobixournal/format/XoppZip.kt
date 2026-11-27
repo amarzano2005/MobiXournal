@@ -6,6 +6,7 @@ import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.io.OutputStreamWriter
+import java.util.zip.CRC32
 import java.util.zip.Deflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
@@ -126,8 +127,25 @@ object XoppZip {
     fun isZip(b0: Int, b1: Int): Boolean = b0 == 'P'.code && b1 == 'K'.code
 
     private fun putFile(zip: ZipOutputStream, name: String, file: File) {
-        zip.putNextEntry(ZipEntry(name))
-        file.inputStream().use { it.copyTo(zip) }
+        val crc = CRC32()
+        val buf = ByteArray(64 * 1024)
+        var size = 0L
+        file.inputStream().use { input ->
+            while (true) {
+                val read = input.read(buf)
+                if (read <= 0) break
+                crc.update(buf, 0, read)
+                size += read
+            }
+        }
+        val entry = ZipEntry(name).apply {
+            method = ZipEntry.STORED
+            this.size = size
+            compressedSize = size
+            this.crc = crc.value
+        }
+        zip.putNextEntry(entry)
+        file.inputStream().use { it.copyTo(zip, bufferSize = 64 * 1024) }
         zip.closeEntry()
     }
 
