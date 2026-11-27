@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "eliminate-search-relayout-clipping-on-bookmark-and-split-view-per-frame-subcomposition"
+title = "Eliminate search relayout clipping on Bookmark and split-view per-frame subcomposition"
+description = "Eliminated Bookmark clipping and search animation jank via zero-relayout GPU-only SearchBarOverlay in Row 1; eliminated split-view stutter by replacing BoxWithConstraints in SideToolbar, removing per-frame SplitTabRow expandVertically relayouts, and keeping single-pass splitAnimating paints."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "tokens: GlassMotion POPOVER spring and chromeSlideSpring; states: stationary NavigationCapsule fade with zero Bookmark shear; tests: ToolbarDividersTest, ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
+
+[[task]]
 id = "smooth-search-bar-and-dual-side-split-view-animations"
 title = "Smooth search bar and dual-side split-view animations"
 description = "Eliminated Bookmark button clip artifacts and 36dp snap in SearchControls via a single clipToBounds Box(CenterEnd) with deferred IME/indexing, and synced SplitTabRow vertical animation with chromeSlideSpring while deferring settledTopPx during splitAnimating."

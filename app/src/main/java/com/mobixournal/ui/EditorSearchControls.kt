@@ -1,12 +1,7 @@
 package com.mobixournal.ui
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.expandHorizontally
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,11 +43,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -60,7 +56,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -78,31 +73,74 @@ import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import kotlinx.coroutines.delay
 
 @Composable
-internal fun SearchControls(pane: PaneState) {
+internal fun rememberSearchOpenProgress(open: Boolean): State<Float> {
+    val spec = DesignTokens.GlassMotion.spec(DesignTokens.GlassMotion.SurfaceRole.POPOVER)
+    return animateFloatAsState(
+        targetValue = if (open) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = if (open) spec.openDamping else spec.closeDamping,
+            stiffness = if (open) spec.openStiffness else spec.closeStiffness,
+            visibilityThreshold = 0.001f,
+        ),
+        label = "SearchBarProgress",
+    )
+}
+
+@Composable
+internal fun SearchTriggerButton(
+    open: Boolean,
+    progressProvider: () -> Float,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val chromeInk = rememberChromeInk()
+    IconButton(
+        onClick = { if (!open) onOpen() },
+        enabled = !open,
+        modifier = modifier
+            .size(36.dp)
+            .graphicsLayer {
+                alpha = (1f - progressProvider() * 2.5f).coerceIn(0f, 1f)
+            },
+    ) {
+        Icon(
+            Icons.Outlined.Search,
+            contentDescription = "Search",
+            tint = chromeInk,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+@Composable
+internal fun SearchBarOverlay(
+    pane: PaneState,
+    progressProvider: () -> Float,
+    endPaddingPx: Int,
+    modifier: Modifier = Modifier,
+) {
+    val latestOpen by androidx.compose.runtime.rememberUpdatedState(pane.searchOpen)
+    val visible by remember {
+        androidx.compose.runtime.derivedStateOf { latestOpen || progressProvider() > 0.002f }
+    }
+    if (!visible) return
+
     fun apply(status: SearchStatus) {
         pane.searchCurrent = status.current
         pane.searchTotal = status.total
     }
+
     val isDark = chromeIsDark()
     val chromeInk = rememberChromeInk()
-    val spec = DesignTokens.GlassMotion.spec(DesignTokens.GlassMotion.SurfaceRole.POPOVER)
+    val density = LocalDensity.current
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     var searchFocused by remember { mutableStateOf(false) }
-    val collapsedPx = with(LocalDensity.current) { 36.dp.roundToPx() }
-    val iconAlpha by animateFloatAsState(
-        targetValue = if (pane.searchOpen) 0f else 1f,
-        animationSpec = spring(
-            dampingRatio = if (pane.searchOpen) spec.closeDamping else spec.openDamping,
-            stiffness = if (pane.searchOpen) spec.closeStiffness else spec.openStiffness,
-        ),
-        label = "SearchIconAlpha",
-    )
 
     LaunchedEffect(pane, pane.surface, pane.searchOpen, pane.documentVersion) {
         if (!pane.searchOpen) return@LaunchedEffect
         val surface = pane.surface ?: return@LaunchedEffect
-        delay(160)
+        delay(220)
         if (!surface.isHandwritingIndexReady()) {
             surface.ensureHandwritingIndex { surface.setSearchQuery(pane.searchQuery).let(::apply) }
         } else {
@@ -118,50 +156,39 @@ internal fun SearchControls(pane: PaneState) {
     LaunchedEffect(pane.searchOpen) {
         if (pane.searchOpen) {
             pane.surface?.clearFocus()
-            delay(130)
+            delay(160)
             runCatching { focusRequester.requestFocus(); keyboardController?.show() }
         }
     }
 
-    Box(contentAlignment = Alignment.CenterEnd, modifier = Modifier.clipToBounds()) {
-        IconButton(
-            onClick = { if (!pane.searchOpen) pane.searchOpen = true },
-            enabled = !pane.searchOpen,
-            modifier = Modifier
-                .size(36.dp)
-                .graphicsLayer { alpha = iconAlpha },
-        ) {
-            Icon(Icons.Outlined.Search, contentDescription = "Search", tint = chromeInk, modifier = Modifier.size(20.dp))
-        }
-        AnimatedVisibility(
-            visible = pane.searchOpen,
-            enter = expandHorizontally(
-                animationSpec = spring<IntSize>(spec.openDamping, spec.openStiffness),
-                expandFrom = Alignment.End,
-                initialWidth = { collapsedPx },
-            ) + fadeIn(spring(spec.openDamping, spec.openStiffness)),
-            exit = shrinkHorizontally(
-                animationSpec = spring<IntSize>(spec.closeDamping, spec.closeStiffness),
-                shrinkTowards = Alignment.End,
-                targetWidth = { collapsedPx },
-            ) + fadeOut(spring(spec.closeDamping, spec.closeStiffness)),
-        ) {
-            val fill = if (isDark) TabChipFillDark else TabChipFillLight
-            val restBorder = if (isDark) ModernTheme.hairlineBorder(true) else TabChipBorderLight
-            val borderColor = if (searchFocused) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else restBorder
-            Surface(
-                shape = RoundedCornerShape(DesignTokens.CAPSULE_CORNER_RADIUS_DP.dp),
-                color = fill,
-                border = BorderStroke(1.dp, borderColor),
-                modifier = Modifier.padding(end = 2.dp).height(32.dp),
-            ) {
-                SearchBarInnerRow(
-                    pane = pane, chromeInk = chromeInk, restBorder = restBorder, focusRequester = focusRequester,
-                    onFocusChanged = { searchFocused = it }, onApply = ::apply,
-                    onHideKeyboard = { keyboardController?.hide() }, onShowKeyboard = { keyboardController?.show() },
-                )
+    val endDp = with(density) { endPaddingPx.coerceAtLeast(0).toDp() }
+    val slidePx = with(density) { 16.dp.toPx() }
+    val fill = if (isDark) TabChipFillDark else TabChipFillLight
+    val restBorder = if (isDark) ModernTheme.hairlineBorder(true) else TabChipBorderLight
+    val borderColor = if (searchFocused) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f) else restBorder
+
+    Surface(
+        shape = RoundedCornerShape(DesignTokens.CAPSULE_CORNER_RADIUS_DP.dp),
+        color = fill,
+        border = BorderStroke(1.dp, borderColor),
+        modifier = modifier
+            .padding(end = endDp + 2.dp)
+            .height(32.dp)
+            .graphicsLayer {
+                val p = progressProvider().coerceIn(0f, 1f)
+                transformOrigin = TransformOrigin(1f, 0.5f)
+                scaleX = 0.88f + 0.12f * p
+                scaleY = 0.94f + 0.06f * p
+                translationX = (1f - p) * slidePx
+                alpha = p
             }
-        }
+            .blockCanvasPointers(),
+    ) {
+        SearchBarInnerRow(
+            pane = pane, chromeInk = chromeInk, restBorder = restBorder, focusRequester = focusRequester,
+            onFocusChanged = { searchFocused = it }, onApply = ::apply,
+            onHideKeyboard = { keyboardController?.hide() }, onShowKeyboard = { keyboardController?.show() },
+        )
     }
 }
 

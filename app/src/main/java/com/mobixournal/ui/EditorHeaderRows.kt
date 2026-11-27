@@ -19,6 +19,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.dp
 import com.mobixournal.design.ChromeGlyph
 import com.mobixournal.ui.theme.LocalChromeLayoutPolicy
@@ -53,15 +56,30 @@ internal fun EditorDocumentActions(
     onSaveAsFormat: (com.mobixournal.format.SaveFormat) -> Unit,
     splitView: Boolean,
     onToggleSplitView: () -> Unit,
+    searchProgressProvider: () -> Float = { 0f },
+    onSearchAnchorRightWindowX: (Float) -> Unit = {},
 ) {
     val chromePolicy = LocalChromeLayoutPolicy.current
     val chromeInk = rememberChromeInk()
-    val undoEnabled = !pane.isReadOnly && pane.canUndo
-    val redoEnabled = !pane.isReadOnly && pane.canRedo
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        NavigationCapsule(ui)
-        if (chromePolicy.showInlineSearchWhenClosed || pane.searchOpen) SearchControls(pane)
+        Box(
+            modifier = Modifier.graphicsLayer {
+                alpha = (1f - searchProgressProvider() * 2.5f).coerceIn(0f, 1f)
+            },
+        ) {
+            NavigationCapsule(ui)
+        }
+        if (chromePolicy.showInlineSearchWhenClosed) {
+            SearchTriggerButton(
+                open = pane.searchOpen,
+                progressProvider = searchProgressProvider,
+                onOpen = { pane.searchOpen = true },
+                modifier = Modifier.onGloballyPositioned { coords ->
+                    onSearchAnchorRightWindowX(coords.positionInWindow().x + coords.size.width)
+                },
+            )
+        }
         if (chromePolicy.showInlineSplitView) {
             IconButton(
                 onClick = onToggleSplitView,
@@ -79,22 +97,7 @@ internal fun EditorDocumentActions(
             }
         }
         TopBarToolDivider(air = 4.dp)
-        IconButton(onClick = { pane.surface?.undo() }, enabled = undoEnabled, modifier = Modifier.size(36.dp)) {
-            Icon(
-                ChromeGlyph.UNDO.imageVector(),
-                contentDescription = "Undo",
-                tint = if (undoEnabled) chromeInk else chromeInk.copy(alpha = 0.38f),
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        IconButton(onClick = { pane.surface?.redo() }, enabled = redoEnabled, modifier = Modifier.size(36.dp)) {
-            Icon(
-                ChromeGlyph.REDO.imageVector(),
-                contentDescription = "Redo",
-                tint = if (redoEnabled) chromeInk else chromeInk.copy(alpha = 0.38f),
-                modifier = Modifier.size(20.dp),
-            )
-        }
+        UndoRedoButtons(pane = pane, chromeInk = chromeInk)
         TopBarToolDivider(air = 4.dp)
         QuickPdfExport(ui, pane)
         val canSave = !pane.isReadOnly && stripTabs.canSave
@@ -120,6 +123,28 @@ internal fun EditorDocumentActions(
             onSavePortableCopy = onSavePortableCopy,
             onShare = onShare,
             onSaveAsFormat = onSaveAsFormat,
+        )
+    }
+}
+
+@Composable
+private fun UndoRedoButtons(pane: PaneState, chromeInk: Color) {
+    val undoEnabled = !pane.isReadOnly && pane.canUndo
+    val redoEnabled = !pane.isReadOnly && pane.canRedo
+    IconButton(onClick = { pane.surface?.undo() }, enabled = undoEnabled, modifier = Modifier.size(36.dp)) {
+        Icon(
+            ChromeGlyph.UNDO.imageVector(),
+            contentDescription = "Undo",
+            tint = if (undoEnabled) chromeInk else chromeInk.copy(alpha = 0.38f),
+            modifier = Modifier.size(20.dp),
+        )
+    }
+    IconButton(onClick = { pane.surface?.redo() }, enabled = redoEnabled, modifier = Modifier.size(36.dp)) {
+        Icon(
+            ChromeGlyph.REDO.imageVector(),
+            contentDescription = "Redo",
+            tint = if (redoEnabled) chromeInk else chromeInk.copy(alpha = 0.38f),
+            modifier = Modifier.size(20.dp),
         )
     }
 }

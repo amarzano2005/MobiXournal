@@ -60,6 +60,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -72,11 +73,14 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
@@ -189,51 +193,80 @@ fun EditorTopBar(
     val stripTabs = paneTabs.firstOrNull { it.focused } ?: tabs
     val laneEdge = if (settings == null || ui.fullPage) 0.dp else SideToolbarModernTotalWidth
     val docBandColor = rememberChromeColor().copy(alpha = if (isDark) 0.28f else 0.45f)
+    val searchProgress = rememberSearchOpenProgress(pane.searchOpen)
+    var row1RightWindowX by remember { mutableFloatStateOf(0f) }
+    var searchAnchorRightWindowX by remember { mutableFloatStateOf(0f) }
+    val splitTabProgress = androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (splitView && paneTabs.size >= 2 && !ui.fullPage) 1f else 0f,
+        animationSpec = chromeSlideSpring(),
+        label = "SplitTabFade",
+    )
     Surface(
         color = glassColor,
         modifier = modifier.fillMaxWidth(),
     ) {
         Box(modifier = Modifier.fillMaxWidth().frameClosingEdge(laneEdge, railOnLeft)) {
             Column {
-                TopAppBar(
-                    navigationIcon = {
-                        if (settings != null && !railOnLeft && !ui.fullPage) {
-                            Spacer(Modifier.width(4.dp))
-                        }
-                    },
-                    title = {
-                        if (!splitView || paneTabs.size < 2) {
-                            TabStrip(stripTabs, modifier = Modifier.fillMaxWidth())
-                        }
-                    },
+                Box(
                     modifier = Modifier
+                        .fillMaxWidth()
                         .background(docBandColor)
                         .stableStatusBarsPadding()
-                        .height(HEADER_DOC_ROW_HEIGHT),
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.Transparent,
-                    ),
-                    actions = {
-                        EditorDocumentActions(
-                            ui = ui,
-                            pane = pane,
-                            stripTabs = stripTabs,
-                            settings = settings,
-                            onSettingsChange = onSettingsChange,
-                            onOpen = onOpen,
-                            onNewTab = onNewTab,
-                            onSave = onSave,
-                            onImportPdf = onImportPdf,
-                            onExportPagePng = onExportPagePng,
-                            onExportPageSvg = onExportPageSvg,
-                            onSavePortableCopy = onSavePortableCopy,
-                            onShare = onShare,
-                            onSaveAsFormat = onSaveAsFormat,
-                            splitView = splitView,
-                            onToggleSplitView = onToggleSplitView,
-                        )
-                    },
-                )
+                        .height(HEADER_DOC_ROW_HEIGHT)
+                        .onGloballyPositioned { coords ->
+                            row1RightWindowX = coords.positionInWindow().x + coords.size.width
+                        },
+                ) {
+                    TopAppBar(
+                        navigationIcon = {
+                            if (settings != null && !railOnLeft && !ui.fullPage) {
+                                Spacer(Modifier.width(4.dp))
+                            }
+                        },
+                        title = {
+                            if (!splitView || paneTabs.size < 2) {
+                                TabStrip(stripTabs, modifier = Modifier.fillMaxWidth())
+                            }
+                        },
+                        modifier = Modifier.fillMaxSize(),
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.Transparent,
+                        ),
+                        actions = {
+                            EditorDocumentActions(
+                                ui = ui,
+                                pane = pane,
+                                stripTabs = stripTabs,
+                                settings = settings,
+                                onSettingsChange = onSettingsChange,
+                                onOpen = onOpen,
+                                onNewTab = onNewTab,
+                                onSave = onSave,
+                                onImportPdf = onImportPdf,
+                                onExportPagePng = onExportPagePng,
+                                onExportPageSvg = onExportPageSvg,
+                                onSavePortableCopy = onSavePortableCopy,
+                                onShare = onShare,
+                                onSaveAsFormat = onSaveAsFormat,
+                                splitView = splitView,
+                                onToggleSplitView = onToggleSplitView,
+                                searchProgressProvider = { searchProgress.value },
+                                onSearchAnchorRightWindowX = { searchAnchorRightWindowX = it },
+                            )
+                        },
+                    )
+                    val endPaddingPx = if (searchAnchorRightWindowX > 0f && row1RightWindowX > searchAnchorRightWindowX) {
+                        (row1RightWindowX - searchAnchorRightWindowX).toInt()
+                    } else {
+                        0
+                    }
+                    SearchBarOverlay(
+                        pane = pane,
+                        progressProvider = { searchProgress.value },
+                        endPaddingPx = endPaddingPx,
+                        modifier = Modifier.align(Alignment.CenterEnd),
+                    )
+                }
                 if (!tabsInline && !ui.fullPage) {
                     EditorToolsStripRow(
                         ui = ui,
@@ -244,21 +277,15 @@ fun EditorTopBar(
                         railOnLeft = railOnLeft,
                     )
                 }
-                androidx.compose.animation.AnimatedVisibility(
-                    visible = splitView && paneTabs.size >= 2 && !ui.fullPage,
-                    enter = androidx.compose.animation.expandVertically(
-                        animationSpec = androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = 560f),
-                    ) + androidx.compose.animation.fadeIn(chromeSlideSpring()),
-                    exit = androidx.compose.animation.shrinkVertically(
-                        animationSpec = androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = 560f),
-                    ) + androidx.compose.animation.fadeOut(chromeSlideSpring()),
-                ) {
+                if (splitView && paneTabs.size >= 2 && !ui.fullPage) {
                     SplitTabRow(
                         tabs = paneTabs,
                         fraction = ui.splitFraction,
                         startInset = if (railOnLeft && settings != null) SideToolbarModernTotalWidth else 0.dp,
                         endInset = if (!railOnLeft && settings != null) SideToolbarModernTotalWidth else 0.dp,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .graphicsLayer { alpha = splitTabProgress.value },
                     )
                 }
             }
