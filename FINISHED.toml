@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "readme-v2-landing-and-guard"
+title = "Revamp README.md into v2 landing page with regression guard"
+description = "Revamped README.md into v2 user-focused landing page, removed developer boilerplate from docs/guide-index.md, and added readmeStaysUserFocusedAndUpToDate in DocsGuardTest"
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "docs: updated README.md and docs/guide-index.md; tests: DocsGuardTest, DocClaimsTest, and SourceStructureTest passed"
+
+[[task]]
 id = "desktop-remove-saving-badge"
 title = "Remove Saving... text overlay below header Save button on Desktop"
 description = "Removed SavingBadge text overlay from DesktopShellView and DesktopSaveWorker; header Save button keeps its spinning SavingArc indicator."

@@ -928,6 +928,51 @@ class DocsGuardTest {
         )
     }
 
+    @Test
+    fun readmeStaysUserFocusedAndUpToDate() {
+        val readme = File(repoRoot(), "README.md")
+        assertTrue("README.md is missing", readme.isFile)
+        val text = readme.readText()
+        val violations = mutableListOf<String>()
+
+        val requiredLinksAndTerms = listOf(
+            "github.com/amarzano2005/MobiXournal/releases",
+            "docs/guide-index.md",
+            "docs/guide-install-android.md",
+            "docs/guide-install-windows.md",
+            ".mobix",
+            ".xopp",
+            "Embed PDF backgrounds",
+        )
+        for (required in requiredLinksAndTerms) {
+            if (!text.contains(required)) {
+                violations += "README.md is missing required user-facing entry point or format fact: '$required'"
+            }
+        }
+
+        val detailsStart = text.indexOf("<details>")
+        if (detailsStart < 0) {
+            violations += "README.md must keep developer build instructions inside a collapsible <details> block"
+        } else {
+            val userBody = text.substring(0, detailsStart)
+            if (userBody.contains("host-build.sh") || userBody.contains("release-apk.sh") || userBody.contains("./gradlew")) {
+                violations += "README.md exposes developer build commands above the <details> block"
+            }
+        }
+
+        if (Regex("""Export As[^\n]*\.pmobix|\.pmobix[^\n]*Export As""", RegexOption.IGNORE_CASE).containsMatchIn(text)) {
+            violations += "README.md references retired .pmobix in Export As copy"
+        }
+        if (text.contains("chemistry palette", ignoreCase = true)) {
+            violations += "README.md contains obsolete 'chemistry palette' negative note"
+        }
+
+        assertTrue(
+            "README.md user-focus & regression violations:\n  " + violations.joinToString("\n  "),
+            violations.isEmpty(),
+        )
+    }
+
     /**
      * Nothing at the repository root is an **orphan**.
      *
