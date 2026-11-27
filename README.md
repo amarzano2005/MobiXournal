@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/logo.png" alt="MobiXournal logo" width="88" />
+<img src="docs/assets/logo.png" alt="MobiXournal logo" width="128" height="128" />
 
 # MobiXournal
 
@@ -8,15 +8,14 @@
 
 [![Latest Release](https://img.shields.io/github/v/release/amarzano2005/MobiXournal?display_name=tag&style=flat-square&color=1f6feb)](https://github.com/amarzano2005/MobiXournal/releases)
 [![Platforms](https://img.shields.io/badge/Platforms-Android%208%2B%20%7C%20Windows%2011-0f766e?style=flat-square)](#get-started-in-30-seconds)
-[![CI](https://img.shields.io/github/actions/workflow/status/amarzano2005/MobiXournal/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/amarzano2005/MobiXournal/actions/workflows/ci.yml)
+[![Android and desktop CI](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml/badge.svg)](https://github.com/amarzano2005/MobiXournal/actions/workflows/build.yml)
 [![Licence: GPL-2.0](https://img.shields.io/badge/Licence-GPL--2.0-374151?style=flat-square)](LICENSE)
 
 <a href="https://github.com/amarzano2005/MobiXournal/releases/latest">
-  <img src="docs/assets/get-it-on-github.png" alt="Get it on GitHub Releases" height="54" />
+  <img src="docs/assets/get-it-on-github.png" alt="Get it on GitHub Releases" height="80" />
 </a>
-&nbsp;
 <a href="https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/amarzano2005/MobiXournal">
-  <img src="https://img.shields.io/badge/Add%20to-Obtainium-6d28d9?style=for-the-badge" alt="Add to Obtainium" height="36" />
+  <img src="https://raw.githubusercontent.com/ImranR98/Obtainium/main/assets/graphics/badge_obtainium.png" alt="Get it on Obtainium" height="80" />
 </a>
 
 [Android Setup](docs/guide-install-android.md) · [Windows 11 Setup](docs/guide-install-windows.md) · [User Guide](docs/guide-index.md) · [Changelog](docs/releases/index.md)
