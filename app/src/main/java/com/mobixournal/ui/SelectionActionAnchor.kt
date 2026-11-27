@@ -27,10 +27,14 @@ import com.mobixournal.render.setSelectionAspectLocked
 import com.mobixournal.render.singleSelectedCircuit
 import com.mobixournal.render.singleSelectedPlot
 import com.mobixournal.render.singleSelectedShape
+import com.mobixournal.render.addSplineMidpointNode
+import com.mobixournal.render.removeSplineNode
 import com.mobixournal.render.singleSelectedSpline
 import com.mobixournal.render.singleSelectedStroke
 import com.mobixournal.render.singleSelectedTable
 import com.mobixournal.render.storedAspectLocked
+import com.mobixournal.render.toggleSplineClosed
+import com.mobixournal.render.toggleSplineNodeSmooth
 import com.mobixournal.ui.theme.liquidGlassSpringAnimation
 import kotlin.math.roundToInt
 
@@ -134,35 +138,21 @@ fun SelectionActionAnchor(
         onReWidth = { w -> surface?.restyleSelection(null, w.toDouble()) },
         widthSlots = settings.penWidths,
         canEditShape = caps.canEditShape,
-        onEditShape = {
-            surface?.singleSelectedShape()?.let { shape ->
-                ui.openShapeInspector(shape)
-            }
-        },
+        onEditShape = { surface?.singleSelectedShape()?.let { ui.openShapeInspector(it) } },
         canEditPlot = caps.canEditPlot,
-        onEditPlot = {
-            surface?.singleSelectedPlot()?.let { plot ->
-                ui.openPlotInspector(plot)
-            }
-        },
+        onEditPlot = { surface?.singleSelectedPlot()?.let { ui.openPlotInspector(it) } },
         canEditTable = caps.canEditTable,
-        onEditTable = {
-            surface?.singleSelectedTable()?.let { table ->
-                ui.openTableInspector(table, 0, 0)
-            }
-        },
+        onEditTable = { surface?.singleSelectedTable()?.let { ui.openTableInspector(it, 0, 0) } },
         canEditCircuit = caps.canEditCircuit,
-        onEditCircuit = {
-            surface?.singleSelectedCircuit()?.let { circuit ->
-                ui.openCircuitInspector(circuit)
-            }
-        },
-        canEditSpline = caps.canEditSpline,
-        onEditSpline = {
-            surface?.singleSelectedSpline()?.let { spline ->
-                ui.editingSpline = spline
-            }
-        },
+        onEditCircuit = { surface?.singleSelectedCircuit()?.let { ui.openCircuitInspector(it) } },
+        splineSelected = caps.canEditSpline,
+        splineCanRemoveNode = (surface?.singleSelectedSpline()?.nodes?.size ?: 0) > 2,
+        splineCanToggleClosed = surface?.singleSelectedSpline()?.let { it.nodes.size >= 3 || it.closed } == true,
+        splineClosed = surface?.singleSelectedSpline()?.closed == true,
+        onSplineAddNode = { surface?.singleSelectedSpline()?.let { surface.addSplineMidpointNode(it) } },
+        onSplineToggleSmooth = { surface?.singleSelectedSpline()?.let { surface.toggleSplineNodeSmooth(it) } },
+        onSplineRemoveNode = { surface?.singleSelectedSpline()?.let { surface.removeSplineNode(it) } },
+        onSplineToggleClosed = { surface?.singleSelectedSpline()?.let { surface.toggleSplineClosed(it) } },
         canToggleAspectLock = caps.canToggleAspectLock,
         aspectLocked = aspectLocked,
         onToggleAspectLock = { aspectLocked = !aspectLocked; surface?.setSelectionAspectLocked(aspectLocked) },

@@ -85,6 +85,11 @@ internal suspend fun AwaitPointerEventScope.splinePress(
             }
             return true
         }
+        if (tab.selection != null) {
+            tab.selection = null
+            down.consume()
+            return true
+        }
         draft.active = true
         draft.pageIndex = tab.page
         draft.nodes.clear()

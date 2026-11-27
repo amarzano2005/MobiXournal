@@ -24,7 +24,7 @@ class ElementHitTesterTest {
             strokeColor = 0xFF000000.toInt(),
             strokeWidth = 2.0,
         )
-        assertTrue("interior hits", ElementHitTester.hits(tri, 120.0, 120.0, padPt = 4.0))
+        assertFalse("empty interior misses", ElementHitTester.hits(tri, 120.0, 120.0, padPt = 4.0))
         assertTrue("edge hits", ElementHitTester.hits(tri, 150.0, 100.0, padPt = 4.0))
         assertFalse(
             "empty corner of bounding box (190,190) is outside the triangle",
@@ -33,7 +33,7 @@ class ElementHitTesterTest {
     }
 
     @Test
-    fun closedEllipseStrokeHitsInteriorWhileOpenDiagonalHitsOnlyStroke() {
+    fun closedEllipseStrokeHitsOnlyBorderLikeOpenDiagonal() {
         val ellipse = Stroke(
             tool = Tool.PEN,
             color = 0xFF000000.toInt(),
@@ -42,7 +42,7 @@ class ElementHitTesterTest {
             uniformWidth = true,
             extraAttrs = FigurePins.figureAttrs(ShapeKind.ELLIPSE),
         )
-        assertTrue("ellipse interior hits", ElementHitTester.hits(ellipse, 150.0, 150.0, padPt = 4.0))
+        assertFalse("ellipse empty interior misses", ElementHitTester.hits(ellipse, 150.0, 150.0, padPt = 4.0))
         assertTrue("ellipse border hits", ElementHitTester.hits(ellipse, 200.0, 150.0, padPt = 4.0))
 
         val line = Stroke(

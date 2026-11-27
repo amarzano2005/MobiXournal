@@ -80,10 +80,12 @@ internal fun DrawingSurfaceView.handleSplineDown(event: MotionEvent, pointerInde
                 return true
             }
         }
-        // 3. Empty paper: clear previous selection and begin a fresh spline draft.
+        // 3. Empty paper: if something is selected, deselect it first without starting a new spline.
         if (selection != null) {
             gestures.clearSelection()
             reportSelectionRect()
+            render()
+            return true
         }
         splineDraft.active = true
         splineDraft.pageIndex = pageIdx

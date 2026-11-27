@@ -32,8 +32,10 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.LibraryAdd
 import androidx.compose.material.icons.outlined.LineWeight
+import androidx.compose.material.icons.outlined.Loop
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Remove
+import androidx.compose.material.icons.outlined.Timeline
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -102,8 +104,14 @@ fun SelectionActionBar(
     onEditTable: () -> Unit = {},
     canEditCircuit: Boolean = false,
     onEditCircuit: () -> Unit = {},
-    canEditSpline: Boolean = false,
-    onEditSpline: () -> Unit = {},
+    splineSelected: Boolean = false,
+    splineCanRemoveNode: Boolean = false,
+    splineCanToggleClosed: Boolean = false,
+    splineClosed: Boolean = false,
+    onSplineAddNode: () -> Unit = {},
+    onSplineToggleSmooth: () -> Unit = {},
+    onSplineRemoveNode: () -> Unit = {},
+    onSplineToggleClosed: () -> Unit = {},
     canToggleAspectLock: Boolean = false,
     aspectLocked: Boolean = true,
     onToggleAspectLock: () -> Unit = {},
@@ -135,8 +143,19 @@ fun SelectionActionBar(
                 if (canEditCircuit) {
                     BarIconButton("Edit circuit", ChromeGlyph.EDIT.imageVector(), onEditCircuit)
                 }
-                if (canEditSpline) {
-                    BarIconButton("Edit spline", ChromeGlyph.EDIT.imageVector(), onEditSpline)
+                if (splineSelected) {
+                    BarIconButton("Add knot", Icons.Outlined.Add, onSplineAddNode)
+                    BarIconButton("Toggle smooth or sharp corner", Icons.Outlined.Timeline, onSplineToggleSmooth)
+                    if (splineCanRemoveNode) {
+                        BarIconButton("Remove selected knot", Icons.Outlined.Remove, onSplineRemoveNode)
+                    }
+                    if (splineCanToggleClosed) {
+                        BarIconButton(
+                            if (splineClosed) "Open curve" else "Close loop",
+                            Icons.Outlined.Loop,
+                            onSplineToggleClosed,
+                        )
+                    }
                 }
                 BarIconButton("Cut", ChromeGlyph.CUT.imageVector(), onCut)
                 BarIconButton("Copy", ChromeGlyph.COPY.imageVector(), onCopy)

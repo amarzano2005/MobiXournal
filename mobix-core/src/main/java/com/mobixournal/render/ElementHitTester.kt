@@ -55,23 +55,17 @@ object ElementHitTester {
         if (!ElementBounds.of(element).expand(padPt).contains(x, y)) return null
         val hit = when (element) {
             is ParametricShapeElement -> {
-                if (ParametricShapes.isConic(element)) {
-                    ParametricShapes.conicContains(element, x, y, padPt + element.strokeWidth / 2.0)
+                val poly = if (ParametricShapes.isConic(element)) {
+                    ParametricShapes.conicOutlinePoints(element).map { Vec2(it.x, it.y) }
                 } else {
-                    val poly = element.vertices.map { Vec2(it.x, it.y) }
-                    containsInPolygon(poly, x, y, padPt + element.strokeWidth / 2.0)
+                    element.vertices.map { Vec2(it.x, it.y) }
                 }
+                val d = distanceToOutline(poly, x, y)
+                return if (d <= padPt + element.strokeWidth / 2.0) d else null
             }
             is Stroke -> {
-                if (isClosedFigureStroke(element)) {
-                    val poly = element.points.map { Vec2(it.x, it.y) }
-                    if (containsInPolygon(poly, x, y, padPt)) return 0.0
-                    val d = StrokeHitTester.distance(element, x, y)
-                    return if (d <= padPt) d else null
-                } else {
-                    val d = StrokeHitTester.distance(element, x, y)
-                    return if (d <= padPt) d else null
-                }
+                val d = StrokeHitTester.distance(element, x, y)
+                return if (d <= padPt) d else null
             }
             is SplineElement -> {
                 val pts = SplineInk.samplePoints(element.nodes, element.closed) ?: return null
@@ -240,17 +234,23 @@ object ElementHitTester {
         return inside
     }
 
-    /** True when ([x], [y]) lies within [pad] pt of any edge of [poly]. */
-    fun nearEdge(poly: List<Vec2>, x: Double, y: Double, pad: Double): Boolean {
-        if (poly.isEmpty()) return false
-        if (poly.size == 1) return hypot(x - poly[0].x, y - poly[0].y) <= pad
+    /** Minimum distance in pt from ([x], [y]) to any closed edge of [poly]. */
+    fun distanceToOutline(poly: List<Vec2>, x: Double, y: Double): Double {
+        if (poly.isEmpty()) return Double.MAX_VALUE
+        if (poly.size == 1) return hypot(x - poly[0].x, y - poly[0].y)
+        var best = Double.MAX_VALUE
         var j = poly.size - 1
         for (i in poly.indices) {
-            if (distToSegment(x, y, poly[j], poly[i]) <= pad) return true
+            val d = distToSegment(x, y, poly[j], poly[i])
+            if (d < best) best = d
             j = i
         }
-        return false
+        return best
     }
+
+    /** True when ([x], [y]) lies within [pad] pt of any edge of [poly]. */
+    fun nearEdge(poly: List<Vec2>, x: Double, y: Double, pad: Double): Boolean =
+        distanceToOutline(poly, x, y) <= pad
 
     private fun distToSegment(x: Double, y: Double, a: Vec2, b: Vec2): Double {
         val (px, py) = closestPointOnSegment(x, y, a.x, a.y, b.x, b.y)

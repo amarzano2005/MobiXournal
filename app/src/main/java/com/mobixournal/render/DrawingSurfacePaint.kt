@@ -463,7 +463,7 @@ internal fun DrawingSurfaceView.drawSelectionBox(canvas: Canvas, sel: ActiveSele
     // Lock mode shows the bluish box; Unlock shows polygon vertices for shapes.
     val singleShape = singleSelectedShape()
     if (singleShape != null && !gestures.aspectLocked && drawShapePolygonOutline(canvas, box, singleShape)) Unit
-    else if (gestures.shaftOfSelection(sel) == null) {
+    else if (gestures.shaftOfSelection(sel) == null && singleSelectedSpline() == null) {
         canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionFill)
         canvas.drawRoundRect(l, t, r, bot, 8f, 8f, chrome.selectionStroke)
     }

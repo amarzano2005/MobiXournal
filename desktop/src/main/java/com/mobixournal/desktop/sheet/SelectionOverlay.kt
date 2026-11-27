@@ -35,7 +35,8 @@ import com.mobixournal.render.shaftTurn
 internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, living: Element? = null) {
     val shaft = shaftOf(living)
     val singleShape = living as? ParametricShapeElement
-    // Lines/arrows show no box; a single parametric figure hugs its curve or vertices instead of a rectangle.
+    val singleSpline = living as? com.mobixournal.format.model.SplineElement
+    // Lines/arrows and splines show no box; a single parametric figure hugs its curve or vertices instead of a rectangle.
     if (singleShape != null && singleShape.vertices.size >= 3) {
         val outline = if (com.mobixournal.render.ParametricShapes.isConic(singleShape)) {
             com.mobixournal.render.ParametricShapes.conicOutlinePoints(singleShape)
@@ -47,7 +48,7 @@ internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, l
             pxPerPt,
             dashed = true,
         )
-    } else if (shaft == null) {
+    } else if (shaft == null && singleSpline == null) {
         drawRegion(selection.region, pxPerPt, dashed = true)
     }
     drawHandles(
@@ -55,7 +56,7 @@ internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, l
         pxPerPt,
         isImage = living is ImageElement,
         shaft = shaft,
-        includeBoxResize = singleShape == null,
+        includeBoxResize = singleShape == null && singleSpline == null,
         living = living,
     )
     // The element's own grips, inside the box: a figure's corners and a table's dividers. They are round
