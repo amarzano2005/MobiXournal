@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "spline-selected-knot-visibility"
+title = "Highlight selected spline knot, distinguish sharp vs smooth knots, and refresh after bar actions"
+description = "Updated DrawingSurfaceSpline and SelectionGestureController so spline bar edits immediately refresh canvas + SelectionActionBar, tapping a knot highlights it with an outer accent ring, and sharp corners render as squares vs smooth circles."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "tokens: Uses chrome.handleArm ring, chrome.pinHalo, and chrome.handle for active knot highlight and sharp square vs smooth circle distinction; tests: SourceStructureTest, ColorContractGuardTest, and desktop createDistributable passed."
+
+[[task]]
 id = "files-data-embed-pdf-switch"
 title = "Expose Embed PDF backgrounds switch in Android FilesDataSection"
 description = "Added Embed PDF backgrounds SwitchRow to FilesDataSection.kt in Android Settings."

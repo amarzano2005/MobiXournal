@@ -62,6 +62,9 @@ internal class SelectionGestureController(
     /** The current selection (a page index + the refs of its selected elements), or null. */
     var selection: ActiveSelection? = null
         set(value) {
+            if (field?.refs != value?.refs || field?.pageIndex != value?.pageIndex) {
+                selectedSplineNodeIndex = 0
+            }
             field = value
             val single = value?.refs?.singleOrNull()?.let { r -> pageAt(value.pageIndex)?.layers?.getOrNull(r.layerIndex)?.elements?.getOrNull(r.elementIndex) }
             aspectLocked = when (single) { is ParametricShapeElement -> single.aspectLocked; is Stroke -> single.storedAspectLocked() ?: defaultAspectLocked; else -> defaultAspectLocked }
@@ -230,7 +233,7 @@ internal class SelectionGestureController(
             val spline = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? SplineElement
             if (spline != null) {
                 val grab = hitTestSplineHandle(spline, box, viewport.scrollX, viewport.scrollY, event.x, event.y)
-                if (grab != null) { selectedSplineNodeIndex = grab.nodeIndex; draggingVertex = true; splineGrab = grab; snapshot(); return true }
+                if (grab != null) { selectedSplineNodeIndex = grab.nodeIndex; draggingVertex = true; splineGrab = grab; snapshot(); refresh(); return true }
             }
         }
 

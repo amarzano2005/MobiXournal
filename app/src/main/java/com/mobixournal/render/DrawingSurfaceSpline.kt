@@ -233,6 +233,8 @@ private fun DrawingSurfaceView.replaceSplineElement(
     doc = newDoc
     finishGesture()
     relayout()
+    reportSelectionRect()
+    render()
     return updated
 }
 
@@ -330,9 +332,19 @@ private fun DrawingSurfaceView.drawSplineNodesAndHandles(
                 canvas.drawCircle(ox, oy, HANDLE_DRAW_PX * 0.65f, chrome.handle)
             }
         }
-        val haloR = if (i == selectedNode) HANDLE_DRAW_PX + 3.5f else HANDLE_DRAW_PX + 2f
-        canvas.drawCircle(nx, ny, haloR, chrome.pinHalo)
-        canvas.drawCircle(nx, ny, HANDLE_DRAW_PX, chrome.handle)
+        val isSelected = i == selectedNode
+        if (isSelected) {
+            canvas.drawCircle(nx, ny, HANDLE_DRAW_PX + 5.5f, chrome.handleArm)
+        }
+        val knotR = if (isSelected) HANDLE_DRAW_PX + 1.5f else HANDLE_DRAW_PX
+        val haloR = knotR + 2f
+        if (n.smooth) {
+            canvas.drawCircle(nx, ny, haloR, chrome.pinHalo)
+            canvas.drawCircle(nx, ny, knotR, chrome.handle)
+        } else {
+            canvas.drawRect(nx - haloR, ny - haloR, nx + haloR, ny + haloR, chrome.pinHalo)
+            canvas.drawRect(nx - knotR, ny - knotR, nx + knotR, ny + knotR, chrome.handle)
+        }
     }
 }
 
