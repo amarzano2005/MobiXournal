@@ -236,13 +236,13 @@ and a stutter. On a `.wav` it is arithmetic.
 sound already handed over; and the feeder finishes a chunk even when `SourceDataLine.write` accepts only
 part of it, because a dropped tail is a hole in the sound.
 
-*The pill.* The audio controls are the tablet's capsule, in the header immediately left of Save:
-record/stop, pause, play, the take's `mm:ss` and a level bar, in the same three-button order and the same
-state colours `AudioMiniCapsule` uses — and with its **meanings**, which is what the window's first cut
-got wrong: pause holds the **take** and does nothing when no take is running, because a clip's pause is
-the play button's (two pause marks side by side were the same act twice), and Play also **picks the audio
-tap**, since the tool strip carries no slot for it. The status bar carries the take indicator (a record
-dot, the clock and the level) and the one sentence a failure has to say.
+*The pill.* The audio controls adapt to the active mode on both shells (`AudioMiniCapsule` on Android,
+`HeaderAudioPill` left of Save on Desktop): **Idle** offers `[Mic]` and `[Play]` (with no disabled
+pause button); **Recording** switches to `[Stop]` and `[Pause / Resume recording]` (plus the take's
+`mm:ss` and level bar on Desktop); **Playback** switches to `[Play / Pause]` (accented) and `[Close]`
+(plus scrubber and speed on Desktop), while Play also **picks the audio tap** since the tool strip
+carries no slot for it. The status bar carries the take indicator (a record dot, the clock and the level)
+and the one sentence a failure has to say.
 
 *One document's audio, not the window's.* A machine has one microphone and one output, but a take belongs
 to the **tab it was started in** — `ownsRecording` in `mobix-core/audio/` is that rule, asked by both

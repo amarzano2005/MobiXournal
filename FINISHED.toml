@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "context-adaptive-3-mode-audio-controls-on-mobile-and-desktop"
+title = "Context-adaptive 3-mode audio controls on mobile and desktop"
+description = "Updated AudioMiniCapsule and HeaderAudioPill to render distinct Idle (Mic + Play), Recording (Stop + Pause/Resume), and Playback (Play/Pause + Close) controls with GlassMotion animateContentSize on Android."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "parity: identical 3-mode transport across AudioMiniCapsule and HeaderAudioPill; tokens: DocumentRed/SignalAmber/SignalGreen/DesktopTheme danger+accent and GlassMotion POPOVER; docs: updated docs/audio.md; tests: ColorContractGuardTest, SourceStructureTest, DesktopTextFeedbackContractTest, release APK and desktop distributable"
+
+[[task]]
 id = "eliminate-dual-side-surfaceview-slide-lag-keep-rail-shrink-to-fit-and-remove-splittabrow-top-divider"
 title = "Eliminate dual-side SurfaceView slide lag, keep rail shrink-to-fit, and remove SplitTabRow top divider"
 description = "Eliminated per-frame synchronous SurfaceView.paint() stalls during split-view slide, delayed Pane 1 SurfaceView mount to 0.998f, lowered stand-in bitmap to 540px, switched railContentScale to shrink-to-fit (0.80..1.0, never enlarging), and removed the top horizontal divider above SplitTabRow."

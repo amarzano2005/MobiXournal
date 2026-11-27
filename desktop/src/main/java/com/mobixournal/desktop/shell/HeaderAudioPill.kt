@@ -136,60 +136,59 @@ private fun TransportButtons(
     val paused = sound.recordingPaused
     val playing = sound.playing
     val clipOn = sound.clipName != null
-    PillButton(
-            description = when {
-                recording -> "Stop recording"
-                sound.takeElsewhere -> "Recording in another tab"
-                else -> "Start audio recording"
-            },
-            // Another tab's take owns the one microphone: this document may not open a second one.
-            enabled = !sound.takeElsewhere,
-            fill = if (recording) DesktopTheme.danger else Color.Transparent,
-            tint = if (recording) Color.White else DesktopTheme.chromeInk,
-            onClick = { if (audio.toggleRecord(tab())) onRecordingFinalized() },
-        ) { colour, size ->
-            if (recording) {
-                drawRecordStop(colour, size)
-            } else {
-                drawMicrophone(colour, size)
+    when {
+        recording -> {
+            PillButton(
+                description = "Stop recording",
+                fill = DesktopTheme.danger,
+                tint = Color.White,
+                onClick = { if (audio.toggleRecord(tab())) onRecordingFinalized() },
+            ) { colour, size -> drawRecordStop(colour, size) }
+            PillButton(
+                description = if (paused) "Resume recording" else "Pause recording",
+                fill = if (!paused) DesktopTheme.danger else Color.Transparent,
+                tint = Color.White,
+                onClick = { audio.toggleRecordPause(tab()) },
+            ) { colour, size ->
+                if (paused) drawRecordDot(colour, size) else drawPauseBars(colour, size)
             }
         }
-        PillButton(
-            description = if (paused) "Resume recording" else "Pause recording",
-            // **Recording only** — the tablet's rule. A clip's pause is the play button's, so no two
-            // buttons ever offer the same act (which is what left two pause marks side by side).
-            enabled = recording,
-            // One red for a take that is running, never two: the record button and this one used to wear
-            // `documentRed` and `danger` side by side, which read as two different states.
-            fill = if (recording && !paused) DesktopTheme.danger else Color.Transparent,
-            tint = if (recording) Color.White else DesktopTheme.chromeInk,
-            onClick = { audio.toggleRecordPause(tab()) },
-        ) { colour, size ->
-            // A **resume-recording** mark is the record dot, not the play triangle: a triangle here
-            // would read as "start playback", which is the button beside it (`AudioMiniCapsule`'s own
-            // reasoning, kept because the two shells must say the same thing the same way).
-            if (paused && recording) drawRecordDot(colour, size) else drawPauseBars(colour, size)
-        }
-        PillButton(
-            description = if (playing) "Pause playback" else "Play audio",
-            enabled = clipOn || sound.hasAudio || recording,
-            fill = if (playing) DesktopTheme.accent.copy(alpha = 0.25f) else Color.Transparent,
-            tint = if (playing) DesktopTheme.accent else DesktopTheme.chromeInk,
-            // The tablet's Play both **arms the tap** and plays, so picking it is one act.
-            onClick = {
-                onAudioTap()
-                audio.togglePlay(tab())
-            },
-        ) { colour, size ->
-            if (playing) drawPauseBars(colour, size) else drawPlayTriangle(colour, size)
-        }
-        if (clipOn) {
-            // The catalogue's close mark, because letting a clip go is a chrome command rather than a
-            // transport mark: the same X a tab, a panel and a search field wear.
+        clipOn -> {
+            PillButton(
+                description = if (playing) "Pause playback" else "Play audio",
+                fill = if (playing) DesktopTheme.accent.copy(alpha = 0.25f) else Color.Transparent,
+                tint = if (playing) DesktopTheme.accent else DesktopTheme.chromeInk,
+                onClick = {
+                    onAudioTap()
+                    audio.togglePlay(tab())
+                },
+            ) { colour, size ->
+                if (playing) drawPauseBars(colour, size) else drawPlayTriangle(colour, size)
+            }
             PillButton(description = "Close the audio", onClick = { audio.stopPlayback() }) { colour, _ ->
                 drawChromeGlyph(ChromeGlyph.CLOSE, colour)
             }
         }
+        else -> {
+            PillButton(
+                description = if (sound.takeElsewhere) "Recording in another tab" else "Start audio recording",
+                enabled = !sound.takeElsewhere,
+                fill = Color.Transparent,
+                tint = DesktopTheme.chromeInk,
+                onClick = { if (audio.toggleRecord(tab())) onRecordingFinalized() },
+            ) { colour, size -> drawMicrophone(colour, size) }
+            PillButton(
+                description = "Play audio",
+                enabled = sound.hasAudio,
+                fill = Color.Transparent,
+                tint = DesktopTheme.chromeInk,
+                onClick = {
+                    onAudioTap()
+                    audio.togglePlay(tab())
+                },
+            ) { colour, size -> drawPlayTriangle(colour, size) }
+        }
+    }
 }
 
 /**

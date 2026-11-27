@@ -1,5 +1,7 @@
 package com.mobixournal.ui
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -50,8 +52,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mobixournal.design.ChromeGlyph
+import com.mobixournal.design.DesignTokens
 import com.mobixournal.ui.theme.AlertOrange
 import com.mobixournal.ui.theme.DialogPresence
 import com.mobixournal.ui.theme.DocumentRed
@@ -66,12 +71,10 @@ import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
 import com.mobixournal.ui.theme.rememberGlassSurfaceColor
 
 /**
- * Modern floating frosted-glass mini capsule situated in the top bar leading empty space
- * directly above the main toolbar lane.
- * Houses the audio actions moved from the main toolbar:
- * 1. Microphone / Stop button (toggle recording; solid red when recording; long-press for settings menu)
- * 2. Pause / Resume button (pauses recording without finalizing; resumes seamlessly)
- * 3. Play object button (activates stroke audio playback mode and controls mini-player, using GraphicEq)
+ * Context-adaptive audio transport capsule:
+ * - **Idle** (`!recording && !clipOn`): `[Mic]` (start recording; long-press for audio menu) and `[Play]`
+ * - **Recording** (`recording`): `[Stop]` (red) and `[Pause / Resume recording]` (amber / green record dot)
+ * - **Playback** (`clipOn && !recording`): `[Play / Pause]` (accent) and `[Close clip]`
  */
 @Composable
 fun AudioMiniCapsule(
@@ -84,27 +87,42 @@ fun AudioMiniCapsule(
 ) {
     val isDark = chromeIsDark()
     val glassColor = rememberGlassSurfaceColor()
+    val spec = DesignTokens.GlassMotion.spec(DesignTokens.GlassMotion.SurfaceRole.POPOVER)
+
+    val buttons = @Composable {
+        when {
+            audio.recording -> {
+                MicCapsuleButton(audio = audio, isDark = isDark)
+                PauseCapsuleButton(audio = audio, isDark = isDark)
+            }
+            audio.clipOn -> {
+                PlayCapsuleButton(audio = audio, tool = tool, onTool = onTool, isDark = isDark)
+                CloseClipCapsuleButton(onClose = audio.onStopPlayback, isDark = isDark)
+            }
+            else -> {
+                MicCapsuleButton(audio = audio, isDark = isDark)
+                PlayCapsuleButton(audio = audio, tool = tool, onTool = onTool, isDark = isDark)
+            }
+        }
+    }
 
     val body = @Composable {
+        val sizeAnim = Modifier.animateContentSize(spring<IntSize>(spec.openDamping, spec.openStiffness))
         if (vertical) {
             Column(
-                modifier = Modifier.padding(horizontal = 3.dp, vertical = 3.dp),
+                modifier = sizeAnim.padding(horizontal = 3.dp, vertical = 3.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                MicCapsuleButton(audio = audio, isDark = isDark)
-                PauseCapsuleButton(audio = audio, isDark = isDark)
-                PlayCapsuleButton(audio = audio, tool = tool, onTool = onTool, isDark = isDark)
+                buttons()
             }
         } else {
             Row(
-                modifier = Modifier.padding(horizontal = 3.dp, vertical = 3.dp),
+                modifier = sizeAnim.padding(horizontal = 3.dp, vertical = 3.dp),
                 horizontalArrangement = Arrangement.spacedBy(2.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                MicCapsuleButton(audio = audio, isDark = isDark)
-                PauseCapsuleButton(audio = audio, isDark = isDark)
-                PlayCapsuleButton(audio = audio, tool = tool, onTool = onTool, isDark = isDark)
+                buttons()
             }
         }
     }
@@ -257,6 +275,24 @@ private fun PlayCapsuleButton(
             contentDescription = if (audio.playing) "Pause playback" else "Play audio",
             tint = tint,
             modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+@Composable
+private fun CloseClipCapsuleButton(onClose: () -> Unit, isDark: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .clip(CircleShape)
+            .clickable(onClick = onClose),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = ChromeGlyph.CLOSE.imageVector(),
+            contentDescription = "Close audio",
+            tint = if (isDark) Color.White else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(15.dp),
         )
     }
 }
