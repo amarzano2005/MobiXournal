@@ -1,26 +1,26 @@
 package com.mobixournal.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoFixHigh
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.unit.dp
 import com.mobixournal.format.model.LineStyle
 
@@ -50,14 +50,14 @@ internal fun LineStyleChips(lineStyle: LineStyle, onLineStyle: (LineStyle) -> Un
     ) {
         for ((style, label) in LINE_STYLE_LABELS) {
             val selected = style == lineStyle
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
+            val ink = if (selected) {
+                MaterialTheme.colorScheme.onPrimaryContainer
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
                     .background(
@@ -68,9 +68,41 @@ internal fun LineStyleChips(lineStyle: LineStyle, onLineStyle: (LineStyle) -> Un
                         },
                     )
                     .clickable { onLineStyle(style) }
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-            )
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            ) {
+                LineStyleGlyph(style = style, tint = ink)
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = ink,
+                )
+            }
         }
+    }
+}
+
+@Composable
+private fun LineStyleGlyph(style: LineStyle, tint: Color) {
+    Canvas(modifier = Modifier.size(width = 20.dp, height = 10.dp)) {
+        val y = size.height / 2f
+        val stroke = 2.dp.toPx()
+        val effect = when (style) {
+            LineStyle.PLAIN -> null
+            LineStyle.DASHED -> PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 3.dp.toPx()), 0f)
+            LineStyle.DASH_DOT -> PathEffect.dashPathEffect(
+                floatArrayOf(6.dp.toPx(), 2.5.dp.toPx(), 1.5.dp.toPx(), 2.5.dp.toPx()),
+                0f,
+            )
+            LineStyle.DOTTED -> PathEffect.dashPathEffect(floatArrayOf(1.dp.toPx(), 3.dp.toPx()), 0f)
+        }
+        drawLine(
+            color = tint,
+            start = Offset(stroke / 2f, y),
+            end = Offset(size.width - stroke / 2f, y),
+            strokeWidth = stroke,
+            cap = StrokeCap.Round,
+            pathEffect = effect,
+        )
     }
 }
 

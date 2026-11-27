@@ -337,7 +337,8 @@ private fun LineStylePicker(lineStyle: LineStyle, onPick: (LineStyle) -> Unit) {
     ) {
         for ((style, label) in LINE_STYLE_LABELS) {
             val picked = style == lineStyle
-            Box(
+            val ink = if (picked) DesktopTheme.ink else DesktopTheme.inkSecondary
+            Row(
                 Modifier
                     .background(
                         if (picked) DesktopTheme.activeSlot else Color.Transparent,
@@ -346,12 +347,34 @@ private fun LineStylePicker(lineStyle: LineStyle, onPick: (LineStyle) -> Unit) {
                     .hoverFill(DesktopTheme.controlShape, active = picked)
                     .pointerInput(style) { detectTapGestures { onPick(style) } }
                     .padding(horizontal = 8.dp, vertical = 5.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    label,
-                    color = if (picked) DesktopTheme.ink else DesktopTheme.inkSecondary,
-                    style = DesktopTheme.label,
-                )
+                Canvas(Modifier.size(width = 16.dp, height = 8.dp)) {
+                    val y = size.height / 2f
+                    val stroke = 1.8.dp.toPx()
+                    val effect = when (style) {
+                        LineStyle.PLAIN -> null
+                        LineStyle.DASHED -> androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                            floatArrayOf(4.dp.toPx(), 2.5.dp.toPx()), 0f,
+                        )
+                        LineStyle.DASH_DOT -> androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                            floatArrayOf(5.dp.toPx(), 2.dp.toPx(), 1.2.dp.toPx(), 2.dp.toPx()), 0f,
+                        )
+                        LineStyle.DOTTED -> androidx.compose.ui.graphics.PathEffect.dashPathEffect(
+                            floatArrayOf(1.dp.toPx(), 2.5.dp.toPx()), 0f,
+                        )
+                    }
+                    drawLine(
+                        color = ink,
+                        start = androidx.compose.ui.geometry.Offset(stroke / 2f, y),
+                        end = androidx.compose.ui.geometry.Offset(size.width - stroke / 2f, y),
+                        strokeWidth = stroke,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        pathEffect = effect,
+                    )
+                }
+                Text(label, color = ink, style = DesktopTheme.label)
             }
         }
     }

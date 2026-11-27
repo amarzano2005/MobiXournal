@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "add-linestyle-glyphs-and-keep-colorsizepopup-open-on-selection"
+title = "Add LineStyle glyphs and keep ColorSizePopup open on selection"
+description = "Added stroke-pattern glyphs to all 4 LineStyle chips on Android and Desktop, and kept ColorSizePopup open when picking a color or stroke width."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "glyph: Canvas stroke-pattern glyphs for PLAIN/DASHED/DASH_DOT/DOTTED; parity: mirrored in Desktop LineStylePicker; states: ColorSizePopup stays open until outside tap; tests: ToolbarDividersTest, ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
+
+[[task]]
 id = "refine-live-tool-indicator-as-corner-hub-pivot"
 title = "Refine live tool indicator as Corner Hub pivot"
 description = "Styled StandaloneToolIndicator as a Corner Hub with TabChipFillDark/Light background, separated it from TopBarToolsRow with TopBarToolDivider, and anchored SideToolbar TopCenter with a leading RailRule."

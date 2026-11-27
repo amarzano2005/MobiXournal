@@ -112,7 +112,7 @@ internal fun ColorSizePopup(
         ColorPaletteRows(
             selected = callbacks.color,
             palette = callbacks.palette,
-            onPick = { c -> callbacks.onColor(c); dismiss() },
+            onPick = { c -> callbacks.onColor(c) },
             onEditCustom = { editing = true; dismiss() },
             onAdd = { adding = true; dismiss() },
             compact = true,
@@ -121,7 +121,7 @@ internal fun ColorSizePopup(
         WidthSlotBar(
             width = callbacks.width,
             widthSlots = callbacks.widthSlots,
-            onWidth = { pt -> callbacks.onWidth(pt); dismiss() },
+            onWidth = { pt -> callbacks.onWidth(pt) },
             onEditSlot = { i -> editingSlot = i; dismiss() },
         )
         MenuHeading("Line style")
