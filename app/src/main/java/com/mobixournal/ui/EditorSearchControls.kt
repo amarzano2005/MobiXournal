@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -46,10 +47,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -71,6 +75,7 @@ import com.mobixournal.ui.theme.TabChipFillLight
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberChromeInk
 import com.mobixournal.ui.theme.rememberFloatingSurfaceColor
+import kotlinx.coroutines.delay
 
 @Composable
 internal fun SearchControls(pane: PaneState) {
@@ -84,10 +89,20 @@ internal fun SearchControls(pane: PaneState) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     var searchFocused by remember { mutableStateOf(false) }
+    val collapsedPx = with(LocalDensity.current) { 36.dp.roundToPx() }
+    val iconAlpha by animateFloatAsState(
+        targetValue = if (pane.searchOpen) 0f else 1f,
+        animationSpec = spring(
+            dampingRatio = if (pane.searchOpen) spec.closeDamping else spec.openDamping,
+            stiffness = if (pane.searchOpen) spec.closeStiffness else spec.openStiffness,
+        ),
+        label = "SearchIconAlpha",
+    )
 
     LaunchedEffect(pane, pane.surface, pane.searchOpen, pane.documentVersion) {
         if (!pane.searchOpen) return@LaunchedEffect
         val surface = pane.surface ?: return@LaunchedEffect
+        delay(160)
         if (!surface.isHandwritingIndexReady()) {
             surface.ensureHandwritingIndex { surface.setSearchQuery(pane.searchQuery).let(::apply) }
         } else {
@@ -103,26 +118,33 @@ internal fun SearchControls(pane: PaneState) {
     LaunchedEffect(pane.searchOpen) {
         if (pane.searchOpen) {
             pane.surface?.clearFocus()
+            delay(130)
             runCatching { focusRequester.requestFocus(); keyboardController?.show() }
         }
     }
 
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        AnimatedVisibility(
-            visible = !pane.searchOpen,
-            enter = fadeIn(spring(spec.openDamping, spec.openStiffness)),
-            exit = fadeOut(spring(spec.closeDamping, spec.closeStiffness)),
+    Box(contentAlignment = Alignment.CenterEnd, modifier = Modifier.clipToBounds()) {
+        IconButton(
+            onClick = { if (!pane.searchOpen) pane.searchOpen = true },
+            enabled = !pane.searchOpen,
+            modifier = Modifier
+                .size(36.dp)
+                .graphicsLayer { alpha = iconAlpha },
         ) {
-            IconButton(onClick = { pane.searchOpen = true }, modifier = Modifier.size(36.dp)) {
-                Icon(Icons.Outlined.Search, contentDescription = "Search", tint = chromeInk, modifier = Modifier.size(20.dp))
-            }
+            Icon(Icons.Outlined.Search, contentDescription = "Search", tint = chromeInk, modifier = Modifier.size(20.dp))
         }
         AnimatedVisibility(
             visible = pane.searchOpen,
-            enter = expandHorizontally(spring<IntSize>(spec.openDamping, spec.openStiffness), expandFrom = Alignment.End) +
-                fadeIn(spring(spec.openDamping, spec.openStiffness)),
-            exit = shrinkHorizontally(spring<IntSize>(spec.closeDamping, spec.closeStiffness), shrinkTowards = Alignment.End) +
-                fadeOut(spring(spec.closeDamping, spec.closeStiffness)),
+            enter = expandHorizontally(
+                animationSpec = spring<IntSize>(spec.openDamping, spec.openStiffness),
+                expandFrom = Alignment.End,
+                initialWidth = { collapsedPx },
+            ) + fadeIn(spring(spec.openDamping, spec.openStiffness)),
+            exit = shrinkHorizontally(
+                animationSpec = spring<IntSize>(spec.closeDamping, spec.closeStiffness),
+                shrinkTowards = Alignment.End,
+                targetWidth = { collapsedPx },
+            ) + fadeOut(spring(spec.closeDamping, spec.closeStiffness)),
         ) {
             val fill = if (isDark) TabChipFillDark else TabChipFillLight
             val restBorder = if (isDark) ModernTheme.hairlineBorder(true) else TabChipBorderLight

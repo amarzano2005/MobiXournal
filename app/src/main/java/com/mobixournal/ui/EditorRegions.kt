@@ -244,7 +244,15 @@ fun EditorTopBar(
                         railOnLeft = railOnLeft,
                     )
                 }
-                if (splitView && paneTabs.size >= 2 && !ui.fullPage) {
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = splitView && paneTabs.size >= 2 && !ui.fullPage,
+                    enter = androidx.compose.animation.expandVertically(
+                        animationSpec = androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = 560f),
+                    ) + androidx.compose.animation.fadeIn(chromeSlideSpring()),
+                    exit = androidx.compose.animation.shrinkVertically(
+                        animationSpec = androidx.compose.animation.core.spring(dampingRatio = 1f, stiffness = 560f),
+                    ) + androidx.compose.animation.fadeOut(chromeSlideSpring()),
+                ) {
                     SplitTabRow(
                         tabs = paneTabs,
                         fraction = ui.splitFraction,

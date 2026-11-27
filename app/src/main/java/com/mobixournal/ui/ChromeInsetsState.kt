@@ -75,7 +75,7 @@ internal class ChromeInsetController {
     var settledLeftPx by mutableFloatStateOf(0f)
     var settledRightPx by mutableFloatStateOf(0f)
 
-    var splitAnimating: Boolean = false
+    var splitAnimating by mutableStateOf(false)
     var splitRightInsetPx: Float = 0f
     var settledSplitRightPx by mutableFloatStateOf(0f)
     private val liveListeners = LinkedHashMap<Int, () -> Unit>()
@@ -258,11 +258,18 @@ internal fun AnimatedEditorTopBarHost(
         snapshotFlow {
             val p = progress.value
             val h = measuredHeightPx
-            Triple(p, h, visible)
-        }.collectLatest { (p, h, vis) ->
+            val splitAnim = controller.splitAnimating
+            listOf(p, h, visible, splitAnim)
+        }.collectLatest { values ->
+            val p = values[0] as Float
+            val h = values[1] as Int
+            val vis = values[2] as Boolean
+            val splitAnim = values[3] as Boolean
             controller.topInsetPx = if (h > 0) h * p else 0f
-            controller.topAnimating = p in 0.001f..0.999f
-            controller.settledTopPx = if (vis && h > 0) h.toFloat() else 0f
+            controller.topAnimating = p in 0.001f..0.999f || splitAnim
+            if (!splitAnim) {
+                controller.settledTopPx = if (vis && h > 0) h.toFloat() else 0f
+            }
         }
     }
     val showBar by remember { derivedStateOf { progress.value > 0.001f || latestVisible } }
