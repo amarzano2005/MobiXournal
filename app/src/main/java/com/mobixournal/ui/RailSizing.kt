@@ -3,67 +3,28 @@ package com.mobixournal.ui
 import androidx.compose.ui.unit.dp
 
 /**
- * How the rail decides how many of its slots to show, and how big.
- *
- * The rail is a **fixed column of slots**, and the complaint that started this was a *half* button at
- * its bottom edge: a scrolling viewport of arbitrary height always ends somewhere inside a button.
- * Shrinking every slot until they all fitted fixed the half button but cost what the rail is for —
- * buttons you hit without looking — so the rule is the other way round:
- *
- * **The rail shows a whole number of slots, at their full size.** [railContentScale] counts how many
- * slots fit at the size they are meant to be, then spreads *that many* over the height it has, so the
- * next slot begins exactly at the bottom edge instead of being cut in half by it. The scale it returns
- * is therefore never below 1 (nothing is ever drawn smaller than its own size) and only ever a few
- * percent above it, which spends the leftover strip of space on slightly larger buttons rather than on
- * a sliver of the next one.
- *
- * Slots the height cannot hold are a **scroll away** — the rail always shows the first of them whole.
- * Making every slot visible is not the goal; keeping the buttons the size they were is.
+ * How the rail sizes its slots to fit the available height cleanly:
+ * slots are **never enlarged** past their design size (`1.0f`), and when the available height
+ * tightens (for example when the split-view tab row opens), they shrink gently down to
+ * [RAIL_MIN_SCALE] so every visible slot stays on screen at first glance instead of growing or
+ * pushing the bottom navigation slots behind a scroll.
  */
 
-/**
- * Gap between two rail slots.
- *
- * 4dp, not 6: the rail's lane starts below the **whole** top bar, and that bar carries the tools row and
- * the document tabs in one slab (docs/chrome.md), so the lane is a tab row (38dp) shorter than it was
- * when the tabs sat beside it. At that height a 6dp gap leaves room for 14 whole slots out of the 15 a
- * full rail holds — which would put the last one behind a scroll, and "everything down to the page
- * settings is visible without scrolling" is a promise the rail keeps. The gaps and this padding are the
- * only dimensions the rail may spend on it: the slots themselves are never drawn smaller than their own
- * size, and a whole number of them still starts at the bottom edge.
- */
 internal val RailSpacing = 4.dp
 
 /** The rail column's vertical padding (top and bottom). */
 internal val RailColumnPadding = 6.dp
 
-/**
- * The most [railContentScale] will grow the slots. Growth only happens when the leftover space below
- * the last whole slot is worth spending — a couple of dp on a tall rail — so 8% is a generous ceiling
- * and, importantly, keeps the slot inside the rail's inner width: 44dp of slots become at most 47.5dp
- * inside a 48dp rail (56dp dock minus its 2×4dp padding), and 48dp become at most 51.8dp inside 56dp.
- */
-internal const val RAIL_MAX_SCALE = 1.08f
+/** Never enlarge rail slots past their design size (1.0×). */
+internal const val RAIL_MAX_SCALE = 1.0f
+
+/** Floor on shrinking rail slots so touch targets remain comfortable (80% of base slot). */
+internal const val RAIL_MIN_SCALE = 0.80f
 
 /**
- * The scale to draw the rail's slots at, so that a **whole number** of them fills the height.
- *
- * @param availableHeightDp The height the rail column may occupy, **including** its own vertical
- *   padding — the rail's own chrome (a floating dock's outer margin, the top bar) must already be
- *   subtracted, since that chrome does not scale.
- * @param slotCount How many slots the rail holds (visible ones).
- * @param slotDp One slot's height at full size.
- * @param spacingDp The gap between two slots.
- * @param paddingDp The column's vertical padding, counted at both ends.
- * @param extraDp Height the column spends on children that are not slots — today the hairline rule
- *   that opens the pinned navigation stretch, plus the gap above it. Without it the slots would be
- *   spread over the whole height and the rule would push the last one past the bottom edge.
- * @param maxScale The ceiling on the growth; see [RAIL_MAX_SCALE].
- *
- * Returns 1 when every slot fits — the rail is left exactly as it was designed. Otherwise it returns
- * the factor that makes the largest whole number of slots fill the space, which is ≥ 1 by
- * construction: the slots stay their own size or a shade larger, and the slot after them starts at the
- * bottom edge rather than being cut by it.
+ * Scale factor for the rail's slots (`[minScale]..1.0f`):
+ * returns `1f` whenever all [slotCount] slots fit at full size, otherwise shrinks proportionally
+ * down to [minScale] so the full rail fits on screen without scrolling or enlarging.
  */
 internal fun railContentScale(
     availableHeightDp: Float,
@@ -72,16 +33,12 @@ internal fun railContentScale(
     spacingDp: Float,
     paddingDp: Float,
     extraDp: Float = 0f,
-    maxScale: Float = RAIL_MAX_SCALE,
+    minScale: Float = RAIL_MIN_SCALE,
 ): Float {
     if (slotCount <= 0 || availableHeightDp <= 0f || slotDp <= 0f) return 1f
     val usable = availableHeightDp - paddingDp * 2f - extraDp
-    if (usable <= 0f) return 1f
-    val pitch = slotDp + spacingDp
-    // The most slots that fit whole at full size: m slots take m·slot + (m−1)·spacing.
-    val whole = ((usable + spacingDp) / pitch).toInt()
-    if (whole <= 0 || whole >= slotCount) return 1f
-    // Spread exactly `whole` slots over the space so the next one starts at the bottom edge. The
-    // denominator is what `whole` slots occupy at scale 1, gaps included.
-    return (usable / (whole * pitch - spacingDp)).coerceAtMost(maxScale)
+    if (usable <= 0f) return minScale
+    val needed = slotCount * slotDp + (slotCount - 1) * spacingDp
+    if (needed <= 0f || usable >= needed) return 1f
+    return (usable / needed).coerceIn(minScale, 1f)
 }

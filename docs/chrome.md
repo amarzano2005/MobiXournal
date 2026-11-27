@@ -86,21 +86,16 @@ right-docked one).
 
 On compact Android windows the page-list entry stays accessible alongside bookmarks and Search inside the Command Sheet. **Page list** and the **bookmark ribbon** share `NavigationCapsule` (`ui/PageListPanel.kt`) as naked `36 dp` header icon buttons directly on the band — each half keeps its own accessible name (`Page list`, `Bookmarks`) and **wears the accent and `primaryContainer` plate while its lane is open**, with no press ripple beside that accent. The two halves open an inline **Pages / Bookmarks** lane, whose tabs wear the same two marks and the same accent on the tab in front, so the header and the lane name the open view one way. Between those tabs and the lane's close stands the **Manage pages** gear (`ChromeGlyph.PAGE_RANGE` — the Settings gear with the Pages sheet in its hub), because the typed range asks something of the whole list rather than of one of the two views. Back cancels an edit before closing it. Tablet-sized workspaces keep the list beside the canvas; compact windows return to the page after a jump. [pdf.md](pdf.md#pdf-contents-the-outline) owns its layout and verification limits.
 
-## The rail never cuts a slot — and never shrinks one
+## Rail sizing: fit on screen, never enlarge
 
-**The rail never cuts a slot — and never shrinks one.** `ToolbarShell` (`ui/SideToolbar.kt`) measures
-the height it is given (`BoxWithConstraints`) and hands the visible slot count to `railContentScale`
-(`ui/RailSizing.kt`), a pure function: it counts the slots that fit **whole** at their own size (`m`
-slots take `m·slot + (m−1)·spacing`) and spreads exactly that many over the space, so the slot after
-them starts at the rail's bottom edge instead of being cut by it. The scale it returns is therefore
-never below 1 — a rail button is never drawn smaller than the size it was designed at, which is what
-keeps the rail usable at a glance, and what an all-slots-visible rail wastes most of its length on —
-and only a few percent above it, capped at `RAIL_MAX_SCALE` (1.08) so the slot stays within the rail's
-inner width. The leftover strip below the last whole slot is spent on slightly larger buttons rather
-than on a sliver of the next one. Slots the height cannot hold are a **scroll away**, and a rail that
-fits entirely is left at scale 1. The shell publishes the scale as the slot size
-(`LocalRailSlotSize`, read by every slot — tool buttons, pop-up buttons, the one-tap colour slot) and
-applies it to the gaps but **not** to the column's padding, so the whole-number fit stays exact.
+**The rail never enlarges its slots.** `ToolbarShell` (`ui/SideToolbar.kt`) measures its settled height via
+`onSizeChanged` (ignoring transient animation frames so neither Focus mode nor split view triggers per-frame
+subcomposition) and hands the visible slot count to `railContentScale` (`ui/RailSizing.kt`): when all slots
+fit at their design size it returns `1.0f`, and when vertical height tightens (such as when the split-view
+tab row opens) it shrinks slots proportionally down to `RAIL_MIN_SCALE` (`0.80f`) so every visible slot stays
+on screen at first glance instead of growing or pushing the pinned navigation slots behind a scroll. Any
+remaining overflow on very short screens stays cleanly scrollable. The shell publishes the scale as
+`LocalRailSlotSize` and applies it to the slot gaps while keeping the column's outer padding constant.
 
 The rail carries no **zoom** slot: a page is zoomed by pinching it, the canvas's zoom badge prints the
 factor (`zoomLabel`, `ui/PageCounter.kt`) and taps back to 100%, and a permanent button that only

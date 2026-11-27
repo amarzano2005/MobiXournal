@@ -12,7 +12,7 @@ import kotlin.math.roundToInt
  * slide Pane 1 out (and back in) as pure Compose GPU content at 144 Hz without moving a
  * `SurfaceView` or flashing a black hole.
  */
-internal fun DrawingSurfaceView.captureStandInBitmap(maxWidthPx: Int = 900): Bitmap? {
+internal fun DrawingSurfaceView.captureStandInBitmap(maxWidthPx: Int = 540): Bitmap? {
     val w = width
     val h = height
     if (w <= 0 || h <= 0 || layout.boxes.isEmpty()) return null

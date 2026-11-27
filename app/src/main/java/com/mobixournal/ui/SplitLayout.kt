@@ -151,7 +151,7 @@ fun SplitLayout(
         derivedStateOf { splitProgress.value > 0.005f || latestSplitView }
     }
     val mountSecond by remember {
-        derivedStateOf { latestSplitView && splitProgress.value >= 0.99f }
+        derivedStateOf { latestSplitView && splitProgress.value >= 0.998f }
     }
     val deskColor = Color(rememberCanvasChromeColors().backdrop)
 
@@ -214,16 +214,12 @@ private fun rememberSplitProgress(
         animationSpec = chromeSlideSpring(),
         label = "SplitView",
     )
-    val latestOverlaySpanPx by rememberUpdatedState(overlaySpanPx)
-    val latestSplitView by rememberUpdatedState(splitView)
-    LaunchedEffect(controller) {
-        snapshotFlow {
-            val p = splitProgress.value.coerceIn(0f, 1f)
-            val span = latestOverlaySpanPx
-            Triple(p in 0.001f..0.999f, span * p, if (latestSplitView) span else 0f)
-        }.collectLatest { (animating, liveInsetPx, settledInsetPx) ->
-            controller.updateSplit(insetPx = liveInsetPx, settledPx = settledInsetPx, animating = animating)
-        }
+    // Apply the target right inset once per toggle (or live divider drag) via Choreographer-paced
+    // render() instead of calling synchronous SurfaceView.paint() on every slide frame, keeping
+    // the right-pane graphicsLayer translationX locked to 120-144 Hz.
+    LaunchedEffect(controller, splitView, overlaySpanPx) {
+        val targetPx = if (splitView) overlaySpanPx else 0f
+        controller.updateSplit(insetPx = targetPx, settledPx = targetPx, animating = false)
     }
     DisposableEffect(controller) {
         onDispose { controller.updateSplit(insetPx = 0f, settledPx = 0f, animating = false) }

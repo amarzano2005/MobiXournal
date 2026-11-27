@@ -50,15 +50,9 @@ internal fun SplitTabRow(
         fraction = fraction,
         handleSpan = handlePx,
     )
-    Column(
+    Box(
         modifier = modifier.onSizeChanged { if (it.width > 0) rowWidthPx = it.width.toFloat() },
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(hairline),
-        )
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             TabStrip(
                 state = tabs[0],
