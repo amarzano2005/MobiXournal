@@ -150,7 +150,7 @@ private fun TransportButtons(
                 tint = Color.White,
                 onClick = { audio.toggleRecordPause(tab()) },
             ) { colour, size ->
-                if (paused) drawRecordDot(colour, size) else drawPauseBars(colour, size)
+                if (paused) drawPlayTriangle(colour, size) else drawPauseBars(colour, size)
             }
         }
         clipOn -> {

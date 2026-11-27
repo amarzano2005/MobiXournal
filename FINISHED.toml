@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "use-play-triangle-on-paused-recording-resume-and-uniform-30dp-row-1-plates"
+title = "Use Play triangle on paused recording resume and uniform 30dp Row 1 plates"
+description = "Switched paused-recording resume button to Play triangle on both shells and standardized Split View, Save, and Hamburger highlight plates to 30dp inside 36dp targets with 4dp spacing."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "glyph: PlayArrow/drawPlayTriangle for resume; tokens: uniform 30dp plate inside 36dp touch target with 8dp corner; parity: updated both Android and Desktop; tests: ColorContractGuardTest, SourceStructureTest, DesktopTextFeedbackContractTest, release APK and desktop distributable"
+
+[[task]]
 id = "context-adaptive-3-mode-audio-controls-on-mobile-and-desktop"
 title = "Context-adaptive 3-mode audio controls on mobile and desktop"
 description = "Updated AudioMiniCapsule and HeaderAudioPill to render distinct Idle (Mic + Play), Recording (Stop + Pause/Resume), and Playback (Play/Pause + Close) controls with GlassMotion animateContentSize on Android."

@@ -207,7 +207,7 @@ private fun PauseCapsuleButton(audio: AudioUiState, isDark: Boolean) {
         isPaused -> Triple(
             SignalGreen,
             Color.White,
-            Icons.Outlined.FiberManualRecord,
+            Icons.Outlined.PlayArrow,
         )
         else -> Triple(
             SignalAmber,

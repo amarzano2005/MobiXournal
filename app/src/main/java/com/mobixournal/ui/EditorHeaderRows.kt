@@ -62,7 +62,7 @@ internal fun EditorDocumentActions(
     val chromePolicy = LocalChromeLayoutPolicy.current
     val chromeInk = rememberChromeInk()
 
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Box(
             modifier = Modifier.graphicsLayer {
                 alpha = (1f - searchProgressProvider() * 2.5f).coerceIn(0f, 1f)
@@ -81,19 +81,21 @@ internal fun EditorDocumentActions(
             )
         }
         if (chromePolicy.showInlineSplitView) {
-            IconButton(
-                onClick = onToggleSplitView,
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (splitView) MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
-            ) {
-                Icon(
-                    Icons.Outlined.VerticalSplit,
-                    contentDescription = if (splitView) "Close split view" else "Split view",
-                    tint = if (splitView) MaterialTheme.colorScheme.primary else chromeInk,
-                    modifier = Modifier.size(20.dp),
-                )
+            IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (splitView) MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.VerticalSplit,
+                        contentDescription = if (splitView) "Close split view" else "Split view",
+                        tint = if (splitView) MaterialTheme.colorScheme.primary else chromeInk,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
             }
         }
         TopBarToolDivider(air = 4.dp)
@@ -101,11 +103,13 @@ internal fun EditorDocumentActions(
         TopBarToolDivider(air = 4.dp)
         QuickPdfExport(ui, pane)
         val canSave = !pane.isReadOnly && stripTabs.canSave
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(if (canSave) MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f) else Color.Transparent),
-        ) {
+        Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (canSave) MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f) else Color.Transparent),
+            )
             SaveControl(enabled = canSave, onSave = onSave)
         }
         EditorOverflowMenu(
