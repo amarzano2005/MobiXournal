@@ -37,6 +37,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import com.mobixournal.ui.theme.ModernTheme
+import com.mobixournal.ui.theme.TabChipFillDark
+import com.mobixournal.ui.theme.TabChipFillLight
 import com.mobixournal.ui.theme.chromeIsDark
 import com.mobixournal.ui.theme.rememberChromeColor
 import com.mobixournal.ui.theme.rememberChromeInk
@@ -374,11 +376,13 @@ internal fun StandaloneToolIndicator(
                             .border(1.dp, chromeInk.copy(alpha = 0.55f), CircleShape),
                     )
                 }
+                val hubFill = if (isDark) TabChipFillDark else TabChipFillLight
                 Box(
                     modifier = Modifier
                         .size(36.dp)
                         .align(Alignment.Center)
                         .clip(CircleShape)
+                        .background(hubFill, CircleShape)
                         .border(2.dp, ringColor, CircleShape)
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },

@@ -166,6 +166,7 @@ internal fun EditorToolsStripRow(
     ) {
         if (railOnLeft) {
             indicator()
+            TopBarToolDivider(air = 4.dp)
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 TopBarToolsRow(ui = ui, pane = pane, settings = settings, onSettingsChange = onSettingsChange)
             }
@@ -181,6 +182,7 @@ internal fun EditorToolsStripRow(
             Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                 TopBarToolsRow(ui = ui, pane = pane, settings = settings, onSettingsChange = onSettingsChange)
             }
+            TopBarToolDivider(air = 4.dp)
             indicator()
         }
     }

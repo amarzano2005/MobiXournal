@@ -73,10 +73,11 @@ fun SideToolbar(
     val items = visibleRailItems(railOrder, railHidden)
     val sections = railSections(items)
     val slotCount = items.count { !isDividerId(it.id) }
-    val ruleCount = (if (sections.size > 1) 1 else 0) + items.count { isDividerId(it.id) }
+    val ruleCount = 1 + (if (sections.size > 1) 1 else 0) + items.count { isDividerId(it.id) }
     val singleRuleDp = RailRuleHeight.value + RailRuleAir.value * 2f + RailSpacing.value
     val ruleHeightDp = ruleCount * singleRuleDp
     ToolbarShell(slotCount = slotCount, extraHeightDp = ruleHeightDp, modifier = modifier) {
+        RailRule()
         for (section in sections) {
             if (section.ruled) RailRule()
             for (item in section.items) {
@@ -200,7 +201,7 @@ private fun ToolbarShell(
                 horizontal = SideToolbarModernPadding,
                 vertical = SideToolbarModernOuterPadding,
             ),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.TopCenter,
     ) {
         val scale = railContentScale(
             availableHeightDp = maxHeight.value,
