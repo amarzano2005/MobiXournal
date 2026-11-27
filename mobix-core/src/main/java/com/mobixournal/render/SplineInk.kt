@@ -23,7 +23,7 @@ object SplineInk {
 
     /** [spline] as sampled ink, or null when fewer than two knots are present. */
     fun ink(spline: SplineElement): List<Element>? {
-        val points = samplePoints(spline.nodes, spline.closed) ?: return null
+        val points = samplePoints(spline.nodes, spline.closed, spline.width) ?: return null
         return listOf(
             InkPrimitives.stroke(
                 points = points,
@@ -35,11 +35,15 @@ object SplineInk {
     }
 
     /** Sampled polyline points along [nodes], or null when fewer than two knots exist. */
-    fun samplePoints(nodes: List<SplineNode>, closed: Boolean): List<StrokePoint>? {
+    fun samplePoints(
+        nodes: List<SplineNode>,
+        closed: Boolean,
+        widthPt: Double = SplineElement.DEFAULT_WIDTH,
+    ): List<StrokePoint>? {
         val n = nodes.size
         if (n < MIN_NODES) return null
         val out = ArrayList<StrokePoint>(n * 16)
-        out += StrokePoint(nodes[0].x, nodes[0].y, 0.0)
+        out += StrokePoint(nodes[0].x, nodes[0].y, widthPt)
         val segCount = if (closed) n else n - 1
         for (i in 0 until segCount) {
             val j = (i + 1) % n
@@ -47,10 +51,18 @@ object SplineInk {
             val p1 = nodes[j]
             val (_, c1) = handlesFor(nodes, closed, i)
             val (c2, _) = handlesFor(nodes, closed, j)
-            sampleCubic(p0.x, p0.y, c1.first, c1.second, c2.first, c2.second, p1.x, p1.y, out)
+            sampleCubic(p0.x, p0.y, c1.first, c1.second, c2.first, c2.second, p1.x, p1.y, widthPt, out)
         }
         return out
     }
+
+    /** True when the incoming Bézier handle of node [index] affects a curve segment. */
+    fun hasActiveInHandle(nodes: List<SplineNode>, closed: Boolean, index: Int): Boolean =
+        nodes.size >= 2 && (closed || index > 0)
+
+    /** True when the outgoing Bézier handle of node [index] affects a curve segment. */
+    fun hasActiveOutHandle(nodes: List<SplineNode>, closed: Boolean, index: Int): Boolean =
+        nodes.size >= 2 && (closed || index < nodes.lastIndex)
 
     /**
      * Effective `(inHandle, outHandle)` in page coordinates for node [index], using explicit
@@ -103,11 +115,12 @@ object SplineInk {
         y2: Double,
         x3: Double,
         y3: Double,
+        widthPt: Double,
         out: MutableList<StrokePoint>,
     ) {
         val polyLen = hypot(x1 - x0, y1 - y0) + hypot(x2 - x1, y2 - y1) + hypot(x3 - x2, y3 - y2)
         if (polyLen < DEGENERATE_LENGTH_PT) {
-            out += StrokePoint(x3, y3, 0.0)
+            out += StrokePoint(x3, y3, widthPt)
             return
         }
         val steps = (polyLen / STEP_LENGTH_PT).toInt().coerceIn(MIN_SEG_STEPS, MAX_SEG_STEPS)
@@ -123,9 +136,68 @@ object SplineInk {
             out += StrokePoint(
                 x = b0 * x0 + b1 * x1 + b2 * x2 + b3 * x3,
                 y = b0 * y0 + b1 * y1 + b2 * y2 + b3 * y3,
-                width = 0.0,
+                width = widthPt,
             )
         }
+    }
+
+    /** Remove knot [index] if at least 2 knots would remain; opens a closed loop if only 2 remain. */
+    fun removeNode(spline: SplineElement, index: Int): SplineElement? {
+        if (spline.nodes.size <= MIN_NODES || index !in spline.nodes.indices) return null
+        val updated = spline.nodes.toMutableList().apply { removeAt(index) }
+        return spline.copy(nodes = updated, closed = spline.closed && updated.size >= 3)
+    }
+
+    /** Toggle smooth vs sharp corner on knot [index], clearing explicit handles so the new mode takes effect. */
+    fun toggleNodeSmooth(spline: SplineElement, index: Int): SplineElement {
+        if (index !in spline.nodes.indices) return spline
+        val node = spline.nodes[index]
+        val nextSmooth = !node.smooth
+        val updated = spline.nodes.toMutableList()
+        updated[index] = node.copy(
+            smooth = nextSmooth,
+            inX = null,
+            inY = null,
+            outX = null,
+            outY = null,
+        )
+        return spline.copy(nodes = updated)
+    }
+
+    /** Insert a new smooth knot on the nearest segment within [maxDistPt] of ([xPt], [yPt]), or null. */
+    fun insertNodeOnSegment(
+        spline: SplineElement,
+        xPt: Double,
+        yPt: Double,
+        maxDistPt: Double,
+    ): Pair<SplineElement, Int>? {
+        val n = spline.nodes.size
+        if (n < MIN_NODES) return null
+        val segCount = if (spline.closed) n else n - 1
+        var bestSeg = -1
+        var bestDist = maxDistPt
+        val probe = ArrayList<StrokePoint>(32)
+        for (i in 0 until segCount) {
+            val j = (i + 1) % n
+            val p0 = spline.nodes[i]
+            val p1 = spline.nodes[j]
+            val (_, c1) = handlesFor(spline.nodes, spline.closed, i)
+            val (c2, _) = handlesFor(spline.nodes, spline.closed, j)
+            probe.clear()
+            probe += StrokePoint(p0.x, p0.y, 1.0)
+            sampleCubic(p0.x, p0.y, c1.first, c1.second, c2.first, c2.second, p1.x, p1.y, 1.0, probe)
+            for (p in probe) {
+                val d = hypot(p.x - xPt, p.y - yPt)
+                if (d < bestDist) {
+                    bestDist = d
+                    bestSeg = i
+                }
+            }
+        }
+        if (bestSeg < 0) return null
+        val insertAt = bestSeg + 1
+        val updated = spline.nodes.toMutableList().apply { add(insertAt, SplineNode(xPt, yPt)) }
+        return spline.copy(nodes = updated) to insertAt
     }
 
     fun scale(element: SplineElement, sx: Double, sy: Double, dx: Double, dy: Double, ink: Double): SplineElement =

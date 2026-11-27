@@ -71,4 +71,42 @@ class SplineInkTest {
         assertEquals(75.0, in1.first, 1e-6)
         assertEquals(-50.0, in1.second, 1e-6)
     }
+
+    @Test
+    fun sampledStrokePreservesSplineWidth() {
+        val spline = SplineElement(
+            nodes = listOf(SplineNode(0.0, 0.0), SplineNode(80.0, 40.0)),
+            width = 3.75,
+        )
+        val stroke = SplineInk.ink(spline)!!.first() as Stroke
+        assertTrue(stroke.points.all { it.width == 3.75 })
+    }
+
+    @Test
+    fun openSplineSuppressesInactiveEndpointHandles() {
+        val nodes = listOf(SplineNode(0.0, 0.0), SplineNode(40.0, 30.0), SplineNode(80.0, 0.0))
+        assertTrue(!SplineInk.hasActiveInHandle(nodes, closed = false, index = 0))
+        assertTrue(SplineInk.hasActiveOutHandle(nodes, closed = false, index = 0))
+        assertTrue(SplineInk.hasActiveInHandle(nodes, closed = false, index = 2))
+        assertTrue(!SplineInk.hasActiveOutHandle(nodes, closed = false, index = 2))
+        assertTrue(SplineInk.hasActiveInHandle(nodes, closed = true, index = 0))
+        assertTrue(SplineInk.hasActiveOutHandle(nodes, closed = true, index = 2))
+    }
+
+    @Test
+    fun insertRemoveAndToggleSmoothEditNodesCleanly() {
+        val spline = SplineElement(
+            nodes = listOf(SplineNode(0.0, 0.0), SplineNode(100.0, 0.0)),
+            closed = false,
+        )
+        val (withMid, insertedIdx) = SplineInk.insertNodeOnSegment(spline, 50.0, 2.0, maxDistPt = 10.0)!!
+        assertEquals(1, insertedIdx)
+        assertEquals(3, withMid.nodes.size)
+        val sharp = SplineInk.toggleNodeSmooth(withMid, 1)
+        assertTrue(!sharp.nodes[1].smooth)
+        val trimmed = SplineInk.removeNode(sharp.copy(closed = true), 1)!!
+        assertEquals(2, trimmed.nodes.size)
+        assertTrue(!trimmed.closed)
+        assertNull(SplineInk.removeNode(trimmed, 0))
+    }
 }

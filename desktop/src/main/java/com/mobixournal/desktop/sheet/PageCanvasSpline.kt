@@ -95,6 +95,30 @@ internal suspend fun AwaitPointerEventScope.splinePress(
         draft.pageIndex = tab.page
         draft.nodes.clear()
         draft.closed = false
+    } else {
+        // Active draft on this page: allow dragging existing knots/handles or closing loop on knot 0.
+        val tempSpline = SplineElement(nodes = draft.nodes.toList(), closed = draft.closed)
+        val tolPt = 10.0 / (dragView.current().zoom.coerceAtLeast(0.1f))
+        val grip = gripAt(tempSpline, ptX, ptY, tolPt)
+        if (grip != null) {
+            if (grip is LivingGrip.SplineKnot && grip.index == 0 && draft.nodes.size >= 3 && !draft.closed) {
+                draft.closed = true
+                down.consume()
+                return true
+            }
+            down.consume()
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id } ?: event.changes.firstOrNull() ?: break
+                if (change.changedToUpIgnoreConsumed()) { change.consume(); break }
+                val (cx, cy) = pagePointOf(change.position.x, change.position.y, density, dragView.current())
+                val updated = dragGrip(tempSpline, grip, cx - ptX, cy - ptY) as SplineElement
+                draft.nodes.clear()
+                draft.nodes.addAll(updated.nodes)
+                change.consume()
+            }
+            return true
+        }
     }
 
     draft.nodes.add(SplineNode(ptX, ptY))
@@ -174,7 +198,7 @@ internal fun DrawScope.drawDesktopSplineDraft(
         val (sx, sy) = viewport.toScreen(xPt.toFloat(), yPt.toFloat())
         return Offset(sx * density, sy * density)
     }
-    val pts = SplineInk.samplePoints(draft.nodes, draft.closed)
+    val pts = SplineInk.samplePoints(draft.nodes, draft.closed, shapeInk.width.toDouble())
     val accent = Color(shapeInk.colour)
     if (pts != null && pts.size >= 2) {
         val path = Path().apply {
@@ -191,21 +215,24 @@ internal fun DrawScope.drawDesktopSplineDraft(
             style = Stroke(width = (shapeInk.width * viewport.zoom * density).coerceAtLeast(1.5f), cap = StrokeCap.Round, join = StrokeJoin.Round),
         )
     }
-    for (n in draft.nodes) {
+    val nodes = draft.nodes.toList()
+    for (i in nodes.indices) {
+        val n = nodes[i]
         val k = toScreen(n.x, n.y)
-        val nInX = n.inX
-        val nInY = n.inY
-        if (nInX != null && nInY != null) {
-            val ih = toScreen(nInX, nInY)
-            drawLine(accent.copy(alpha = 0.6f), k, ih, strokeWidth = 1.2f * density)
-            drawCircle(accent, radius = 4f * density, center = ih)
+        val (inH, outH) = SplineInk.handlesFor(nodes, draft.closed, i)
+        if (SplineInk.hasActiveInHandle(nodes, draft.closed, i)) {
+            val ih = toScreen(inH.first, inH.second)
+            if (hypot((ih.x - k.x).toDouble(), (ih.y - k.y).toDouble()) > 3.0) {
+                drawLine(accent.copy(alpha = 0.55f), k, ih, strokeWidth = 1.2f * density)
+                drawCircle(accent, radius = 3.5f * density, center = ih)
+            }
         }
-        val nOutX = n.outX
-        val nOutY = n.outY
-        if (nOutX != null && nOutY != null) {
-            val oh = toScreen(nOutX, nOutY)
-            drawLine(accent.copy(alpha = 0.6f), k, oh, strokeWidth = 1.2f * density)
-            drawCircle(accent, radius = 4f * density, center = oh)
+        if (SplineInk.hasActiveOutHandle(nodes, draft.closed, i)) {
+            val oh = toScreen(outH.first, outH.second)
+            if (hypot((oh.x - k.x).toDouble(), (oh.y - k.y).toDouble()) > 3.0) {
+                drawLine(accent.copy(alpha = 0.55f), k, oh, strokeWidth = 1.2f * density)
+                drawCircle(accent, radius = 3.5f * density, center = oh)
+            }
         }
         drawCircle(Color.White, radius = 5.5f * density, center = k)
         drawCircle(accent, radius = 4f * density, center = k)
@@ -223,25 +250,21 @@ internal fun DesktopSplineBar(
     if (!draft.active) return
     Surface(
         modifier = modifier.padding(bottom = 12.dp),
-        shape = RoundedCornerShape(24.dp),
-        tonalElevation = 6.dp,
+        shape = RoundedCornerShape(20.dp),
         shadowElevation = 6.dp,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = com.mobixournal.desktop.settings.DesktopTheme.floating,
+        border = androidx.compose.foundation.BorderStroke(1.dp, com.mobixournal.desktop.settings.DesktopTheme.hairline),
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(
-                text = "${draft.nodes.size} pts",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
             DesktopButton(
                 label = "Undo",
                 onClick = {
                     if (draft.nodes.isNotEmpty()) draft.nodes.removeAt(draft.nodes.lastIndex)
+                    if (draft.nodes.size < 3) draft.closed = false
                     if (draft.nodes.isEmpty()) draft.reset()
                 },
                 variant = DesktopButtonVariant.Ghost,
@@ -254,15 +277,15 @@ internal fun DesktopSplineBar(
                 enabled = draft.nodes.size >= 3,
             )
             DesktopButton(
+                label = "Cancel",
+                onClick = { draft.reset() },
+                variant = DesktopButtonVariant.Ghost,
+            )
+            DesktopButton(
                 label = "Confirm",
                 onClick = { confirmDesktopSplineDraft(tab, shapeInk, onEdited) },
                 variant = DesktopButtonVariant.Primary,
                 enabled = draft.nodes.size >= 2,
-            )
-            DesktopButton(
-                label = "Cancel",
-                onClick = { draft.reset() },
-                variant = DesktopButtonVariant.Ghost,
             )
         }
     }

@@ -27,6 +27,7 @@ import com.mobixournal.render.setSelectionAspectLocked
 import com.mobixournal.render.singleSelectedCircuit
 import com.mobixournal.render.singleSelectedPlot
 import com.mobixournal.render.singleSelectedShape
+import com.mobixournal.render.singleSelectedSpline
 import com.mobixournal.render.singleSelectedStroke
 import com.mobixournal.render.singleSelectedTable
 import com.mobixournal.render.storedAspectLocked
@@ -38,6 +39,7 @@ private data class SelectionBarCapabilities(
     val canEditPlot: Boolean = false,
     val canEditTable: Boolean = false,
     val canEditCircuit: Boolean = false,
+    val canEditSpline: Boolean = false,
     val canToggleAspectLock: Boolean = false,
 )
 
@@ -50,6 +52,7 @@ private fun currentSelectionCapabilities(
         canEditPlot = surface?.singleSelectedPlot() != null,
         canEditTable = surface?.singleSelectedTable() != null,
         canEditCircuit = surface?.singleSelectedCircuit() != null,
+        canEditSpline = surface?.singleSelectedSpline() != null,
         canToggleAspectLock = surface?.canToggleSelectionAspectLock() == true,
     )
 } else null
@@ -152,6 +155,12 @@ fun SelectionActionAnchor(
         onEditCircuit = {
             surface?.singleSelectedCircuit()?.let { circuit ->
                 ui.openCircuitInspector(circuit)
+            }
+        },
+        canEditSpline = caps.canEditSpline,
+        onEditSpline = {
+            surface?.singleSelectedSpline()?.let { spline ->
+                ui.editingSpline = spline
             }
         },
         canToggleAspectLock = caps.canToggleAspectLock,

@@ -102,6 +102,8 @@ fun SelectionActionBar(
     onEditTable: () -> Unit = {},
     canEditCircuit: Boolean = false,
     onEditCircuit: () -> Unit = {},
+    canEditSpline: Boolean = false,
+    onEditSpline: () -> Unit = {},
     canToggleAspectLock: Boolean = false,
     aspectLocked: Boolean = true,
     onToggleAspectLock: () -> Unit = {},
@@ -132,6 +134,9 @@ fun SelectionActionBar(
                 }
                 if (canEditCircuit) {
                     BarIconButton("Edit circuit", ChromeGlyph.EDIT.imageVector(), onEditCircuit)
+                }
+                if (canEditSpline) {
+                    BarIconButton("Edit spline", ChromeGlyph.EDIT.imageVector(), onEditSpline)
                 }
                 BarIconButton("Cut", ChromeGlyph.CUT.imageVector(), onCut)
                 BarIconButton("Copy", ChromeGlyph.COPY.imageVector(), onCopy)

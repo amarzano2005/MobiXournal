@@ -371,7 +371,7 @@ internal fun DrawingSurfaceView.cancelGesture() {
     dismissRadialHud(commit = false)
     momentum.stop(); scroll.stopAutoScroll(); holdSnap.reset()
     guideDrag.end(null)
-    ink.current = null; ink.currentStrokes = null; shapeDraft.finish()
+    ink.current = null; ink.currentStrokes = null; shapeDraft.finish(); splineDraft.cancelDrag()
     scroll.active = false; erasing = false; placing = false
     backgroundSelecting = false; gestures.reset()
     textSelecting = false; textHandleDrag.grab = null; vspace.reset()

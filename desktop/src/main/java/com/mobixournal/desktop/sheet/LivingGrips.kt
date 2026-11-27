@@ -60,10 +60,14 @@ internal fun livingGripsOf(element: Element): List<GripPoint> = when (element) {
         element.nodes.forEachIndexed { index, node ->
             add(GripPoint(LivingGrip.SplineKnot(index), node.x, node.y))
             val (inH, outH) = SplineInk.handlesFor(element.nodes, element.closed, index)
-            if (hypot(inH.first - node.x, inH.second - node.y) > 1.0) {
+            if (SplineInk.hasActiveInHandle(element.nodes, element.closed, index) &&
+                hypot(inH.first - node.x, inH.second - node.y) > 1.0
+            ) {
                 add(GripPoint(LivingGrip.SplineInHandle(index), inH.first, inH.second))
             }
-            if (hypot(outH.first - node.x, outH.second - node.y) > 1.0) {
+            if (SplineInk.hasActiveOutHandle(element.nodes, element.closed, index) &&
+                hypot(outH.first - node.x, outH.second - node.y) > 1.0
+            ) {
                 add(GripPoint(LivingGrip.SplineOutHandle(index), outH.first, outH.second))
             }
         }

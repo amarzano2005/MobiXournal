@@ -129,6 +129,7 @@ internal class SelectionGestureController(
     private var vertexIndex = -1
     private var vertexBase: ParametricShapeElement? = null
     private var splineGrab: SplineHandleGrab? = null
+    var selectedSplineNodeIndex: Int = 0
 
     // Live parameter slider drag on a selected PlotElement.
     var slidingParam = false
@@ -229,7 +230,7 @@ internal class SelectionGestureController(
             val spline = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? SplineElement
             if (spline != null) {
                 val grab = hitTestSplineHandle(spline, box, viewport.scrollX, viewport.scrollY, event.x, event.y)
-                if (grab != null) { draggingVertex = true; splineGrab = grab; snapshot(); return true }
+                if (grab != null) { selectedSplineNodeIndex = grab.nodeIndex; draggingVertex = true; splineGrab = grab; snapshot(); return true }
             }
         }
 

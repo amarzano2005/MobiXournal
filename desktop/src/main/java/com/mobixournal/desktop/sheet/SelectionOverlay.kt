@@ -65,10 +65,28 @@ internal fun DrawScope.drawSelection(selection: PageSelection, pxPerPt: Float, l
 
 /** A living element's grips — a hollow ring per grip, the same size at every zoom. */
 private fun DrawScope.drawGrips(element: Element, pxPerPt: Float) {
-    for (point in livingGripsOf(element)) {
+    val grips = livingGripsOf(element)
+    if (element is com.mobixournal.format.model.SplineElement) {
+        for (point in grips) {
+            val g = point.grip
+            if (g is LivingGrip.SplineInHandle || g is LivingGrip.SplineOutHandle) {
+                val idx = if (g is LivingGrip.SplineInHandle) g.index else (g as LivingGrip.SplineOutHandle).index
+                val knot = element.nodes.getOrNull(idx) ?: continue
+                drawLine(
+                    color = DesktopTheme.accent.copy(alpha = 0.55f),
+                    start = Offset((knot.x * pxPerPt).toFloat(), (knot.y * pxPerPt).toFloat()),
+                    end = Offset((point.x * pxPerPt).toFloat(), (point.y * pxPerPt).toFloat()),
+                    strokeWidth = 1.2f,
+                )
+            }
+        }
+    }
+    for (point in grips) {
         val centre = Offset((point.x * pxPerPt).toFloat(), (point.y * pxPerPt).toFloat())
-        drawCircle(color = Color.Black.copy(alpha = 0.45f), radius = GRIP_SIZE / 2f + 1f, center = centre)
-        drawCircle(color = DesktopTheme.accent, radius = GRIP_SIZE / 2f, center = centre)
+        val isHandle = point.grip is LivingGrip.SplineInHandle || point.grip is LivingGrip.SplineOutHandle
+        val r = if (isHandle) GRIP_SIZE * 0.36f else GRIP_SIZE / 2f
+        drawCircle(color = Color.Black.copy(alpha = 0.45f), radius = r + 1f, center = centre)
+        drawCircle(color = DesktopTheme.accent, radius = r, center = centre)
     }
 }
 

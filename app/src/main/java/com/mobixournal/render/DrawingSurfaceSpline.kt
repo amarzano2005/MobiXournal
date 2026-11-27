@@ -6,7 +6,6 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.view.MotionEvent
 import com.mobixournal.format.model.ElementId
-import com.mobixournal.format.model.LineStyle
 import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.SplineNode
 import com.mobixournal.render.CanvasChrome.Companion.HANDLE_DRAW_PX
@@ -16,7 +15,9 @@ import kotlin.math.hypot
  * Live drafting state for the interactive **Spline** tool on [DrawingSurfaceView].
  *
  * Tap places a smooth Catmull-Rom knot (`inX..outY == null`); dragging during placement pulls out
- * symmetric cubic Bézier handles (`outX/outY` and mirrored `inX/inY`).
+ * symmetric cubic Bézier handles (`outX/outY` and mirrored `inX/inY`). Touching an existing knot
+ * or handle during drafting grabs and moves it directly; tapping the first knot with >= 3 points
+ * closes the loop.
  */
 internal class SplineDraft {
     var active: Boolean = false
@@ -25,21 +26,35 @@ internal class SplineDraft {
     var closed: Boolean = false
     var draggingGesture: Boolean = false
     var draggingHandles: Boolean = false
+    var draftGrab: SplineHandleGrab? = null
     var downX: Float = 0f
     var downY: Float = 0f
     var onChanged: (() -> Unit)? = null
+
+    fun cancelDrag() {
+        draggingGesture = false
+        draggingHandles = false
+        draftGrab = null
+    }
 
     fun reset() {
         active = false
         nodes.clear()
         closed = false
-        draggingGesture = false
-        draggingHandles = false
+        cancelDrag()
         onChanged?.invoke()
     }
 }
 
 private const val SPLINE_DRAG_SLOP_PX = 10f
+
+fun DrawingSurfaceView.singleSelectedSpline(): SplineElement? {
+    val sel = selection ?: return null
+    if (sel.refs.size != 1) return null
+    val ref = sel.refs.first()
+    val page = pageAt(sel.pageIndex) ?: return null
+    return page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? SplineElement
+}
 
 internal fun DrawingSurfaceView.handleSplineDown(event: MotionEvent, pointerIndex: Int): Boolean {
     if (!splineMode) return false
@@ -50,32 +65,59 @@ internal fun DrawingSurfaceView.handleSplineDown(event: MotionEvent, pointerInde
     val ptX = box.toPtX(x, viewport.scrollX)
     val ptY = box.toPtY(y, viewport.scrollY)
 
-    // If starting a fresh draft, check if the user tapped an existing SplineElement to select it.
     if (!splineDraft.active) {
+        // 1. If a spline (or other element) is already selected, let its knots/handles/rotate/move win.
+        if (selection != null && gestures.pressSelection(event)) return true
+        // 2. If the user tapped an existing SplineElement on the page, select it and immediately start drag.
         val page = doc.pages.getOrNull(pageIdx)
         if (page != null) {
             val existing = SelectionTester.pickTopmost(page, ptX, ptY) { el -> el is SplineElement }
             if (existing != null) {
                 gestures.selection = ActiveSelection(pageIdx, setOf(existing))
                 reportSelectionRect()
+                gestures.pressSelection(event)
                 render()
                 return true
             }
+        }
+        // 3. Empty paper: clear previous selection and begin a fresh spline draft.
+        if (selection != null) {
+            gestures.clearSelection()
+            reportSelectionRect()
         }
         splineDraft.active = true
         splineDraft.pageIndex = pageIdx
         splineDraft.nodes.clear()
         splineDraft.closed = false
     } else if (splineDraft.pageIndex != pageIdx) {
-        // Switched pages: commit current draft if >= 2 nodes, then start on new page.
         if (splineDraft.nodes.size >= 2) confirmSplineDraft() else splineDraft.reset()
         splineDraft.active = true
         splineDraft.pageIndex = pageIdx
         splineDraft.nodes.clear()
         splineDraft.closed = false
+    } else {
+        // Active draft on this page: allow grabbing an existing knot/handle, or closing on knot 0.
+        val tempSpline = SplineElement(nodes = splineDraft.nodes.toList(), closed = splineDraft.closed)
+        val grab = hitTestSplineHandle(tempSpline, box, viewport.scrollX, viewport.scrollY, x, y)
+        if (grab != null) {
+            if (grab.kind == SplineHandleKind.KNOT && grab.nodeIndex == 0 &&
+                splineDraft.nodes.size >= 3 && !splineDraft.closed
+            ) {
+                splineDraft.closed = true
+                splineDraft.onChanged?.invoke()
+                render()
+                return true
+            }
+            splineDraft.draftGrab = grab
+            splineDraft.draggingGesture = true
+            splineDraft.draggingHandles = true
+            render()
+            return true
+        }
     }
 
     splineDraft.nodes.add(SplineNode(x = ptX, y = ptY))
+    splineDraft.draftGrab = null
     splineDraft.draggingGesture = true
     splineDraft.draggingHandles = false
     splineDraft.downX = x
@@ -89,15 +131,25 @@ internal fun DrawingSurfaceView.handleSplineMove(event: MotionEvent) {
     if (!splineDraft.draggingGesture || splineDraft.nodes.isEmpty()) return
     val x = event.x
     val y = event.y
+    val box = layout.boxes.getOrNull(splineDraft.pageIndex) ?: return
+    val hx = box.toPtX(x, viewport.scrollX)
+    val hy = box.toPtY(y, viewport.scrollY)
+
+    splineDraft.draftGrab?.let { grab ->
+        val updated = moveSplineHandle(grab, hx, hy)
+        splineDraft.nodes.clear()
+        splineDraft.nodes.addAll(updated.nodes)
+        splineDraft.draftGrab = grab.copy(spline = updated)
+        render()
+        return
+    }
+
     if (!splineDraft.draggingHandles) {
         if (hypot((x - splineDraft.downX).toDouble(), (y - splineDraft.downY).toDouble()) < SPLINE_DRAG_SLOP_PX) {
             return
         }
         splineDraft.draggingHandles = true
     }
-    val box = layout.boxes.getOrNull(splineDraft.pageIndex) ?: return
-    val hx = box.toPtX(x, viewport.scrollX)
-    val hy = box.toPtY(y, viewport.scrollY)
     val lastIdx = splineDraft.nodes.lastIndex
     val node = splineDraft.nodes[lastIdx]
     splineDraft.nodes[lastIdx] = node.copy(
@@ -110,8 +162,7 @@ internal fun DrawingSurfaceView.handleSplineMove(event: MotionEvent) {
 }
 
 internal fun DrawingSurfaceView.handleSplineUp() {
-    splineDraft.draggingGesture = false
-    splineDraft.draggingHandles = false
+    splineDraft.cancelDrag()
     render()
 }
 
@@ -148,6 +199,7 @@ internal fun DrawingSurfaceView.undoSplineDraftNode() {
     if (splineDraft.nodes.isNotEmpty()) {
         splineDraft.nodes.removeAt(splineDraft.nodes.lastIndex)
     }
+    if (splineDraft.nodes.size < 3) splineDraft.closed = false
     if (splineDraft.nodes.isEmpty()) {
         splineDraft.reset()
     } else {
@@ -157,7 +209,7 @@ internal fun DrawingSurfaceView.undoSplineDraftNode() {
 }
 
 internal fun DrawingSurfaceView.toggleSplineDraftClosed() {
-    if (!splineDraft.active) return
+    if (!splineDraft.active || splineDraft.nodes.size < 3) return
     splineDraft.closed = !splineDraft.closed
     splineDraft.onChanged?.invoke()
     render()
@@ -169,10 +221,12 @@ internal fun DrawingSurfaceView.cancelSplineDraft() {
     render()
 }
 
-fun DrawingSurfaceView.toggleSplineClosed(editing: SplineElement): SplineElement? {
-    val updated = editing.copy(closed = !editing.closed)
+private fun DrawingSurfaceView.replaceSplineElement(
+    current: SplineElement,
+    updated: SplineElement,
+): SplineElement? {
     val prev = doc
-    val newDoc = ElementEdits.replaceElement(prev, editing, updated) ?: return null
+    val newDoc = ElementEdits.replaceElement(prev, current, updated) ?: return null
     session.open(prev)
     doc = newDoc
     finishGesture()
@@ -180,11 +234,41 @@ fun DrawingSurfaceView.toggleSplineClosed(editing: SplineElement): SplineElement
     return updated
 }
 
+fun DrawingSurfaceView.toggleSplineClosed(editing: SplineElement): SplineElement? {
+    if (!editing.closed && editing.nodes.size < 3) return null
+    return replaceSplineElement(editing, editing.copy(closed = !editing.closed))
+}
+
+fun DrawingSurfaceView.toggleSplineNodeSmooth(editing: SplineElement): SplineElement? {
+    val idx = gestures.selectedSplineNodeIndex.coerceIn(0, editing.nodes.lastIndex)
+    return replaceSplineElement(editing, SplineInk.toggleNodeSmooth(editing, idx))
+}
+
+fun DrawingSurfaceView.removeSplineNode(editing: SplineElement): SplineElement? {
+    val idx = gestures.selectedSplineNodeIndex.coerceIn(0, editing.nodes.lastIndex)
+    val updated = SplineInk.removeNode(editing, idx) ?: return null
+    gestures.selectedSplineNodeIndex = (idx - 1).coerceAtLeast(0)
+    return replaceSplineElement(editing, updated)
+}
+
+fun DrawingSurfaceView.addSplineMidpointNode(editing: SplineElement): SplineElement? {
+    val idx = gestures.selectedSplineNodeIndex.coerceIn(0, editing.nodes.lastIndex)
+    val n = editing.nodes.size
+    val nextIdx = if (idx < n - 1) idx + 1 else if (editing.closed) 0 else (idx - 1).coerceAtLeast(0)
+    val a = editing.nodes[idx]
+    val b = editing.nodes[nextIdx]
+    val insertAt = if (idx < n - 1) idx + 1 else if (editing.closed) n else idx
+    val mid = SplineNode(x = (a.x + b.x) / 2.0, y = (a.y + b.y) / 2.0)
+    val updated = editing.copy(nodes = editing.nodes.toMutableList().apply { add(insertAt, mid) })
+    gestures.selectedSplineNodeIndex = insertAt
+    return replaceSplineElement(editing, updated)
+}
+
 internal fun DrawingSurfaceView.drawSplineDraft(canvas: Canvas) {
     if (!splineDraft.active || splineDraft.nodes.isEmpty()) return
     val box = layout.boxes.getOrNull(splineDraft.pageIndex) ?: return
     val widthPt = nominalShapeWidthPt()
-    val pts = SplineInk.samplePoints(splineDraft.nodes, splineDraft.closed)
+    val pts = SplineInk.samplePoints(splineDraft.nodes, splineDraft.closed, widthPt.toDouble())
     if (pts != null && pts.size >= 2) {
         val path = Path()
         path.moveTo(box.toViewX(pts[0].x, scrollX), box.toViewY(pts[0].y, scrollY))
@@ -204,29 +288,7 @@ internal fun DrawingSurfaceView.drawSplineDraft(canvas: Canvas) {
         }
         canvas.drawPath(path, paint)
     }
-    for (i in splineDraft.nodes.indices) {
-        val n = splineDraft.nodes[i]
-        val nx = box.toViewX(n.x, scrollX)
-        val ny = box.toViewY(n.y, scrollY)
-        val nInX = n.inX
-        val nInY = n.inY
-        if (nInX != null && nInY != null) {
-            val ix = box.toViewX(nInX, scrollX)
-            val iy = box.toViewY(nInY, scrollY)
-            canvas.drawLine(nx, ny, ix, iy, chrome.handleArm)
-            canvas.drawCircle(ix, iy, HANDLE_DRAW_PX * 0.72f, chrome.handle)
-        }
-        val nOutX = n.outX
-        val nOutY = n.outY
-        if (nOutX != null && nOutY != null) {
-            val ox = box.toViewX(nOutX, scrollX)
-            val oy = box.toViewY(nOutY, scrollY)
-            canvas.drawLine(nx, ny, ox, oy, chrome.handleArm)
-            canvas.drawCircle(ox, oy, HANDLE_DRAW_PX * 0.72f, chrome.handle)
-        }
-        canvas.drawCircle(nx, ny, HANDLE_DRAW_PX + 2f, chrome.pinHalo)
-        canvas.drawCircle(nx, ny, HANDLE_DRAW_PX, chrome.handle)
-    }
+    drawSplineNodesAndHandles(canvas, box, splineDraft.nodes, splineDraft.closed, selectedNode = splineDraft.nodes.lastIndex)
 }
 
 internal fun DrawingSurfaceView.drawSplineEditHandles(canvas: Canvas, box: PageBox) {
@@ -235,24 +297,39 @@ internal fun DrawingSurfaceView.drawSplineEditHandles(canvas: Canvas, box: PageB
     val ref = sel.refs.first()
     val page = pageAt(sel.pageIndex) ?: return
     val spline = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? SplineElement ?: return
-    for (i in spline.nodes.indices) {
-        val n = spline.nodes[i]
+    drawSplineNodesAndHandles(canvas, box, spline.nodes, spline.closed, selectedNode = gestures.selectedSplineNodeIndex)
+}
+
+private fun DrawingSurfaceView.drawSplineNodesAndHandles(
+    canvas: Canvas,
+    box: PageBox,
+    nodes: List<SplineNode>,
+    closed: Boolean,
+    selectedNode: Int,
+) {
+    for (i in nodes.indices) {
+        val n = nodes[i]
         val nx = box.toViewX(n.x, scrollX)
         val ny = box.toViewY(n.y, scrollY)
-        val (inH, outH) = SplineInk.handlesFor(spline.nodes, spline.closed, i)
-        val ix = box.toViewX(inH.first, scrollX)
-        val iy = box.toViewY(inH.second, scrollY)
-        val ox = box.toViewX(outH.first, scrollX)
-        val oy = box.toViewY(outH.second, scrollY)
-        if (hypot((ix - nx).toDouble(), (iy - ny).toDouble()) > 3.0) {
-            canvas.drawLine(nx, ny, ix, iy, chrome.handleArm)
-            canvas.drawCircle(ix, iy, HANDLE_DRAW_PX * 0.68f, chrome.handle)
+        val (inH, outH) = SplineInk.handlesFor(nodes, closed, i)
+        if (SplineInk.hasActiveInHandle(nodes, closed, i)) {
+            val ix = box.toViewX(inH.first, scrollX)
+            val iy = box.toViewY(inH.second, scrollY)
+            if (hypot((ix - nx).toDouble(), (iy - ny).toDouble()) > 3.0) {
+                canvas.drawLine(nx, ny, ix, iy, chrome.handleArm)
+                canvas.drawCircle(ix, iy, HANDLE_DRAW_PX * 0.65f, chrome.handle)
+            }
         }
-        if (hypot((ox - nx).toDouble(), (oy - ny).toDouble()) > 3.0) {
-            canvas.drawLine(nx, ny, ox, oy, chrome.handleArm)
-            canvas.drawCircle(ox, oy, HANDLE_DRAW_PX * 0.68f, chrome.handle)
+        if (SplineInk.hasActiveOutHandle(nodes, closed, i)) {
+            val ox = box.toViewX(outH.first, scrollX)
+            val oy = box.toViewY(outH.second, scrollY)
+            if (hypot((ox - nx).toDouble(), (oy - ny).toDouble()) > 3.0) {
+                canvas.drawLine(nx, ny, ox, oy, chrome.handleArm)
+                canvas.drawCircle(ox, oy, HANDLE_DRAW_PX * 0.65f, chrome.handle)
+            }
         }
-        canvas.drawCircle(nx, ny, HANDLE_DRAW_PX + 2f, chrome.pinHalo)
+        val haloR = if (i == selectedNode) HANDLE_DRAW_PX + 3.5f else HANDLE_DRAW_PX + 2f
+        canvas.drawCircle(nx, ny, haloR, chrome.pinHalo)
         canvas.drawCircle(nx, ny, HANDLE_DRAW_PX, chrome.handle)
     }
 }
@@ -282,19 +359,23 @@ internal fun hitTestSplineHandle(
             return SplineHandleGrab(spline, i, SplineHandleKind.KNOT)
         }
         val (inH, outH) = SplineInk.handlesFor(spline.nodes, spline.closed, i)
-        val ix = box.toViewX(inH.first, scrollX)
-        val iy = box.toViewY(inH.second, scrollY)
-        if (hypot((ix - nx).toDouble(), (iy - ny).toDouble()) > 3.0 &&
-            hypot((viewX - ix).toDouble(), (viewY - iy).toDouble()) <= hitR
-        ) {
-            return SplineHandleGrab(spline, i, SplineHandleKind.IN_HANDLE)
+        if (SplineInk.hasActiveInHandle(spline.nodes, spline.closed, i)) {
+            val ix = box.toViewX(inH.first, scrollX)
+            val iy = box.toViewY(inH.second, scrollY)
+            if (hypot((ix - nx).toDouble(), (iy - ny).toDouble()) > 3.0 &&
+                hypot((viewX - ix).toDouble(), (viewY - iy).toDouble()) <= hitR
+            ) {
+                return SplineHandleGrab(spline, i, SplineHandleKind.IN_HANDLE)
+            }
         }
-        val ox = box.toViewX(outH.first, scrollX)
-        val oy = box.toViewY(outH.second, scrollY)
-        if (hypot((ox - nx).toDouble(), (oy - ny).toDouble()) > 3.0 &&
-            hypot((viewX - ox).toDouble(), (viewY - oy).toDouble()) <= hitR
-        ) {
-            return SplineHandleGrab(spline, i, SplineHandleKind.OUT_HANDLE)
+        if (SplineInk.hasActiveOutHandle(spline.nodes, spline.closed, i)) {
+            val ox = box.toViewX(outH.first, scrollX)
+            val oy = box.toViewY(outH.second, scrollY)
+            if (hypot((ox - nx).toDouble(), (oy - ny).toDouble()) > 3.0 &&
+                hypot((viewX - ox).toDouble(), (viewY - oy).toDouble()) <= hitR
+            ) {
+                return SplineHandleGrab(spline, i, SplineHandleKind.OUT_HANDLE)
+            }
         }
     }
     return null
@@ -339,4 +420,3 @@ internal fun moveSplineHandle(grab: SplineHandleGrab, xPt: Double, yPt: Double):
     nodes[idx] = updatedNode
     return grab.spline.copy(nodes = nodes)
 }
-

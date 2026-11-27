@@ -2,6 +2,7 @@ package com.mobixournal.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import com.mobixournal.render.cancelSplineDraft
 import com.mobixournal.render.clearBackgroundRegion
 import com.mobixournal.render.clearSelection
 
@@ -42,6 +43,8 @@ fun EditorBackHandler(
             ui.editingCircuit != null -> ui.editingCircuit = null
             ui.editingShape != null -> ui.editingShape = null
             ui.editingMathBlock != null -> ui.editingMathBlock = null
+            ui.editingSpline != null -> ui.editingSpline = null
+            surface?.splineDraft?.active == true -> surface.cancelSplineDraft()
 
             // Editing inside a text box, then a plain element selection.
             pane.hasTextSelection -> surface?.cancelTextEdit()

@@ -68,7 +68,7 @@ val ERASER_TOOLS: Set<EditorTool> = setOf(EditorTool.ERASER, EditorTool.ERASER_W
  * carry the strokes they drew.
  */
 val SHAPE_TOOLS: List<EditorTool> = listOf(
-    EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
+    EditorTool.LINE, EditorTool.SPLINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
     EditorTool.RECTANGLE, EditorTool.ELLIPSE,
     EditorTool.TRIANGLE, EditorTool.TRAPEZOID, EditorTool.POLYGON,
     EditorTool.TABLE,
