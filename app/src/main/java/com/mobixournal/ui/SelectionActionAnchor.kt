@@ -44,6 +44,9 @@ private data class SelectionBarCapabilities(
     val canEditTable: Boolean = false,
     val canEditCircuit: Boolean = false,
     val canEditSpline: Boolean = false,
+    val splineCanRemoveNode: Boolean = false,
+    val splineCanToggleClosed: Boolean = false,
+    val splineClosed: Boolean = false,
     val canToggleAspectLock: Boolean = false,
 )
 
@@ -51,12 +54,16 @@ private fun currentSelectionCapabilities(
     pane: PaneState,
     surface: com.mobixournal.render.DrawingSurfaceView?,
 ): SelectionBarCapabilities? = if (pane.selectionRect != null) {
+    val spline = surface?.singleSelectedSpline()
     SelectionBarCapabilities(
         canEditShape = surface?.singleSelectedShape() != null,
         canEditPlot = surface?.singleSelectedPlot() != null,
         canEditTable = surface?.singleSelectedTable() != null,
         canEditCircuit = surface?.singleSelectedCircuit() != null,
-        canEditSpline = surface?.singleSelectedSpline() != null,
+        canEditSpline = spline != null,
+        splineCanRemoveNode = (spline?.nodes?.size ?: 0) > 2,
+        splineCanToggleClosed = spline?.let { it.nodes.size >= 3 || it.closed } == true,
+        splineClosed = spline?.closed == true,
         canToggleAspectLock = surface?.canToggleSelectionAspectLock() == true,
     )
 } else null
@@ -146,9 +153,9 @@ fun SelectionActionAnchor(
         canEditCircuit = caps.canEditCircuit,
         onEditCircuit = { surface?.singleSelectedCircuit()?.let { ui.openCircuitInspector(it) } },
         splineSelected = caps.canEditSpline,
-        splineCanRemoveNode = (surface?.singleSelectedSpline()?.nodes?.size ?: 0) > 2,
-        splineCanToggleClosed = surface?.singleSelectedSpline()?.let { it.nodes.size >= 3 || it.closed } == true,
-        splineClosed = surface?.singleSelectedSpline()?.closed == true,
+        splineCanRemoveNode = caps.splineCanRemoveNode,
+        splineCanToggleClosed = caps.splineCanToggleClosed,
+        splineClosed = caps.splineClosed,
         onSplineAddNode = { surface?.singleSelectedSpline()?.let { surface.addSplineMidpointNode(it) } },
         onSplineToggleSmooth = { surface?.singleSelectedSpline()?.let { surface.toggleSplineNodeSmooth(it) } },
         onSplineRemoveNode = { surface?.singleSelectedSpline()?.let { surface.removeSplineNode(it) } },

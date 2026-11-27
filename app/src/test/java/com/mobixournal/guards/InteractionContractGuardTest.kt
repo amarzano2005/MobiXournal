@@ -117,4 +117,22 @@ class InteractionContractGuardTest {
         assertTrue("Element subtypes missing from ElementInteractionTest.kt: $missingInTests", missingInTests.isEmpty())
         assertTrue(ElementInteraction.PIN_REVEAL_RADIUS_PX > 0f)
     }
+
+    @Test
+    fun `selection action bar freezes all visibility flags during closing animation`() {
+        val anchor = read("app/src/main/java/com/mobixournal/ui/SelectionActionAnchor.kt")
+        assertTrue(
+            "SelectionActionAnchor.kt must freeze SelectionBarCapabilities with rememberClosingArgument",
+            anchor.contains("val caps = com.mobixournal.ui.theme.rememberClosingArgument(liveCaps)"),
+        )
+        val barCall = anchor.substringAfter("SelectionActionBar(").substringBefore("modifier = modifier")
+        val directVisibilityReads = barCall.lines().filter { line ->
+            val trimmed = line.trim()
+            !trimmed.startsWith("on") && trimmed.contains("surface?.singleSelected")
+        }
+        assertTrue(
+            "SelectionActionBar visibility arguments must come from frozen `caps`, not direct `surface?.singleSelected*` reads (which shrink during exit animation): $directVisibilityReads",
+            directVisibilityReads.isEmpty(),
+        )
+    }
 }
