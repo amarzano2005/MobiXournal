@@ -23,6 +23,7 @@ GUARD_CLASSES = (
     "com.mobixournal.guards.DocClaimsTest",
     "com.mobixournal.guards.DocsGuardTest",
     "com.mobixournal.guards.InstallerFileAssociationsTest",
+    "com.mobixournal.guards.InteractionContractGuardTest",
     "com.mobixournal.guards.ManifestIntentFilterTest",
     "com.mobixournal.guards.PackageStructureTest",
     "com.mobixournal.guards.SettingsBackupGuardTest",
