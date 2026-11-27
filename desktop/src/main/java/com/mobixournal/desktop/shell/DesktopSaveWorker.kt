@@ -54,7 +54,8 @@ internal class SaveRequest(val tab: DesktopTab, val target: File, val format: Sa
     val revision = document.edits
     val snapshot = document.snapshot()
     val shape: DocumentEncoder.SaveShape = document.saveShapeFor(target)
-    val pdf: File? = document.pdfSource()
+    val pdf: File? = if (format == SaveFormat.MOBIX && !tab.embedPdf) null else document.pdfSource()
+    val embedPdf: Boolean = tab.embedPdf
     val audio = document.audioStore
     val readOnly = document.readOnly
     val gateNote: String? = document.gateNote
@@ -116,8 +117,13 @@ internal fun DesktopShellState.requestSave(target: File? = null, format: SaveFor
  * no longer exclude each other. Nothing here touches the destination.
  */
 internal fun stageSaveRequest(request: SaveRequest): DesktopSaves.Staged = request.document.withReader {
+    val modelForSave = if (request.format == SaveFormat.MOBIX && !request.embedPdf) {
+        com.mobixournal.io.DocumentEncoder.stripBundledPdfAssets(request.snapshot.model)
+    } else {
+        request.snapshot.model
+    }
     DesktopSaves.stageSnapshot(
-        model = request.snapshot.model,
+        model = modelForSave,
         shape = request.shape,
         readOnly = request.readOnly,
         gateNote = request.gateNote,

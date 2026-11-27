@@ -42,6 +42,8 @@ data class PdfImportPrompt(
     val bookmark: Boolean = false,
     /** The title that row carries — the file's name without its `.pdf`, and the reader's to change. */
     val bookmarkTitle: String = PdfOutlineSeeding.defaultTitle(name),
+    /** Whether to embed a copy of the PDF inside the saved .mobix or .xopp document. */
+    val embedPdf: Boolean = true,
 ) {
     /** What the field names, or the sentence saying why it cannot be used. */
     val range: PageRangePlan get() = PageRanges.selection(pages, pageCount)

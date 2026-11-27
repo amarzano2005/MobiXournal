@@ -29,6 +29,12 @@ fun DocumentsSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
             ".mobix preserves live interactive elements (plots, tables, shapes). .xopp exports elements " +
                 "as standard ink for universal compatibility. Save As converts either way.",
         )
+        SwitchRow(
+            title = "Embed PDF backgrounds",
+            subtitle = "Store imported PDFs inside .mobix and .xopp files so notebooks keep their background when moved or shared.",
+            checked = settings.embedPdfBackgrounds,
+            onCheckedChange = { onChange(settings.copy(embedPdfBackgrounds = it)) },
+        )
     }
     // Off until asked, and never a way to choose a name: a document that has never been saved still waits
     // for Save, because where it lives is the reader's answer (`docs/data-path.md`).

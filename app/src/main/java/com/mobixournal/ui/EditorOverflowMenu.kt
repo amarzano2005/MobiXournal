@@ -153,6 +153,9 @@ internal fun EditorOverflowMenu(
         documentTitle = stripTabs.titles.getOrNull(stripTabs.activeIndex) ?: "Untitled",
         pageLabel = "Page ${pane.currentPage + 1} of ${pane.pageCount}",
         hasUnsavedChanges = stripTabs.unsaved.getOrNull(stripTabs.activeIndex) == true,
+        hasPdfBackground = pane.surface?.hasPdfBackground() == true,
+        currentEmbedPdf = pane.surface?.embedPdf ?: pane.embedPdf,
+        onSetEmbedPdf = { embed -> pane.embedPdf = embed; pane.surface?.embedPdf = embed },
         fullPage = ui.fullPage,
         settings = settings,
         onSelectPenPreset = { preset ->
@@ -233,6 +236,9 @@ internal fun OverflowMenu(
     onSavePortableCopy: () -> Unit = {},
     onShare: (ShareFormat) -> Unit = {},
     onSaveAsFormat: (SaveFormat) -> Unit = {},
+    hasPdfBackground: Boolean = false,
+    currentEmbedPdf: Boolean = true,
+    onSetEmbedPdf: (Boolean) -> Unit = {},
     onOpenSearch: () -> Unit = {},
     onExportAs: () -> Unit = {},
     onToggleFullPage: () -> Unit = {},
@@ -288,6 +294,9 @@ internal fun OverflowMenu(
                 onNewTab = onNewTab,
                 onOpen = onOpen,
                 onSaveAsFormat = onSaveAsFormat,
+                hasPdfBackground = hasPdfBackground,
+                currentEmbedPdf = currentEmbedPdf,
+                onSetEmbedPdf = onSetEmbedPdf,
                 onOpenSearch = onOpenSearch,
                 onImportPdf = onImportPdf,
                 onExportPdf = onExportPdf,
@@ -344,7 +353,7 @@ private fun OverflowSheetBody(
     onDismiss: () -> Unit,
     onNewTab: () -> Unit,
     onOpen: () -> Unit,
-    onSaveAsFormat: (SaveFormat) -> Unit,
+    onSaveAsFormat: (SaveFormat) -> Unit, hasPdfBackground: Boolean, currentEmbedPdf: Boolean, onSetEmbedPdf: (Boolean) -> Unit,
     onOpenSearch: () -> Unit,
     onImportPdf: () -> Unit,
     onExportPdf: () -> Unit,
@@ -384,6 +393,8 @@ private fun OverflowSheetBody(
             pageLabel = pageLabel,
             hasUnsavedChanges = hasUnsavedChanges,
             isReadOnly = isReadOnly,
+            hasPdfBackground = hasPdfBackground,
+            embedPdf = currentEmbedPdf,
             onShareClick = { onOpenSubView(SheetView.SHARE) },
         )
         OverflowSheetContent(
@@ -400,6 +411,9 @@ private fun OverflowSheetBody(
             onNewTab = onNewTab,
             onOpen = onOpen,
             onSaveAsFormat = onSaveAsFormat,
+            hasPdfBackground = hasPdfBackground,
+            currentEmbedPdf = currentEmbedPdf,
+            onSetEmbedPdf = onSetEmbedPdf,
             onOpenSearch = onOpenSearch,
             onImportPdf = onImportPdf,
             onExportPdf = onExportPdf,
@@ -435,6 +449,9 @@ private fun OverflowSheetContent(
     onNewTab: () -> Unit,
     onOpen: () -> Unit,
     onSaveAsFormat: (SaveFormat) -> Unit,
+    hasPdfBackground: Boolean,
+    currentEmbedPdf: Boolean,
+    onSetEmbedPdf: (Boolean) -> Unit,
     onOpenSearch: () -> Unit,
     onImportPdf: () -> Unit,
     onExportPdf: () -> Unit,
@@ -491,8 +508,10 @@ private fun OverflowSheetContent(
             )
             SheetView.SAVE_AS -> SaveAsDrilldownView(
                 isReadOnly = isReadOnly,
+                hasPdfBackground = hasPdfBackground,
+                currentEmbedPdf = currentEmbedPdf,
                 onBack = onBackFromSubView,
-                onPickFormat = { format -> onDismiss(); onSaveAsFormat(format) },
+                onPickFormat = { format, embed -> onSetEmbedPdf(embed); onDismiss(); onSaveAsFormat(format) },
             )
         }
     }
@@ -566,16 +585,23 @@ private fun DocumentHeroCard(
     pageLabel: String,
     hasUnsavedChanges: Boolean,
     isReadOnly: Boolean,
+    hasPdfBackground: Boolean = false,
+    embedPdf: Boolean = true,
     onShareClick: () -> Unit,
 ) {
     val ink = rememberChromeInk()
     val accent = MaterialTheme.colorScheme.primary
-    val formatBadge = remember(title, isReadOnly) {
-        when {
+    val formatBadge = remember(title, isReadOnly, hasPdfBackground, embedPdf) {
+        val base = when {
             isReadOnly -> "Read-only"
             title.endsWith(".xopp", ignoreCase = true) -> ".xopp"
             title.endsWith(".pdf", ignoreCase = true) -> ".pdf"
             else -> ".mobix"
+        }
+        if (hasPdfBackground && !isReadOnly) {
+            "$base · ${if (embedPdf) "PDF embedded" else "PDF linked"}"
+        } else {
+            base
         }
     }
     Row(
@@ -654,24 +680,13 @@ private fun DocumentHeroCard(
 @Composable
 private fun MiniPageThumbnail(ink: Color, accent: Color) {
     Canvas(
-        modifier = Modifier
-            .size(width = 34.dp, height = 42.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(ink.copy(alpha = 0.08f)),
+        modifier = Modifier.size(width = 34.dp, height = 42.dp).clip(RoundedCornerShape(8.dp)).background(ink.copy(alpha = 0.08f)),
     ) {
-        val ruleColor = ink.copy(alpha = 0.16f)
-        val strokeColor = accent.copy(alpha = 0.85f)
-        for (i in 1..3) {
-            val y = size.height * (i * 0.24f)
-            drawLine(ruleColor, Offset(5f, y), Offset(size.width - 5f, y), strokeWidth = 1.2f)
-        }
+        val ruleColor = ink.copy(alpha = 0.16f); val strokeColor = accent.copy(alpha = 0.85f)
+        for (i in 1..3) { val y = size.height * (i * 0.24f); drawLine(ruleColor, Offset(5f, y), Offset(size.width - 5f, y), strokeWidth = 1.2f) }
         val path = Path().apply {
             moveTo(size.width * 0.18f, size.height * 0.62f)
-            cubicTo(
-                size.width * 0.38f, size.height * 0.25f,
-                size.width * 0.62f, size.height * 0.78f,
-                size.width * 0.82f, size.height * 0.42f,
-            )
+            cubicTo(size.width * 0.38f, size.height * 0.25f, size.width * 0.62f, size.height * 0.78f, size.width * 0.82f, size.height * 0.42f)
         }
         drawPath(path, strokeColor, style = Stroke(width = 2.4f, cap = StrokeCap.Round))
     }

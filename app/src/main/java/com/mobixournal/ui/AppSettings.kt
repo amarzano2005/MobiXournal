@@ -114,10 +114,8 @@ data class AppSettings(
     val pageSizeStepMm: Double = PageSizeStep.DEFAULT_MM,
     /** The unit the page format — and so the quick size — is read in ([PageFormatPrefs]). */
     val pageSizeUnit: PageSizeUnit = PageSizeUnit.MM,
-    /** The format a **new** document is written in ([NewDocumentFormat]), asked once at first launch and
-     * changeable under Settings → App & data; `.mobix` is the default — what the app authors has no home in `.xopp`. */
     val newDocumentFormat: NewDocumentFormat = NewDocumentFormat.MOBIX,
-    val autoSave: Boolean = false,
+    val embedPdfBackgrounds: Boolean = true, val autoSave: Boolean = false,
     /** When false, fingers only pan/zoom — never draw (palm-safe for stylus users). */
     val fingerDraws: Boolean = false,
     /** What the stylus primary barrel-button does while held. */
@@ -549,7 +547,7 @@ class SettingsStore(context: Context) {
             ),
             pageSizeUnit = PageFormatPrefs.read(prefs),
             newDocumentFormat = enumOr(prefs.getString(KEY_NEW_DOCUMENT_FORMAT, null), d.newDocumentFormat),
-            autoSave = prefs.getBoolean(KEY_AUTO_SAVE, d.autoSave),
+            embedPdfBackgrounds = prefs.getBoolean(KEY_EMBED_PDF_BACKGROUNDS, d.embedPdfBackgrounds), autoSave = prefs.getBoolean(KEY_AUTO_SAVE, d.autoSave),
             fingerDraws = prefs.getBoolean(KEY_FINGER_DRAWS, d.fingerDraws),
             barrelAction = enumOr(prefs.getString(KEY_BARREL, null), d.barrelAction),
             barrelDoubleAction = enumOr(prefs.getString(KEY_BARREL_DOUBLE, null), d.barrelDoubleAction),
@@ -691,6 +689,7 @@ class SettingsStore(context: Context) {
         e.remove(KEY_NEW_DOCUMENT_CANVAS)
             .putToggleShortcuts(s)
             .putBoolean(KEY_FINGER_DRAWS, s.fingerDraws)
+            .putBoolean(KEY_EMBED_PDF_BACKGROUNDS, s.embedPdfBackgrounds)
             .putBoolean(KEY_AUTO_SAVE, s.autoSave)
             .putString(KEY_BARREL, s.barrelAction.name)
             .putString(KEY_BARREL_DOUBLE, s.barrelDoubleAction.name)
@@ -842,6 +841,7 @@ class SettingsStore(context: Context) {
         const val KEY_STEM_SATELLITE_OFFSET_X = "stem_satellite_offset_x"
         const val KEY_STEM_SATELLITE_OFFSET_Y = "stem_satellite_offset_y"
         const val KEY_NEW_DOCUMENT_FORMAT = "new_document_format"
+        const val KEY_EMBED_PDF_BACKGROUNDS = "embed_pdf_backgrounds"
         const val KEY_NEW_DOCUMENT_CANVAS = "new_document_canvas"
         const val KEY_PEN_COLORS = "pen_colors"
         const val KEY_PEN_FAVORITES = "pen_favorites"

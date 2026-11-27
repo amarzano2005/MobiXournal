@@ -40,6 +40,8 @@ fun OnboardingDialog(
     onToolbarPosition: (ToolbarPosition) -> Unit = {},
     documentFormat: NewDocumentFormat = NewDocumentFormat.MOBIX,
     onDocumentFormat: (NewDocumentFormat) -> Unit = {},
+    embedPdf: Boolean = true,
+    onEmbedPdf: (Boolean) -> Unit = {},
 ) {
     var step by remember { mutableIntStateOf(1) }
     val totalSteps = 2
@@ -59,7 +61,7 @@ fun OnboardingDialog(
                 if (step == 1) {
                     OnboardingStepHandedness(toolbarPosition, onToolbarPosition)
                 } else {
-                    OnboardingStepDocumentFormat(documentFormat, onDocumentFormat)
+                    OnboardingStepDocumentFormat(documentFormat, onDocumentFormat, embedPdf, onEmbedPdf)
                 }
             }
         },

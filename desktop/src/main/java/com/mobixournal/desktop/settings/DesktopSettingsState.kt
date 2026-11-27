@@ -151,8 +151,9 @@ class DesktopSettingsState(private val store: DesktopSettings) {
     var newDocumentFormat by mutableStateOf(store.newDocumentFormat)
         private set
 
-    var documentFormatChosen by mutableStateOf(store.documentFormatChosen)
-        private set
+    var documentFormatChosen by mutableStateOf(store.documentFormatChosen); private set
+    var embedPdfBackgrounds by mutableStateOf(store.embedPdfBackgrounds); private set
+    fun chooseEmbedPdfBackgrounds(on: Boolean) { store.embedPdfBackgrounds = on; embedPdfBackgrounds = on }
 
     /** Whether a document writes itself once the edits go quiet — off until the reader asks (Documents). */
     var autoSave by mutableStateOf(store.autoSave)
@@ -604,6 +605,7 @@ class DesktopSettingsState(private val store: DesktopSettings) {
         figures.reload()
         newDocumentFormat = store.newDocumentFormat
         documentFormatChosen = store.documentFormatChosen
+        embedPdfBackgrounds = store.embedPdfBackgrounds
         pageSizeUnit = store.pageSizeUnit
         strips.reload()
         toggleEraserTool = toolNamed(store.toggleEraser, DesktopTool.ERASER)

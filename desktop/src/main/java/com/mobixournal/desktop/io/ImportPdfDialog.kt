@@ -117,6 +117,14 @@ internal fun ImportPdfDialog(
             )
             Spacer(Modifier.height(12.dp))
             BookmarkSection(request = request, onEdit = onEdit)
+            Spacer(Modifier.height(10.dp))
+            val sizeMb = request.file.length() / (1024.0 * 1024.0)
+            val sizeLabel = if (sizeMb >= 1.0) "%.1f MB".format(sizeMb) else "${(request.file.length() / 1024L).coerceAtLeast(1L)} KB"
+            PropertyCheckboxRow(
+                label = "Embed PDF in document ($sizeLabel)",
+                checked = request.embedPdf,
+                onChange = { on -> onEdit { it.copy(embedPdf = on) } },
+            )
             if (request.chooseMode) {
                 Spacer(Modifier.height(14.dp))
                 ModeChoices(

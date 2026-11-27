@@ -79,6 +79,8 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     val view = owner.surface?.takeIf { owner.tabs.active?.id == tab.id }
     val snapshot = view?.toDocument() ?: tab.document
     val pdf = view?.pdfSourceFile() ?: tab.pdfPath?.let(::File)
+    val embedPdf = view?.embedPdf ?: tab.embedPdf
+    val effectivePdf = if (request.format == SaveFormat.MOBIX && !embedPdf) null else pdf
     val images = (view?.imageSources() ?: tab.backgrounds?.images ?: tab.images).toMap()
     val exportAudioFolder = if (request.format != SaveFormat.MOBIX) audioFolder else null
     // The canvas reading the bytes are taken at: `afterSaved` compares it with the canvas it finds, which is
@@ -90,10 +92,15 @@ internal fun MainActivity.saveDocument(uri: Uri, request: PendingSave? = capture
     // (`SaveActivity`, `docs/data-path.md`).
     SaveActivity.begin()
     inBackground(SAVING_MARKER, {
-        val identified = if (request.format == SaveFormat.MOBIX) io.identifyForSave(snapshot, uri) else snapshot
+        val rawIdentified = if (request.format == SaveFormat.MOBIX) io.identifyForSave(snapshot, uri) else snapshot
+        val identified = if (request.format == SaveFormat.MOBIX && !embedPdf) {
+            com.mobixournal.io.DocumentEncoder.stripBundledPdfAssets(rawIdentified)
+        } else {
+            rawIdentified
+        }
         // The take being recorded right now is not bundleable — its file is still growing under the
         // content hash the entry would be named by ([AudioSession.bundleableRecording]).
-        val encoded = io.encode(identified, pdf, request.format, uri, images, audio::bundleableRecording)
+        val encoded = io.encode(identified, effectivePdf, request.format, uri, images, audio::bundleableRecording)
         // Prove the bytes before a SAF copy can replace the document; a refusal keeps the original.
         if (request.format == SaveFormat.MOBIX) {
             com.mobixournal.format.mobix.MobixPublishValidation.validate(encoded.file, BuildConfig.VERSION_NAME)

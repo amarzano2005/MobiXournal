@@ -221,13 +221,12 @@ class DesktopSettings(val file: File = defaultFile()) {
         get() = documentFormat.chosen
         set(value) { documentFormat.chosen = value }
 
-    /** The zoom a document opens at, before the reader touches anything. */
+    var embedPdfBackgrounds: Boolean
+        get() = properties.getProperty(KEY_EMBED_PDF_BACKGROUNDS)?.toBooleanStrictOrNull() ?: true
+        set(value) { properties.setProperty(KEY_EMBED_PDF_BACKGROUNDS, value.toString()); save() }
     var fitOnOpen: FitOnOpen
         get() = FitOnOpen.of(properties.getProperty(KEY_FIT_ON_OPEN))
-        set(value) {
-            properties.setProperty(KEY_FIT_ON_OPEN, value.name)
-            save()
-        }
+        set(value) { properties.setProperty(KEY_FIT_ON_OPEN, value.name); save() }
 
     /** Navigation settings: zoom step and smooth scrolling. */
     val navigation = DesktopNavigationStore(properties, ::save)
@@ -595,8 +594,8 @@ class DesktopSettings(val file: File = defaultFile()) {
         /** The zoom a document opens at. */
         const val KEY_FIT_ON_OPEN = "interface.fitOnOpen"
 
-        /** Auto save: off unless the reader turns it on in Documents. */
         const val KEY_AUTO_SAVE = "documents.autoSave"
+        const val KEY_EMBED_PDF_BACKGROUNDS = "documents.embedPdf"
 
         /** When the page list shows itself. */
         const val KEY_SIDEBAR_POLICY = "interface.sidebarPolicy"

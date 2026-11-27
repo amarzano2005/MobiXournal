@@ -195,6 +195,24 @@ object DocumentEncoder {
     }
 
     /**
+     * Returns [document] with any `bundledAsset` cleared from [com.mobixournal.format.model.Background.Pdf]
+     * pages so a `.mobix` save with PDF embedding disabled does not carry forward stale `assets/pdf_*` entries.
+     */
+    fun stripBundledPdfAssets(document: Document): Document {
+        var changed = false
+        val pages = document.pages.map { page ->
+            val bg = page.background
+            if (bg is com.mobixournal.format.model.Background.Pdf && bg.bundledAsset != null) {
+                changed = true
+                page.copy(background = bg.copy(bundledAsset = null))
+            } else {
+                page
+            }
+        }
+        return if (changed) document.copy(pages = pages) else document
+    }
+
+    /**
      * The document a `.xopp` write may encode: living entities cooked into ink first, because `.xopp`
      * has nowhere to keep a recipe — a table is a grid of rules and cells, a plot is its curves drawn,
      * a component is its symbol's strokes — and whatever this build cannot draw comes back for the

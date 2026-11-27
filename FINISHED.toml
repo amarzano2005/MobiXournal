@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "unified-pdf-embedding-option"
+title = "Add Embed PDF backgrounds option across onboarding, settings, import, and Save As"
+description = "Implemented Embed PDF backgrounds across first-run onboarding (default ON), Documents settings + backup, Import PDF dialog with file size, and simplified Save As (.mobix / .xopp) with contextual embed toggle and PDF status badge; removed .pmobix from export menus while keeping open compatibility."
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "tokens: Existing Material3 Switch/SettingsSwitch and chrome badge tokens used across onboarding, settings, import, and Save As; copy: English labels and size readouts across both shells; parity: Android and Desktop both expose onboarding, settings, import, and save embedding; tests: SourceStructureTest, ColorContractGuardTest, SettingsBackupGuardTest, InteractionContractGuardTest, and desktop createDistributable passed."
+
+[[task]]
 id = "interaction-contract-guard"
 title = "Add InteractionContractGuardTest for unified interaction rules"
 description = "Added InteractionContractGuardTest verifying no tap-to-teleport, proximity-only pins, hitsMoveBody delegation, showEdgeHandlesForSpan gating, and exhaustive Element subtype coverage."

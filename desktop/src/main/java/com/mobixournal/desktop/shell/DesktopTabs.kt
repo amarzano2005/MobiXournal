@@ -63,6 +63,8 @@ class DesktopTab(
      * where to put it and closing asks whether to keep it — the same promise a recovered tab makes.
      */
     unsaved: Boolean = false,
+    embedPdf: Boolean = document.container == com.mobixournal.desktop.io.DesktopContainer.XOPP_ZIP ||
+        document.model.pages.any { (it.background as? com.mobixournal.format.model.Background.Pdf)?.bundledAsset != null },
 ) {
     /**
      * The document this tab shows. A Save As **re-homes** the tab onto the file it just wrote, so the
@@ -75,6 +77,7 @@ class DesktopTab(
     var page: Int by mutableStateOf(page)
     var viewport: Viewport by mutableStateOf(viewport)
     var fit: FitMode by mutableStateOf(fit)
+    var embedPdf: Boolean by mutableStateOf(embedPdf)
 
     /**
      * Which view this tab's navigation sidebar shows — page thumbnails or the document's Contents. View

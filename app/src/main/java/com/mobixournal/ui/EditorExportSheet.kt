@@ -175,17 +175,7 @@ private fun ExportFormatGrid(
                 onClick = onSvg,
                 modifier = Modifier.weight(1f),
             )
-            ExportFormatCard(
-                badge = "PMOBIX",
-                title = "Portable .mobix",
-                subtitle = if (shareMode) "Send notebook file" else "Includes assets",
-                tint = accent,
-                ink = ink,
-                shareMode = shareMode,
-                enabled = !isReadOnly,
-                onClick = onPortable,
-                modifier = Modifier.weight(1f),
-            )
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
@@ -252,11 +242,16 @@ private fun ExportFormatCard(
 @Composable
 internal fun SaveAsDrilldownView(
     isReadOnly: Boolean,
+    hasPdfBackground: Boolean = false,
+    currentEmbedPdf: Boolean = true,
     onBack: () -> Unit,
-    onPickFormat: (SaveFormat) -> Unit,
+    onPickFormat: (SaveFormat, Boolean) -> Unit,
 ) {
     val ink = rememberChromeInk()
     val accent = MaterialTheme.colorScheme.primary
+    var embedPdf by androidx.compose.runtime.remember(currentEmbedPdf) {
+        androidx.compose.runtime.mutableStateOf(currentEmbedPdf)
+    }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -281,32 +276,48 @@ internal fun SaveAsDrilldownView(
             Text("Save As", style = MaterialTheme.typography.labelLarge, color = ink)
             Spacer(Modifier.width(48.dp))
         }
+        if (hasPdfBackground) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(ink.copy(alpha = 0.06f))
+                    .clickable(enabled = !isReadOnly) { embedPdf = !embedPdf }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Embed PDF background", style = MaterialTheme.typography.labelLarge, color = ink)
+                    Text(
+                        if (embedPdf) "Included inside .mobix or .xopp" else "Linked to external PDF file",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = ink.copy(alpha = 0.6f),
+                    )
+                }
+                androidx.compose.material3.Switch(
+                    checked = embedPdf,
+                    onCheckedChange = { embedPdf = it },
+                    enabled = !isReadOnly,
+                )
+            }
+        }
         SaveAsFormatRow(
             badge = ".mobix",
             title = "MobiXournal",
-            subtitle = "Native format · Everything stays editable",
+            subtitle = if (hasPdfBackground && embedPdf) "Native format · PDF embedded" else "Native format · Everything stays editable",
             accent = accent,
             ink = ink,
             enabled = !isReadOnly,
-            onClick = { onPickFormat(SaveFormat.MOBIX) },
+            onClick = { onPickFormat(SaveFormat.MOBIX, embedPdf) },
         )
         SaveAsFormatRow(
             badge = ".xopp",
             title = "Xournal++",
-            subtitle = "Standard gzip · PDF stays linked",
+            subtitle = if (hasPdfBackground && embedPdf) "Self-contained · PDF embedded" else "Standard gzip · PDF stays linked",
             accent = accent,
             ink = ink,
             enabled = !isReadOnly,
-            onClick = { onPickFormat(SaveFormat.ORIGINAL) },
-        )
-        SaveAsFormatRow(
-            badge = ".xopp",
-            title = "Xournal++ package",
-            subtitle = "PDF embedded inside",
-            accent = accent,
-            ink = ink,
-            enabled = !isReadOnly,
-            onClick = { onPickFormat(SaveFormat.ZIPPED) },
+            onClick = { onPickFormat(if (embedPdf) SaveFormat.ZIPPED else SaveFormat.ORIGINAL, embedPdf) },
         )
     }
 }

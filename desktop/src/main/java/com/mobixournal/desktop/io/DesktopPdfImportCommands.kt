@@ -62,6 +62,8 @@ data class ImportPdfRequest(
     val bookmark: Boolean = false,
     /** The title that row carries: the file's name without its `.pdf`, and the reader's to change. */
     val bookmarkTitle: String = PdfOutlineSeeding.defaultTitle(file.name),
+    /** Whether to embed a copy of the PDF inside the saved .mobix or .xopp document. */
+    val embedPdf: Boolean = true,
 ) {
 
     /** The title the import will write, or null when the reader turned the row off. */
@@ -94,6 +96,7 @@ fun DesktopShellState.askImportPdf(file: File, chooseMode: Boolean = !tabs.isEmp
         pageCount = pages,
         mode = if (canChoose) ImportPdfMode.APPEND else ImportPdfMode.REPLACE,
         chooseMode = canChoose,
+        embedPdf = prefs.embedPdfBackgrounds,
     )
 }
 
@@ -118,7 +121,7 @@ fun DesktopShellState.confirmImportPdf(mode: ImportPdfMode = importRequest?.mode
     val chosen = request.chosen ?: return
     val resolved = if (request.chooseMode) mode else ImportPdfMode.REPLACE
     importRequest = null
-    importPdf(request.file, resolved, chosen, bookmark = request.bookmarkName)
+    importPdf(request.file, resolved, chosen, bookmark = request.bookmarkName, embedPdf = request.embedPdf)
 }
 
 /**
@@ -130,13 +133,16 @@ fun DesktopShellState.importPdf(
     mode: ImportPdfMode,
     indices: List<Int>? = null,
     bookmark: String? = null,
+    embedPdf: Boolean = prefs.embedPdfBackgrounds,
 ): Boolean {
     val reference = file.absolutePath
     return try {
         DesktopPdfImport.open(file).use { pdf ->
             when (mode) {
-                ImportPdfMode.REPLACE -> openImported(pdf, file, reference, indices, bookmark)
-                ImportPdfMode.APPEND -> appendImported(pdf, file, reference, indices, bookmark)
+                ImportPdfMode.REPLACE -> openImported(pdf, file, reference, indices, bookmark, embedPdf)
+                ImportPdfMode.APPEND -> appendImported(pdf, file, reference, indices, bookmark).also { ok ->
+                    if (ok) active?.embedPdf = embedPdf
+                }
             }
         }
     } catch (refused: DesktopPdfImport.PdfImportRefused) {
@@ -158,9 +164,18 @@ private fun DesktopShellState.openImported(
     reference: String,
     indices: List<Int>?,
     bookmark: String?,
+    embedPdf: Boolean,
 ): Boolean {
     val model = DesktopPdfImport.document(pdf, reference, indices, bookmark)
     val format = prefs.newDocumentFormat
+    val container = when (format) {
+        com.mobixournal.desktop.settings.DesktopNewDocumentFormat.XOPP ->
+            if (embedPdf) com.mobixournal.desktop.io.DesktopContainer.XOPP_ZIP else com.mobixournal.desktop.io.DesktopContainer.XOPP_GZIP
+        com.mobixournal.desktop.settings.DesktopNewDocumentFormat.ZIPPED ->
+            if (embedPdf) com.mobixournal.desktop.io.DesktopContainer.XOPP_ZIP else com.mobixournal.desktop.io.DesktopContainer.XOPP_GZIP
+        com.mobixournal.desktop.settings.DesktopNewDocumentFormat.MOBIX ->
+            com.mobixournal.desktop.io.DesktopContainer.MOBIX
+    }
     val folder = file.absoluteFile.parentFile
     val proposed = proposedPath(folder, file.nameWithoutExtension, format.extension)
     tabs.adopt(
@@ -169,9 +184,10 @@ private fun DesktopShellState.openImported(
                 file = proposed,
                 source = PageSource.of(model),
                 model = model,
-                container = format.container,
+                container = container,
                 backdrop = PageBackdrop(bundled = { null }, documentDir = folder),
             ),
+            embedPdf = embedPdf,
             title = proposed.nameWithoutExtension,
             unsaved = true,
         ),

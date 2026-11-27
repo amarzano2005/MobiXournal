@@ -291,6 +291,7 @@ class DrawingSurfaceView @JvmOverloads constructor(
         onLayersChanged = { onLayersChanged?.invoke() },
     )
 
+    var embedPdf: Boolean = true
     /** Whether this document is in read-only mode. Drawing and edits are blocked. */
     var isReadOnly: Boolean = false
         set(value) {

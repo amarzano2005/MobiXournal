@@ -549,6 +549,8 @@ fun EditorScreen(
                 onToolbarPosition = { onSettingsChange(settings.copy(toolbarPosition = it)) },
                 documentFormat = settings.newDocumentFormat,
                 onDocumentFormat = { onSettingsChange(settings.copy(newDocumentFormat = it)) },
+                embedPdf = settings.embedPdfBackgrounds,
+                onEmbedPdf = { onSettingsChange(settings.copy(embedPdfBackgrounds = it)) },
             )
         }
 

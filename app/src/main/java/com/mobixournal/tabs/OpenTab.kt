@@ -79,6 +79,8 @@ data class OpenTab(
      * against. Set when the document is loaded onto the surface and when a save publishes everything.
      */
     val savedAt: Int = 0,
+    /** Whether PDF backgrounds are embedded inside the saved document (.mobix assets or zipped .xopp). */
+    val embedPdf: Boolean = true,
 )
 
 /** The whole set of open tabs plus which one is showing — what survives an app restart. */

@@ -380,6 +380,7 @@ internal fun MainActivity.beginPdfImport(uri: Uri) {
                 reference = uri.toString(),
                 name = name,
                 pageCount = count,
+                embedPdf = settingsState.value.embedPdfBackgrounds,
             )
         }.onFailure { toast("PDF import failed: ${it.message}") }
     }
@@ -407,31 +408,24 @@ internal fun MainActivity.confirmPdfImport(mode: ImportPdfMode) {
     // two files are the slow half, and none of it needs the canvas ([preparePdfImport]).
     val p = pane
     val tabId = p.tabs.active?.id
-    val base = if (mode == ImportPdfMode.APPEND && p.surface?.hasPdfBackground() == true) {
-        p.surface?.pdfSourceFile()
-    } else {
-        null
-    }
+    val base = if (mode == ImportPdfMode.APPEND && p.surface?.hasPdfBackground() == true) p.surface?.pdfSourceFile() else null
     inBackground("Importing ${prompt.name}…", {
-        preparePdfImport(
-            source,
-            mode,
-            prompt.reference,
-            chosen,
-            base,
-            title = prompt.bookmarkTitle,
-            bookmark = prompt.bookmark,
-        )
+        preparePdfImport(source, mode, prompt.reference, chosen, base, title = prompt.bookmarkTitle, bookmark = prompt.bookmark)
     }) { result ->
-        // The staged copy has done its job either way: the plan holds the store's own file.
         source.delete()
-        result.onSuccess { plan -> applyPdfImport(plan, tabId, p) }
-            .onFailure { failure ->
-                toast(
-                    "PDF import failed: ${failure.message ?: "the file could not be read"}. Nothing " +
-                        "was changed — try again, or import it into a new document.",
-                )
+        result.onSuccess { plan ->
+            if (tabId != null) {
+                val cur = p.tabs.active?.format
+                val targetFormat = if (cur == SaveFormat.ORIGINAL || cur == SaveFormat.ZIPPED) {
+                    if (prompt.embedPdf) SaveFormat.ZIPPED else SaveFormat.ORIGINAL
+                } else cur
+                p.tabs.updateMatching({ it.id == tabId }) { it.copy(embedPdf = prompt.embedPdf, format = targetFormat ?: it.format) }
+                if (p.tabs.active?.id == tabId) { p.surface?.embedPdf = prompt.embedPdf; if (targetFormat != null) p.saveFormat = targetFormat }
             }
+            applyPdfImport(plan, tabId, p)
+        }.onFailure { failure ->
+            toast("PDF import failed: ${failure.message ?: "the file could not be read"}. Nothing was changed — try again, or import it into a new document.")
+        }
     }
 }
 

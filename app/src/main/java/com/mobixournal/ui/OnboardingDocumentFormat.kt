@@ -45,6 +45,8 @@ import com.mobixournal.ui.theme.ModernTheme
 internal fun OnboardingStepDocumentFormat(
     selected: NewDocumentFormat,
     onSelect: (NewDocumentFormat) -> Unit,
+    embedPdf: Boolean = true,
+    onEmbedPdf: (Boolean) -> Unit = {},
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Text(
@@ -85,6 +87,36 @@ internal fun OnboardingStepDocumentFormat(
             selected = selected == NewDocumentFormat.XOPP,
             onClick = { onSelect(NewDocumentFormat.XOPP) },
         )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(ModernTheme.capsuleCornerRadiusDp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f))
+                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(ModernTheme.capsuleCornerRadiusDp))
+                .clickable { onEmbedPdf(!embedPdf) }
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Embed PDF backgrounds",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = "Keep imported PDFs inside .mobix and .xopp files so notebooks never lose their background when moved or shared.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            androidx.compose.material3.Switch(
+                checked = embedPdf,
+                onCheckedChange = onEmbedPdf,
+            )
+        }
 
         Text(
             text = "Changeable anytime in Settings → App & data → Documents.",

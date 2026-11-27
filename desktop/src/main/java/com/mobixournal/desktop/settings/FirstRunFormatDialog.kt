@@ -57,6 +57,8 @@ import androidx.compose.ui.unit.dp
 internal fun FirstRunFormatDialog(
     picked: DesktopNewDocumentFormat,
     onPick: (DesktopNewDocumentFormat) -> Unit,
+    embedPdf: Boolean = true,
+    onEmbedPdf: (Boolean) -> Unit = {},
     onConfirm: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -86,6 +88,23 @@ internal fun FirstRunFormatDialog(
                 picked = picked == DesktopNewDocumentFormat.XOPP,
                 onPick = { onPick(DesktopNewDocumentFormat.XOPP) },
             )
+            Spacer(Modifier.height(10.dp))
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .selectable(selected = embedPdf, onClick = { onEmbedPdf(!embedPdf) }, role = Role.Checkbox)
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Embed PDF backgrounds (keep PDFs inside .mobix and .xopp)",
+                    color = DesktopTheme.ink,
+                    style = DesktopTheme.label,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                SettingsSwitch(embedPdf)
+            }
         }
     }
 }
@@ -165,10 +184,16 @@ internal fun BoxScope.FirstRunFormatHost(policy: DesktopSettingsState) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             if (!policy.documentFormatChosen) {
                 var picked by remember { mutableStateOf(policy.newDocumentFormat) }
+                var embedPdf by remember { mutableStateOf(policy.embedPdfBackgrounds) }
                 FirstRunFormatDialog(
                     picked = picked,
                     onPick = { picked = it },
-                    onConfirm = { policy.chooseNewDocumentFormat(picked) },
+                    embedPdf = embedPdf,
+                    onEmbedPdf = { embedPdf = it },
+                    onConfirm = {
+                        policy.chooseEmbedPdfBackgrounds(embedPdf)
+                        policy.chooseNewDocumentFormat(picked)
+                    },
                 )
             }
         }

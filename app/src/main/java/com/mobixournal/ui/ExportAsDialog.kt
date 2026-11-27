@@ -46,25 +46,16 @@ internal fun ExportAsHost(
 }
 
 /** The three answers **Export As** offers: the page twice, then the whole notebook as one file. */
-private enum class ExportAnswer { PNG, SVG, PORTABLE }
+private enum class ExportAnswer { PNG, SVG }
 
 /**
- * **Export As** — the hamburger's one question with three answers, asked in a card over the sheet.
- *
- * It asks the way `Save As` and `Import PDF` ask: the answers are **radio rows** that say what each one
- * writes and stay readable until the reader commits, and one button runs the picked one. Pressing a row
- * used to run its export on the spot, which made a mis-tap into a folder dialog the reader never wanted;
- * here a row only moves the mark, and `Export` is the one thing that writes.
- *
- * The answers themselves are PNG (one raster image per page), SVG (one vector file per page) and
- * `.pmobix` (the whole notebook as a single file carrying the pictures, PDFs and recordings it otherwise
- * only names — `docs/mobix-assets.md`).
+ * **Export As** — the hamburger's export question, asked in a card over the sheet.
  */
 @Composable
 private fun ExportAsDialog(
     onPng: () -> Unit,
     onSvg: () -> Unit,
-    onPortable: () -> Unit,
+    @Suppress("UNUSED_PARAMETER") onPortable: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var picked by remember { mutableStateOf(ExportAnswer.PNG) }
@@ -86,12 +77,6 @@ private fun ExportAsDialog(
                     subtitle = "One vector file per page, at the page's own size.",
                     onClick = { picked = ExportAnswer.SVG },
                 )
-                FormatOption(
-                    selected = picked == ExportAnswer.PORTABLE,
-                    title = "Portable .mobix (.pmobix)",
-                    subtitle = "The whole notebook as one file, with the files it only names embedded.",
-                    onClick = { picked = ExportAnswer.PORTABLE },
-                )
             }
         },
         confirmButton = {
@@ -100,7 +85,6 @@ private fun ExportAsDialog(
                     when (picked) {
                         ExportAnswer.PNG -> onPng()
                         ExportAnswer.SVG -> onSvg()
-                        ExportAnswer.PORTABLE -> onPortable()
                     }
                 },
             ) { Text("Export") }

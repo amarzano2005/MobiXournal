@@ -486,11 +486,13 @@ private fun DocumentsSettings(policy: DesktopSettingsState) {
         SettingsRow(
             label = "Save automatically",
             note = "Writes the document after you stop writing. Only for one that already has a file.",
-            checked = policy.autoSave,
-            onClick = { policy.pickAutoSave(!policy.autoSave) },
-        ) {
-            SettingsSwitch(policy.autoSave)
-        }
+            checked = policy.autoSave, onClick = { policy.pickAutoSave(!policy.autoSave) },
+        ) { SettingsSwitch(policy.autoSave) }
+        SettingsRow(
+            label = "Embed PDF backgrounds",
+            note = "Store imported PDFs inside .mobix and .xopp files so notebooks stay self-contained.",
+            checked = policy.embedPdfBackgrounds, onClick = { policy.chooseEmbedPdfBackgrounds(!policy.embedPdfBackgrounds) },
+        ) { SettingsSwitch(policy.embedPdfBackgrounds) }
         SettingsReadout("Destination", "Documents\\MobiXournal\\Untitled n" + policy.newDocumentFormat.extension)
     }
 }

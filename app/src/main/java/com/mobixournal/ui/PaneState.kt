@@ -44,6 +44,8 @@ class PaneState {
 
     /** Whether this pane's document is open in read-only mode. */
     var isReadOnly by mutableStateOf(false)
+    /** Whether PDF backgrounds are embedded in the active tab's saved document. */
+    var embedPdf by mutableStateOf(true)
     /** Whether undo is available. */
     var canUndo by mutableStateOf(false)
     /** Whether redo is available. */

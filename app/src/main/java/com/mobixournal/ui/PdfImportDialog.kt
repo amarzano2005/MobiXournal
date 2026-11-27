@@ -173,10 +173,38 @@ private fun ImportQuestions(
         }
         // The previews come after the answers so a keyboard reaches *where the pages go* before a hundred
         // page cells: the destination is one decision, the grid is a place to browse.
+        EmbedPdfRow(request = request, onEdit = onEdit)
         ImportPagesGrid(
             prompt = request,
             onPages = { pages -> onEdit { it.copy(pages = pages) } },
         )
+    }
+}
+
+@Composable
+private fun EmbedPdfRow(
+    request: PdfImportPrompt,
+    onEdit: ((PdfImportPrompt) -> PdfImportPrompt) -> Unit,
+) {
+    val sizeMb = request.file.length() / (1024.0 * 1024.0)
+    val sizeLabel = if (sizeMb >= 1.0) "%.1f MB".format(sizeMb) else "${(request.file.length() / 1024L).coerceAtLeast(1L)} KB"
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Switch(
+            checked = request.embedPdf,
+            onCheckedChange = { on -> onEdit { it.copy(embedPdf = on) } },
+        )
+        Spacer(Modifier.width(8.dp))
+        Column {
+            Text("Embed PDF in document", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "Keeps a copy inside this file ($sizeLabel)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

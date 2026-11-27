@@ -77,6 +77,7 @@ object AppSettingsBackup {
         b.append("  \"stemSatelliteOffsetX\": ").append(settings.stemSatelliteOffsetX).append(",\n")
         b.append("  \"stemSatelliteOffsetY\": ").append(settings.stemSatelliteOffsetY).append(",\n")
         b.append("  \"newDocumentFormat\": \"").append(settings.newDocumentFormat.name).append("\",\n")
+        b.append("  \"embedPdfBackgrounds\": ").append(settings.embedPdfBackgrounds).append(",\n")
         b.append("  \"autoSave\": ").append(settings.autoSave).append(",\n")
         b.append("  \"penColors\": [")
             .append(settings.penColors.joinToString(", "))
@@ -326,6 +327,7 @@ object AppSettingsBackup {
             stemSatelliteOffsetX = root.getFloat("stemSatelliteOffsetX", fallback.stemSatelliteOffsetX),
             stemSatelliteOffsetY = root.getFloat("stemSatelliteOffsetY", fallback.stemSatelliteOffsetY),
             newDocumentFormat = readEnum("newDocumentFormat", NewDocumentFormat.values(), fallback.newDocumentFormat),
+            embedPdfBackgrounds = root.getBool("embedPdfBackgrounds", fallback.embedPdfBackgrounds),
             autoSave = root.getBool("autoSave", fallback.autoSave),
             penColors = root.getIntList("penColors") ?: fallback.penColors,
             penFavorites = root.getIntList("penFavorites") ?: fallback.penFavorites,
