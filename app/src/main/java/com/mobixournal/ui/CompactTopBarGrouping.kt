@@ -88,14 +88,14 @@ private fun addLinesEntry(byId: Map<String, RailItem>, out: MutableList<CompactT
         out += CompactTopBarEntry.Single(arrowItem)
         return
     }
-    val tools = listOf(EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.DIMENSION)
+    val tools = listOf(EditorTool.LINE, EditorTool.SPLINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.DIMENSION)
     out += CompactTopBarEntry.Group(
         ToolGroup(
             id = "compact_lines",
             label = "Lines & Arrows",
             tools = tools,
             pickerLayout = listOf(
-                listOf(EditorTool.LINE, EditorTool.ARROW),
+                listOf(EditorTool.LINE, EditorTool.SPLINE, EditorTool.ARROW),
                 listOf(EditorTool.DOUBLE_ARROW, EditorTool.DIMENSION),
             ),
         ),

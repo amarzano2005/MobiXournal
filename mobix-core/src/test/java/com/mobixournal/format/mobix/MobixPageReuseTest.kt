@@ -479,5 +479,6 @@ private fun Element.withoutId(): Element = when (this) {
     is com.mobixournal.format.model.ParametricShapeElement -> copy(id = null)
     is com.mobixournal.format.model.CircuitElement -> copy(id = null)
     is com.mobixournal.format.model.MathBlockElement -> copy(id = null)
+    is com.mobixournal.format.model.SplineElement -> copy(id = null)
     is com.mobixournal.format.model.RawElement -> this
 }

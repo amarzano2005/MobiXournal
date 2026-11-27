@@ -10,6 +10,7 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.MathBlockElement
@@ -92,7 +93,7 @@ class XoppWriter(out: Appendable) {
             // Until that exists it is skipped rather than written as a tag that means nothing here —
             // losing it from the export is visible, silently exporting nonsense is not.
             is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement,
-            is MathBlockElement -> Unit
+            is MathBlockElement, is SplineElement -> Unit
         }
         w.end() // layer
         w.newline()

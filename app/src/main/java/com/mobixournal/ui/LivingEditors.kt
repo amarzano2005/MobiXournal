@@ -19,6 +19,7 @@ fun EditorUiState.openLivingEditor(target: LivingEditTarget) {
         is LivingEditTarget.Circuit -> openCircuitInspector(target.circuit)
         is LivingEditTarget.Shape -> openShapeInspector(target.shape)
         is LivingEditTarget.MathBlock -> editingMathBlock = target.block
+        is LivingEditTarget.Spline -> editingSpline = target.spline
     }
 }
 

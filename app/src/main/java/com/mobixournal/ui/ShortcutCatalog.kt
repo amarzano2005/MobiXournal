@@ -51,6 +51,7 @@ internal enum class ShortcutToolFamily(
         title = "Shapes & diagrams",
         tools = listOf(
             EditorTool.LINE,
+            EditorTool.SPLINE,
             EditorTool.ARROW,
             EditorTool.DOUBLE_ARROW,
             EditorTool.COORDINATE_AXIS,

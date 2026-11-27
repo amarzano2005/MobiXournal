@@ -89,6 +89,7 @@ internal suspend fun AwaitPointerEventScope.pressAfterPan(
     if (guideDrag(down, tool, tab, dragView, targets.onLiveDrag, guideAim)) return
     // A selection, a living element or a figure takes the drag before the ink sees it.
     if (preInkPress(down, tool, tab, dragView, pageW, pageH, previewRegion, onEdited, taps, targets)) return
+    if (splinePress(down, tool, tab, shapeInk, dragView, density, onEdited)) return
     tool.shapeKind()?.let { kind ->
         shapeDrag(
             down, kind, tab, shapeInk, dragView, draft, targets.onLiveDrag, onEdited,

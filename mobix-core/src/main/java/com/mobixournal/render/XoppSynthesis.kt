@@ -14,6 +14,7 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
@@ -159,7 +160,7 @@ object XoppSynthesis {
         is Stroke, is TextElement, is ImageElement, is TexImageElement -> listOf(element)
         // A living formula compiles to the one math element a `.xopp` has ([MathBlockInk]).
         is MathBlockElement -> listOf(MathBlockInk.texImage(element))
-        is PlotElement, is TableElement, is ParametricShapeElement, is CircuitElement -> {
+        is PlotElement, is TableElement, is ParametricShapeElement, is CircuitElement, is SplineElement -> {
             val ink = LivingInk.of(element)
             gaps += ink.uncompiled
             // A plot with no curve at all is a different loss from a curve that would not parse: there is
@@ -193,6 +194,7 @@ object XoppSynthesis {
         is ParametricShapeElement -> "parametricShape"
         is CircuitElement -> "circuit"
         is MathBlockElement -> "mathBlock"
+        is SplineElement -> "spline"
         else -> "element"
     }
 }

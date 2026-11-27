@@ -21,6 +21,7 @@ import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.isLivingEntity
 
@@ -69,6 +70,12 @@ sealed interface LivingEditTarget {
         override val element: Element get() = block
         override val family: LivingEditFamily get() = LivingEditFamily.MATH
     }
+
+    /** A scientific spline's knots, closure, and Bézier handles. */
+    data class Spline(val spline: SplineElement) : LivingEditTarget {
+        override val element: Element get() = spline
+        override val family: LivingEditFamily get() = LivingEditFamily.SPLINE
+    }
 }
 
 /**
@@ -78,7 +85,7 @@ sealed interface LivingEditTarget {
  * subclass, so a family added to the model without an entry here fails the build rather than
  * silently being the one element a double-tap cannot open.
  */
-enum class LivingEditFamily { TABLE, PLOT, CIRCUIT, SHAPE, MATH }
+enum class LivingEditFamily { TABLE, PLOT, CIRCUIT, SHAPE, MATH, SPLINE }
 
 /**
  * Whether [element] belongs to this family — the question a top-bar element tool asks of what lies
@@ -91,6 +98,7 @@ fun LivingEditFamily.matches(element: Element): Boolean = when (this) {
     LivingEditFamily.CIRCUIT -> element is CircuitElement
     LivingEditFamily.SHAPE -> element is ParametricShapeElement
     LivingEditFamily.MATH -> element is MathBlockElement
+    LivingEditFamily.SPLINE -> element is SplineElement
 }
 
 /** A double-tap's answer: the element's reference on its page, and the editor to open. */
@@ -134,6 +142,8 @@ fun livingEditTarget(element: Element, xPt: Double, yPt: Double): LivingEditTarg
             LivingEditTarget.Shape(element).takeIf { ElementBounds.of(element).contains(xPt, yPt) }
         is MathBlockElement ->
             LivingEditTarget.MathBlock(element).takeIf { ElementBounds.of(element).contains(xPt, yPt) }
+        is SplineElement ->
+            LivingEditTarget.Spline(element).takeIf { ElementBounds.of(element).contains(xPt, yPt) }
         else -> null
     }
 }

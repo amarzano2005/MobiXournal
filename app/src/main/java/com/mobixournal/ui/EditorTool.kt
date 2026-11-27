@@ -20,7 +20,7 @@ enum class EditorTool {
     // The *Function graph* button arms it, and its press either picks the plot it made or reserves the box the
     // graph dialog fills (`PlaceKind.PLOT`).
     PLOT,
-    LINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, VERTICAL_SPACE,
+    LINE, SPLINE, ARROW, DOUBLE_ARROW, COORDINATE_AXIS, RECTANGLE, ELLIPSE, VERTICAL_SPACE,
     PLAY_OBJECT,
     // The STEM figures (see [ShapeKind]): a triangle, a trapezoid and the polygon — one
     // figure whose side count is the user's, chosen from its slot. Square survives as an enum entry (a
@@ -97,6 +97,7 @@ val SHAPE_TOOLS: List<EditorTool> = listOf(
  */
 val LIVING_ELEMENT_TOOLS: Set<EditorTool> = buildSet {
     add(EditorTool.TABLE)
+    add(EditorTool.SPLINE)
     for (kind in CircuitElementFactory.CIRCUIT_KINDS) {
         EditorTool.entries.firstOrNull { it.name == kind.name }?.let(::add)
     }
@@ -122,6 +123,7 @@ private val TOOLS: List<ToolInfo> = listOf(
     ToolInfo(EditorTool.ERASER, "Eraser (partial)", glyph = ToolGlyph.ERASER),
     ToolInfo(EditorTool.ERASER_WHOLE, "Eraser (whole stroke)", glyph = ToolGlyph.ERASER_WHOLE),
     ToolInfo(EditorTool.LINE, "Line", glyph = ToolGlyph.LINE),
+    ToolInfo(EditorTool.SPLINE, "Spline", glyph = ToolGlyph.SPLINE),
     ToolInfo(EditorTool.ARROW, "Arrow", glyph = ToolGlyph.ARROW),
     ToolInfo(EditorTool.DOUBLE_ARROW, "Double arrow", glyph = ToolGlyph.DOUBLE_ARROW),
     ToolInfo(EditorTool.COORDINATE_AXIS, "Coordinate axis", glyph = ToolGlyph.AXES),

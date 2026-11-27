@@ -63,7 +63,7 @@ internal val DesktopTool.stripFamily: StripFamily
         DesktopTool.PDF_TEXT_SELECT, DesktopTool.AUDIO,
         -> StripFamily.SELECT
 
-        DesktopTool.LINE, DesktopTool.ARROW, DesktopTool.DOUBLE_ARROW,
+        DesktopTool.LINE, DesktopTool.SPLINE, DesktopTool.ARROW, DesktopTool.DOUBLE_ARROW,
         DesktopTool.RECTANGLE, DesktopTool.ELLIPSE,
         DesktopTool.TRIANGLE, DesktopTool.TRAPEZOID, DesktopTool.POLYGON,
         -> StripFamily.FIGURES

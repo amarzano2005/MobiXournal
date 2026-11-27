@@ -119,7 +119,7 @@ internal fun DrawingSurfaceView.paint() {
             inkCache.retain(retainedAround(visible, layout.boxes.size)); retainPdfPins(visible); prefetchAround(visible)
         }
         drawSearchHighlights(canvas)
-        drawCurrent(canvas)
+        drawCurrent(canvas); drawSplineDraft(canvas)
         // The pins a shape gesture has caught, lit like a live move's target: what the wire or the placed
         // part will join, visible while the hand is still down.
         if (shapeDraft.active) drawShapeMagnetTargets(canvas)

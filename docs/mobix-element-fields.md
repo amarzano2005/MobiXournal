@@ -179,3 +179,15 @@ it and one that cannot still shows its box and keeps it. A semantically valid ex
 `flavor` is omitted for LaTeX because that is what a desktop `<teximage>` carries; a Typst source is
 written explicitly so a reader never guesses the language. A `texImage` is the other spelling of the same
 idea — a *picture* of a formula rather than a formula — and a document may carry both.
+
+## `spline`
+
+| Field | Type | Unit | Default when absent |
+|---|---|---|---|
+| `nodes` | array of `{x, y, inX?, inY?, outX?, outY?, smooth?}` | pt | **required**, non-empty (`smooth` defaults `true`) |
+| `closed` | boolean | — | `false` |
+| `color` | `#RRGGBBAA` | — | opaque black |
+| `width` | number | pt | `1.4` |
+| `lineStyle` | `PLAIN` \| `DASHED` \| `DASH_DOTTED` \| `DOTTED` | — | `PLAIN` |
+| `bounds` | object | pt | derived from `nodes` on read |
+

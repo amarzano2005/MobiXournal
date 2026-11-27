@@ -106,6 +106,7 @@ object ElementTransfer {
             is com.mobixournal.format.model.PlotElement -> "plot"
             is com.mobixournal.format.model.CircuitElement -> "circuit"
             is com.mobixournal.format.model.ParametricShapeElement -> "shape"
+            is com.mobixournal.format.model.SplineElement -> "spline"
             is RawElement -> element.name
         }
     }.joinToString("\n")

@@ -44,6 +44,7 @@ enum class DesktopTool(val label: String, val shortcut: String) {
     // share the slot too, so the window has the tablet's two members rather than a second strip entry.
     MATH("Formula", "Shift+T"),
     LINE("Line", "L"),
+    SPLINE("Spline", "Shift+L"),
     ARROW("Arrow", "A"),
     DOUBLE_ARROW("Double arrow", "Shift+A"),
     RECTANGLE("Rectangle", "R"),

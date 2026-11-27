@@ -48,7 +48,7 @@ enum class ToolGlyph {
     /** The page's measured format — its size on the sheet. */
     PAGE_SIZE,
 
-    LINE,
+    LINE, SPLINE,
     ARROW,
     DOUBLE_ARROW,
     DIMENSION,
@@ -178,7 +178,7 @@ object ToolGlyphCatalogue {
         ToolGlyph.PLAY -> play()
         ToolGlyph.PAGE -> page()
         ToolGlyph.PAGE_SIZE -> pageSize()
-        ToolGlyph.LINE -> line()
+        ToolGlyph.LINE -> line(); ToolGlyph.SPLINE -> splineGlyph()
         ToolGlyph.ARROW -> arrow()
         ToolGlyph.DOUBLE_ARROW -> doubleArrow()
         ToolGlyph.DIMENSION -> dimension()

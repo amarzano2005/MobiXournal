@@ -93,6 +93,7 @@ class MobixDocumentTest {
         is ParametricShapeElement -> copy(id = null)
         is CircuitElement -> copy(id = null)
         is MathBlockElement -> copy(id = null)
+        is com.mobixournal.format.model.SplineElement -> copy(id = null)
         is RawElement -> this
     }
 

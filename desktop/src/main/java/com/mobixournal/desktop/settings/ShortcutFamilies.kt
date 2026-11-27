@@ -46,6 +46,7 @@ internal object ShortcutFamilies {
 
     private val SHAPES = listOf(
         DesktopTool.LINE,
+        DesktopTool.SPLINE,
         DesktopTool.ARROW,
         DesktopTool.DOUBLE_ARROW,
         DesktopTool.RECTANGLE,

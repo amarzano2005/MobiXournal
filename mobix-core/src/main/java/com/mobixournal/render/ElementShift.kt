@@ -7,6 +7,7 @@ import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TableElement
@@ -71,6 +72,19 @@ object ElementShift {
         // ParametricShapeElement translates its vertices: they are the shape's geometry.
         is ParametricShapeElement -> element.copy(
             vertices = element.vertices.map { it.copy(x = it.x + dx, y = it.y + dy) },
+        )
+        // SplineElement translates its knots and any explicit Bézier handles.
+        is SplineElement -> element.copy(
+            nodes = element.nodes.map { n ->
+                n.copy(
+                    x = n.x + dx,
+                    y = n.y + dy,
+                    inX = n.inX?.let { it + dx },
+                    inY = n.inY?.let { it + dy },
+                    outX = n.outX?.let { it + dx },
+                    outY = n.outY?.let { it + dy },
+                )
+            },
         )
     }
 }

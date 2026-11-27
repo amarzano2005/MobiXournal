@@ -10,6 +10,7 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
@@ -305,7 +306,7 @@ object PdfPagePlan {
             // drew: the `.xopp` export writes the same source as a `<teximage>` ([MathBlockInk]).
             is MathBlockElement -> mathBlock(element, t, ops)
             is RawElement -> Unit
-            is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement ->
+            is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement, is SplineElement ->
                 LivingInk.of(element).elements.forEach { plan(it, t, ops) }
         }
     }

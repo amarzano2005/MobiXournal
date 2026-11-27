@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "spline-living-element"
+title = "Hybrid scientific Spline living element across mobix-core, Android, and Desktop"
+description = "SplineElement, SplineInk, MobixSplineCodec, Android Spline tool & handle editing, Desktop Spline tool & LivingGrips, docs and coverage tests"
+status = "finished"
+level = "task"
+category = "feature"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "glyph: ToolGlyph.SPLINE; tokens: MaterialTheme and DesktopButton; copy: English UI labels; parity: tap/drag drafting and handle editing on Android and Desktop; docs: living-entities, element-fields, xopp-bridge, guide-stem-tools; tests: SplineInkTest, MobixSplineCodecTest, XoppExportCoverageTest, LivingEditCoverageTest, ToolGlyphCoverageTest"
+
+[[task]]
 id = "unify-row-1-header-action-boxes-to-32dp-and-fix-topappbar-clipping"
 title = "Unify Row 1 header action boxes to 32dp and fix TopAppBar clipping"
 description = "Standardized every Row 1 header action button to a 32dp clipped plate inside a 36dp target via HeaderActionButton and passed zero windowInsets to TopAppBar so no box is clipped or oversized."

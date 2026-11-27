@@ -7,11 +7,13 @@ import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
 import com.mobixournal.format.model.TextElement
+import com.mobixournal.format.model.Tool
 import kotlin.math.hypot
 
 /**
@@ -70,6 +72,15 @@ object ElementHitTester {
                     val d = StrokeHitTester.distance(element, x, y)
                     return if (d <= padPt) d else null
                 }
+            }
+            is SplineElement -> {
+                val pts = SplineInk.samplePoints(element.nodes, element.closed) ?: return null
+                val d = StrokeHitTester.distance(
+                    InkPrimitives.stroke(pts, element.color, element.width),
+                    x,
+                    y,
+                )
+                return if (d <= padPt + element.width / 2.0) d else null
             }
             is TableElement,
             is PlotElement,
@@ -150,6 +161,18 @@ object ElementHitTester {
                     }
                     bestX to bestY
                 }
+            }
+            is SplineElement -> {
+                val pts = SplineInk.samplePoints(element.nodes, element.closed) ?: return targetX to targetY
+                var bestX = pts[0].x
+                var bestY = pts[0].y
+                var bestDist = Double.MAX_VALUE
+                for (i in 0 until pts.size - 1) {
+                    val (px, py) = closestPointOnSegment(targetX, targetY, pts[i].x, pts[i].y, pts[i + 1].x, pts[i + 1].y)
+                    val d = hypot(targetX - px, targetY - py)
+                    if (d < bestDist) { bestDist = d; bestX = px; bestY = py }
+                }
+                bestX to bestY
             }
             is Stroke -> {
                 val pts = element.points

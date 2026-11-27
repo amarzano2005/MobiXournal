@@ -384,8 +384,10 @@ internal fun SheetCanvas(
                 draft, penDraft, pointer, editingText, karaoke, paintProbe,
             )
             drawSheetChrome(tab, sheet, density, mark, pointer)
+            drawDesktopSplineDraft(tab, sheet.viewport, density, shapeInk)
         }
         sheetLayers(hud, pointer, mark, density, tab, sheet)
+        DesktopSplineBar(tab, shapeInk, onEdited, Modifier.align(androidx.compose.ui.Alignment.BottomCenter))
     }
 }
 

@@ -5,6 +5,7 @@ import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.isLivingEntity
 import java.util.Collections
@@ -84,6 +85,9 @@ object LivingInk {
         // A formula has no hand-drawn ink: its `.xopp` shape is a `<teximage>` carrying the source,
         // which is what both the synthesis bridge and the direct writer emit ([MathBlockInk]).
         is MathBlockElement -> Ink(listOf(MathBlockInk.texImage(element)), emptyList())
+        is SplineElement -> SplineInk.ink(element)
+            ?.let { Ink(it, emptyList()) }
+            ?: Ink(emptyList(), listOf(Uncompilable("spline", "a spline with fewer than two knots cannot be drawn")))
         // Not a living entity (or one this build does not model): its own drawing, nothing to report.
         else -> Ink(listOf(element), emptyList())
     }

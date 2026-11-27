@@ -328,6 +328,7 @@ private fun EditorBody(live: LivingTarget, commit: (Element) -> Unit) {
         LivingFamily.CIRCUIT -> CircuitBody(live.element as CircuitElement, commit)
         LivingFamily.MATH -> MathBody(live.element as MathBlockElement, commit)
         LivingFamily.TEXT -> TextBody(live.element as TextElement, commit)
+        LivingFamily.SPLINE -> SplineBody(live.element as com.mobixournal.format.model.SplineElement, commit)
     }
 }
 
@@ -587,6 +588,25 @@ private fun MathBody(block: MathBlockElement, commit: (Element) -> Unit) {
     }
 }
 
+@Composable
+private fun SplineBody(
+    spline: com.mobixournal.format.model.SplineElement,
+    commit: (Element) -> Unit,
+) {
+    SectionCard("Curve") {
+        Readout("knots", "${spline.nodes.size}")
+        SwitchRow("Closed loop", spline.closed) { closed ->
+            if (spline.nodes.size >= 3 || !closed) commit(spline.copy(closed = closed))
+        }
+        NumberField("width pt", spline.width) { width ->
+            if (width > 0 && width != spline.width) commit(spline.copy(width = width))
+        }
+    }
+    SectionCard("Look") {
+        ColourRow(current = spline.color) { colour -> commit(spline.copy(color = colour)) }
+    }
+}
+
 // --- the bridge to the header ------------------------------------------------------------------
 
 /** The strip slot whose glyph stands for [this] family in the lane's header. */
@@ -597,6 +617,7 @@ private fun LivingFamily.tool(): DesktopTool = when (this) {
     LivingFamily.CIRCUIT -> DesktopTool.CIRCUIT
     LivingFamily.MATH -> DesktopTool.MATH
     LivingFamily.TEXT -> DesktopTool.TEXT
+    LivingFamily.SPLINE -> DesktopTool.SPLINE
 }
 
 /** The slot whose glyph stands for a pending placement's family. */

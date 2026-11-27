@@ -98,6 +98,7 @@ class ToolStripsTest {
         "Audio tap" to "Y",
         "Formula" to "Shift+T",
         "Line" to "L",
+        "Spline" to "Shift+L",
         "Arrow" to "A",
         "Double arrow" to "Shift+A",
         "Rectangle" to "R",

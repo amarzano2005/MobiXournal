@@ -83,6 +83,7 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
     textSelectMode = tool == EditorTool.TEXT_SELECT
     verticalSpaceMode = tool == EditorTool.VERTICAL_SPACE
     audioPlayMode = tool == EditorTool.PLAY_OBJECT
+    splineMode = tool == EditorTool.SPLINE
     placeKind = when (tool) {
         EditorTool.TEXT -> PlaceKind.TEXT
         EditorTool.IMAGE -> PlaceKind.IMAGE
@@ -142,7 +143,7 @@ fun DrawingSurfaceView.applyTool(tool: EditorTool) {
         EditorTool.HIGHLIGHTER -> this.tool = Tool.HIGHLIGHTER
         EditorTool.ERASER, EditorTool.ERASER_WHOLE -> this.tool = Tool.ERASER
         // Shapes are drawn as ordinary pen strokes; the shapeKind above turns a drag into geometry.
-        EditorTool.LINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
+        EditorTool.LINE, EditorTool.SPLINE, EditorTool.ARROW, EditorTool.DOUBLE_ARROW, EditorTool.COORDINATE_AXIS,
         EditorTool.RECTANGLE, EditorTool.ELLIPSE,
         EditorTool.TRIANGLE, EditorTool.SQUARE, EditorTool.TRAPEZOID, EditorTool.POLYGON,
         EditorTool.TABLE,
@@ -515,6 +516,7 @@ fun EditorScreen(
             audioProvider = audioProvider,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp),
         )
+        SplineDraftBarHost(surface = pane.surface, ui = ui, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 12.dp))
 
         DialogPresence(pendingAudioOverwriteClip != null) {
             // Held so the dialog keeps naming the clip while it closes: the flag clears on the answer,

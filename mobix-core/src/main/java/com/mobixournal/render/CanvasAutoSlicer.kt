@@ -10,6 +10,7 @@ import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
 import com.mobixournal.format.model.ShapeVertex
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.MathBlockElement
@@ -48,6 +49,7 @@ object CanvasAutoSlicer {
         is PlotElement -> Bounds(element.left, element.top, element.right, element.bottom)
         is TableElement -> Bounds(element.left, element.top, element.left + element.width, element.top + element.height)
         is ParametricShapeElement -> shapeBounds(element)
+        is SplineElement -> ElementBounds.of(element)
         is CircuitElement -> Bounds(element.positionX, element.positionY, element.positionX + 50.0, element.positionY + 50.0)
         is RawElement -> Bounds(0.0, 0.0, 0.0, 0.0)
     }
@@ -101,6 +103,15 @@ object CanvasAutoSlicer {
         )
         is TableElement -> element.copy(left = element.left + dx, top = element.top + dy)
         is ParametricShapeElement -> element.copy(vertices = element.vertices.map { ShapeVertex(it.x + dx, it.y + dy) })
+        is SplineElement -> element.copy(
+            nodes = element.nodes.map { n ->
+                n.copy(
+                    x = n.x + dx, y = n.y + dy,
+                    inX = n.inX?.let { it + dx }, inY = n.inY?.let { it + dy },
+                    outX = n.outX?.let { it + dx }, outY = n.outY?.let { it + dy },
+                )
+            },
+        )
         is CircuitElement -> element.copy(positionX = element.positionX + dx, positionY = element.positionY + dy)
         is RawElement -> element
     }

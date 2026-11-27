@@ -81,6 +81,15 @@ class LivingEditCoverageTest {
         id = "shape_edit",
     )
 
+    private fun spline() = com.mobixournal.format.model.SplineElement(
+        nodes = listOf(
+            com.mobixournal.format.model.SplineNode(100.0, 500.0),
+            com.mobixournal.format.model.SplineNode(160.0, 540.0),
+            com.mobixournal.format.model.SplineNode(220.0, 500.0),
+        ),
+        id = "spline_edit",
+    )
+
     /** One element of each living family, which is the list every family must appear in. */
     private fun samples(): Map<LivingEditFamily, Element> = mapOf(
         LivingEditFamily.TABLE to table(),
@@ -88,6 +97,7 @@ class LivingEditCoverageTest {
         LivingEditFamily.CIRCUIT to circuit(),
         LivingEditFamily.SHAPE to shape(),
         LivingEditFamily.MATH to math(),
+        LivingEditFamily.SPLINE to spline(),
     )
 
     private fun page(vararg elements: Element) = Page(
@@ -113,7 +123,7 @@ class LivingEditCoverageTest {
         }
         assertEquals(
             "one family per living type",
-            5,
+            6,
             LivingEditFamily.entries.size,
         )
     }
@@ -170,6 +180,7 @@ class LivingEditCoverageTest {
                 LivingEditFamily.CIRCUIT -> ui.editingCircuit != null
                 LivingEditFamily.SHAPE -> ui.editingShape != null
                 LivingEditFamily.MATH -> ui.editingMathBlock != null
+                LivingEditFamily.SPLINE -> ui.editingSpline != null
             }
             assertTrue("$family has no editor to open", opened)
         }

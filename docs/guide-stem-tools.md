@@ -76,7 +76,7 @@ element is not offered again, so what the sheet marks is exactly what a press co
 The press rule is the same one for the figure tools. With the rectangle tool in hand, a press on a
 rectangle selects it — the same press drags it and its handles size it — while a press on paper draws a new
 one, and the tool stays in hand, so a row of boxes is one gesture rather than a trip back to the toolbar.
-Line, arrow, coordinate axis, ellipse, triangle, trapezoid and polygon all work this way.
+Line, arrow, coordinate axis, ellipse, triangle, trapezoid and polygon all work this way. Long-pressing the **Line** slot offers **Spline**, which places smooth knots on tap and pulls out cubic Bézier handles on drag; the floating bar lets you undo a knot, toggle closed loops, or confirm, and selecting the finished curve lets you drag any knot or handle.
 
 A figure remembers which tool drew it, so the triangle tool picks triangles and leaves a rectangle beside
 them alone. Figures drawn by an older build carry no such note and are read from their shape, which is

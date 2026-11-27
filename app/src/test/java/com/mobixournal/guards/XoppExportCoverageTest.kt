@@ -68,7 +68,7 @@ class XoppExportCoverageTest {
      * ceilings: [family] already fails to compile on a new one, and this number fails the *other* half of
      * adding it — a branch with no sample, which would let a family ship without its export exercised.
      */
-    private val elementFamilies = 10
+    private val elementFamilies = 11
 
     /** A pen stroke carrying the telemetry `.xopp` cannot hold. */
     private fun stroke() = Stroke(
@@ -135,6 +135,17 @@ class XoppExportCoverageTest {
 
     private fun mathBlock() = MathBlockElement(60.0, 60.0, 200.0, 92.0, "\\int_0^1 x dx", black, id = "mth_1")
 
+    private fun spline() = com.mobixournal.format.model.SplineElement(
+        nodes = listOf(
+            com.mobixournal.format.model.SplineNode(10.0, 10.0),
+            com.mobixournal.format.model.SplineNode(60.0, 50.0),
+            com.mobixournal.format.model.SplineNode(110.0, 10.0),
+        ),
+        color = red,
+        width = 1.5,
+        id = "spl_1",
+    )
+
     /** One sample per element family, plus the second `RawElement` syntax, which is a different promise. */
     private fun samples(): List<Element> = listOf(
         stroke(),
@@ -148,6 +159,7 @@ class XoppExportCoverageTest {
         shape(),
         circuit(),
         mathBlock(),
+        spline(),
     )
 
     /**
@@ -166,6 +178,7 @@ class XoppExportCoverageTest {
         is ParametricShapeElement -> "shape"
         is CircuitElement -> "circuit"
         is MathBlockElement -> "mathBlock"
+        is com.mobixournal.format.model.SplineElement -> "spline"
     }
 
     private fun documentWith(vararg elements: Element) = Document(

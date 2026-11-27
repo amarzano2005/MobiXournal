@@ -9,6 +9,7 @@ import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TableElement
@@ -190,6 +191,7 @@ object SelectionOps {
                 if (kotlin.math.abs(sx - sy) <= 1e-6) scaled
                 else scaled.copy(shape = ParametricShapes.reclassifiedKind(scaled))
             }
+            is SplineElement -> SplineInk.scale(element, sx, sy, dx, dy, ink)
         }
     }
 
@@ -319,6 +321,7 @@ object SelectionOps {
                 },
             )
         }
+        is SplineElement -> SplineInk.rotate(element, angle, px, py)
         else -> element
     }
 
@@ -373,6 +376,7 @@ object SelectionOps {
             if (widthPt != null) e = e.copy(strokeWidth = widthPt)
             e
         }
+        is SplineElement -> SplineInk.restyle(element, color, widthPt)
         // The other living entities' colour is part of their own record (a plot's curves, a table's
         // rules), not a single style this op could set, so they are left alone rather than half-restyled.
         is TableElement, is PlotElement, is RawElement -> element

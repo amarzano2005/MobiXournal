@@ -157,6 +157,7 @@ internal val DesktopTool.glyph: ToolGlyph
         // The tablet's own picture of the formula tool.
         DesktopTool.MATH -> ToolGlyph.TEXIMAGE
         DesktopTool.LINE -> ToolGlyph.LINE
+        DesktopTool.SPLINE -> ToolGlyph.SPLINE
         DesktopTool.ARROW -> ToolGlyph.ARROW
         DesktopTool.DOUBLE_ARROW -> ToolGlyph.DOUBLE_ARROW
         DesktopTool.RECTANGLE -> ToolGlyph.RECTANGLE

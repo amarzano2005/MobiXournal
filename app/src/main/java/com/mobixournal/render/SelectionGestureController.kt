@@ -6,6 +6,7 @@ import com.mobixournal.format.model.Document
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
 import kotlin.math.atan2
@@ -66,32 +67,17 @@ internal class SelectionGestureController(
             aspectLocked = when (single) { is ParametricShapeElement -> single.aspectLocked; is Stroke -> single.storedAspectLocked() ?: defaultAspectLocked; else -> defaultAspectLocked }
         }
 
-    // Live rubber-band marquee and the page it selects within. The corners are held in **page-local
-    // pt** (not view px) so the drag auto-scroll extends the marquee instead of shifting it: the start
-    // anchor stays pinned to the sheet while the end follows the pointer as the content moves under it.
+    // Live rubber-band marquee in page-local pt so auto-scroll extends rather than shifts it.
     var banding = false
         private set
-
     internal var activeTableCellHighlight: Triple<TableElement, Int, Int>? = null
     var bandPage = 0
         private set
-
-    /** The marquee's fixed start anchor, page-local pt on [bandPage]. */
     var bandStart = Vec2(0.0, 0.0)
         private set
-
-    /** The marquee's live end, page-local pt on [bandPage]. */
     var bandEnd = Vec2(0.0, 0.0)
         private set
-
-    /**
-     * Free-form lasso path captured while banding in lasso mode, in **page-local pt** on [bandPage].
-     *
-     * Points are converted on capture, not on release: a view-px path would silently shift under the
-     * content if the page scrolls or zooms mid-gesture, so the shaded region and the polygon actually
-     * tested would disagree. Storing pt means the overlay converts back with the *current* scroll each
-     * frame, and the shading is exactly the polygon [commitBand] tests.
-     */
+    /** Free-form lasso path captured in page-local pt on [bandPage]. */
     val lassoPoly = ArrayList<Vec2>()
 
     /**
@@ -137,13 +123,12 @@ internal class SelectionGestureController(
     private var rotatePivotY = 0.0
     private var rotateStartAngle = 0.0
 
-    // Live corner drag on a single selected ParametricShapeElement. The base is the element as the
-    // *document* currently holds it, re-adopted after every frame, so each move replaces the live
-    // element rather than a stale copy (the same shape the table-divider drag uses).
+    // Live corner drag on a single selected ParametricShapeElement or SplineElement.
     var draggingVertex = false
         private set
     private var vertexIndex = -1
     private var vertexBase: ParametricShapeElement? = null
+    private var splineGrab: SplineHandleGrab? = null
 
     // Live parameter slider drag on a selected PlotElement.
     var slidingParam = false
@@ -239,10 +224,12 @@ internal class SelectionGestureController(
                 as? ParametricShapeElement
             if (shape != null && !aspectLocked) {
                 val hit = vertexHandleAt(shape, box, event.x, event.y)
-                if (hit >= 0) {
-                    beginVertexDrag(shape, hit)
-                    return true
-                }
+                if (hit >= 0) { beginVertexDrag(shape, hit); return true }
+            }
+            val spline = page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? SplineElement
+            if (spline != null) {
+                val grab = hitTestSplineHandle(spline, box, viewport.scrollX, viewport.scrollY, event.x, event.y)
+                if (grab != null) { draggingVertex = true; splineGrab = grab; snapshot(); return true }
             }
         }
 
@@ -354,12 +341,20 @@ internal class SelectionGestureController(
      * Re-applied from the live base each frame so the drag accumulates no rounding drift.
      */
     fun dragVertex(event: MotionEvent) {
-        val base = vertexBase ?: return
         val sel = selection ?: return
         val box = layout().boxes.getOrNull(sel.pageIndex) ?: return
         val page = pageAt(sel.pageIndex) ?: return
         val rawX = box.toPtX(event.x, viewport.scrollX)
         val rawY = box.toPtY(event.y, viewport.scrollY)
+        splineGrab?.let { grab ->
+            val updated = moveSplineHandle(grab, rawX, rawY)
+            val edited = ElementEdits.replaceElementOn(page, grab.spline, updated) ?: return
+            setDocument(document().copy(pages = document().pages.toMutableList().also { it[sel.pageIndex] = edited }))
+            splineGrab = grab.copy(spline = updated)
+            refresh()
+            return
+        }
+        val base = vertexBase ?: return
         val (x, y) = if (!ParametricShapes.isConic(base) && snapVertices()) ParametricShapes.snappedVertex(base, vertexIndex, rawX, rawY) else rawX to rawY
         val updated = ParametricShapes.moveVertex(base, vertexIndex, x, y)
         if (updated === base) return
@@ -374,14 +369,15 @@ internal class SelectionGestureController(
         draggingVertex = false
         vertexIndex = -1
         vertexBase = null
+        splineGrab = null
     }
 
-    /** True if every element in [sel] supports rotation (`Stroke`, `CircuitElement`, `ParametricShapeElement`). */
+    /** True if every element in [sel] supports rotation (`Stroke`, `CircuitElement`, `ParametricShapeElement`, `SplineElement`). */
     fun isAllStrokes(sel: ActiveSelection): Boolean {
         val page = pageAt(sel.pageIndex) ?: return false
         return sel.refs.isNotEmpty() && sel.refs.all {
             val el = page.layers.getOrNull(it.layerIndex)?.elements?.getOrNull(it.elementIndex)
-            el is Stroke || el is CircuitElement || el is ParametricShapeElement
+            el is Stroke || el is CircuitElement || el is ParametricShapeElement || el is SplineElement
         }
     }
 

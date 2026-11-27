@@ -13,6 +13,7 @@ import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotCurve
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotKind
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TextElement
 import com.mobixournal.render.ElementRef
@@ -49,6 +50,7 @@ enum class LivingFamily(val title: String) {
     CIRCUIT("Component"),
     MATH("Formula"),
     TEXT("Text"),
+    SPLINE("Spline"),
     ;
 
     companion object {
@@ -60,6 +62,7 @@ enum class LivingFamily(val title: String) {
             is CircuitElement -> CIRCUIT
             is MathBlockElement -> MATH
             is TextElement -> TEXT
+            is SplineElement -> SPLINE
             else -> null
         }
     }

@@ -45,6 +45,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
         MotionEvent.ACTION_MOVE -> {
             // A grabbed handle owns every move of its gesture until it lifts.
             if (textHandleDrag.grab != null) { textHandleMove(event); return true }
+            if (splineDraft.draggingGesture) { handleSplineMove(event); return true }
             taps.handMove(event.x, event.y)
             multiTap.onMove(event.eventTime, event.pointerCount, event::getPointerId, event::getX, event::getY)
             trackSelectionDragArm(event)
@@ -88,6 +89,7 @@ internal fun DrawingSurfaceView.handleTouch(event: MotionEvent): Boolean? {
         MotionEvent.ACTION_POINTER_UP -> onPointerUp(event)
         MotionEvent.ACTION_UP -> when {
             textHandleDrag.grab != null -> endTextHandleDrag()
+            splineDraft.draggingGesture -> handleSplineUp()
             backgroundSelecting -> commitBackgroundSelect()
             else -> {
                 cancelSelectionDrag()
@@ -283,6 +285,7 @@ internal fun DrawingSurfaceView.beginPointer(event: MotionEvent, pointerIndex: I
         GestureIntent.SELECT_TEXT -> beginTextSelect(event)
         GestureIntent.VERTICAL_SPACE -> beginVerticalSpace(event)
         GestureIntent.DRAW -> {
+            if (splineMode && handleSplineDown(event, pointerIndex)) return
             session.routed = true
             ink.pointerRouter = newPointerRouter()
             routePointer(event, pointerIndex, InkPointerPhase.DOWN)

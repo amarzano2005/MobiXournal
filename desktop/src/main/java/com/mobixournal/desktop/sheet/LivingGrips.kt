@@ -4,8 +4,10 @@ import com.mobixournal.desktop.shell.DesktopTab
 
 import com.mobixournal.format.model.Element
 import com.mobixournal.format.model.ParametricShapeElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.render.ParametricShapes
+import com.mobixournal.render.SplineInk
 import com.mobixournal.render.TableElementFactory
 import kotlin.math.hypot
 
@@ -27,6 +29,15 @@ internal sealed interface LivingGrip {
     /** A parametric figure's corner [index] — the figure bends with it. */
     data class Vertex(val index: Int) : LivingGrip
 
+    /** A spline's knot [index]. */
+    data class SplineKnot(val index: Int) : LivingGrip
+
+    /** A spline knot's incoming Bézier handle. */
+    data class SplineInHandle(val index: Int) : LivingGrip
+
+    /** A spline knot's outgoing Bézier handle. */
+    data class SplineOutHandle(val index: Int) : LivingGrip
+
     /** The divider between columns [index] - 1 and [index] of a table. */
     data class ColumnEdge(val index: Int) : LivingGrip
 
@@ -44,6 +55,19 @@ internal const val GRIP_MIN_CELL_PT: Double = 8.0
 internal fun livingGripsOf(element: Element): List<GripPoint> = when (element) {
     is ParametricShapeElement ->
         element.vertices.mapIndexed { index, vertex -> GripPoint(LivingGrip.Vertex(index), vertex.x, vertex.y) }
+
+    is SplineElement -> buildList {
+        element.nodes.forEachIndexed { index, node ->
+            add(GripPoint(LivingGrip.SplineKnot(index), node.x, node.y))
+            val (inH, outH) = SplineInk.handlesFor(element.nodes, element.closed, index)
+            if (hypot(inH.first - node.x, inH.second - node.y) > 1.0) {
+                add(GripPoint(LivingGrip.SplineInHandle(index), inH.first, inH.second))
+            }
+            if (hypot(outH.first - node.x, outH.second - node.y) > 1.0) {
+                add(GripPoint(LivingGrip.SplineOutHandle(index), outH.first, outH.second))
+            }
+        }
+    }
 
     // Only the **interior** dividers: the outer edges are the box the selection already scales, and a
     // second handle on top of a corner square would make the corner ambiguous.
@@ -97,6 +121,51 @@ internal fun dragGrip(element: Element, grip: LivingGrip, dx: Double, dy: Double
                 (vertex.x + dx) to (vertex.y + dy)
             }
             ParametricShapes.moveVertex(element, grip.index, x, y)
+        }
+
+        element is SplineElement && grip is LivingGrip.SplineKnot -> {
+            val node = element.nodes.getOrNull(grip.index) ?: return element
+            val updated = node.copy(
+                x = node.x + dx,
+                y = node.y + dy,
+                inX = node.inX?.let { it + dx },
+                inY = node.inY?.let { it + dy },
+                outX = node.outX?.let { it + dx },
+                outY = node.outY?.let { it + dy },
+            )
+            element.copy(nodes = element.nodes.toMutableList().also { it[grip.index] = updated })
+        }
+
+        element is SplineElement && grip is LivingGrip.SplineInHandle -> {
+            val node = element.nodes.getOrNull(grip.index) ?: return element
+            val (inH, _) = SplineInk.handlesFor(element.nodes, element.closed, grip.index)
+            val hx = inH.first + dx
+            val hy = inH.second + dy
+            val mirrorOut = if (node.smooth && !snap) (2.0 * node.x - hx) to (2.0 * node.y - hy) else null
+            val updated = node.copy(
+                inX = hx,
+                inY = hy,
+                outX = mirrorOut?.first ?: node.outX,
+                outY = mirrorOut?.second ?: node.outY,
+                smooth = if (snap) false else node.smooth,
+            )
+            element.copy(nodes = element.nodes.toMutableList().also { it[grip.index] = updated })
+        }
+
+        element is SplineElement && grip is LivingGrip.SplineOutHandle -> {
+            val node = element.nodes.getOrNull(grip.index) ?: return element
+            val (_, outH) = SplineInk.handlesFor(element.nodes, element.closed, grip.index)
+            val hx = outH.first + dx
+            val hy = outH.second + dy
+            val mirrorIn = if (node.smooth && !snap) (2.0 * node.x - hx) to (2.0 * node.y - hy) else null
+            val updated = node.copy(
+                outX = hx,
+                outY = hy,
+                inX = mirrorIn?.first ?: node.inX,
+                inY = mirrorIn?.second ?: node.inY,
+                smooth = if (snap) false else node.smooth,
+            )
+            element.copy(nodes = element.nodes.toMutableList().also { it[grip.index] = updated })
         }
 
         element is TableElement && grip is LivingGrip.ColumnEdge -> {

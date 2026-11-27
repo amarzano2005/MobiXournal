@@ -58,6 +58,8 @@ class EditorUiState(tool: EditorTool, color: Int, width: Float, highlighterColor
     // Dialog / overlay visibility.
     /** Whether the Settings screen is showing. */
     var showSettings by mutableStateOf(false)
+    /** Existing spline currently open in the contextual spline bar, or null. */
+    var editingSpline by mutableStateOf<com.mobixournal.format.model.SplineElement?>(null)
     /** Whether the Save As dialog is showing. */
     var showSaveAs by mutableStateOf(false)
     /** Whether the hamburger's **Export As** card is showing — one question, three answers. */

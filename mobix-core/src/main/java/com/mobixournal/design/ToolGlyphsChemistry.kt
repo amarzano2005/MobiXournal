@@ -24,3 +24,10 @@ internal fun bondTriple(): List<GlyphPart> = listOf(
     GlyphPart.Line(5f, 19f, 19f, 10.92f),
     GlyphPart.Line(9f, 23f, 22f, 15.49f),
 )
+
+internal fun splineGlyph(): List<GlyphPart> = listOf(
+    GlyphPart.Cubic(3f, 18f, 8f, 3f, 16f, 21f, 21f, 6f),
+    GlyphPart.Circle(3f, 18f, 1.4f),
+    GlyphPart.Circle(12f, 12f, 1.2f),
+    GlyphPart.Circle(21f, 6f, 1.4f),
+)

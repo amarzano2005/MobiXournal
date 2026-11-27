@@ -7,6 +7,7 @@ import com.mobixournal.format.model.ImageElement
 import com.mobixournal.format.model.Page
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.MathBlockElement
@@ -173,7 +174,7 @@ object PageSvgWriter {
             // canvas paints and the .xopp and PDF exports write, so an SVG of a page with a table in it
             // has the table in it.
             is TableElement, is PlotElement, is ParametricShapeElement, is CircuitElement,
-            is MathBlockElement -> LivingInk.of(element).elements.forEach { emit(sb, it) }
+            is MathBlockElement, is SplineElement -> LivingInk.of(element).elements.forEach { emit(sb, it) }
             else -> Unit
         }
     }

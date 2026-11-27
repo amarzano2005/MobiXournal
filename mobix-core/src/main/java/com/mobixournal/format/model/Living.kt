@@ -38,7 +38,7 @@ import com.mobixournal.format.json.JsonNode
  */
 val Element.isLivingEntity: Boolean
     get() = this is TableElement || this is PlotElement || this is ParametricShapeElement ||
-        this is CircuitElement || this is MathBlockElement
+        this is CircuitElement || this is MathBlockElement || this is SplineElement
 
 /** Which scientific source language a [MathBlockElement] is written in. */
 enum class MathFlavor {

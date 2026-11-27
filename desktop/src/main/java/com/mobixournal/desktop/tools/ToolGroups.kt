@@ -188,6 +188,7 @@ val DESKTOP_TOOL_GROUPS: List<ToolGroup> = listOf(
     // Every figure is a slot of its own, as the tablet's rail draws them: one click picks a figure,
     // never a picker. The strip scrolls, so the seven slots cost no reachability.
     ToolGroup(listOf(DesktopTool.LINE)),
+    ToolGroup(listOf(DesktopTool.SPLINE)),
     ToolGroup(listOf(DesktopTool.RECTANGLE)),
     ToolGroup(listOf(DesktopTool.ELLIPSE)),
     // The tablet's STEM figures, **one slot each** as the tablet's rail draws them: a triangle and a
@@ -256,6 +257,7 @@ val DESKTOP_TOOLS_THAT_ACT: Set<DesktopTool> = setOf(
     // from the header pill (and `Y`), so it is not in the slots (see `DESKTOP_TOOLS_WITHOUT_A_SLOT`).
     DesktopTool.AUDIO,
     DesktopTool.LINE,
+    DesktopTool.SPLINE,
     DesktopTool.ARROW,
     DesktopTool.DOUBLE_ARROW,
     DesktopTool.RECTANGLE,

@@ -52,6 +52,9 @@ object ElementId {
     /** A living math block's id prefix. */
     const val MATH = "mth"
 
+    /** A scientific spline's id prefix. */
+    const val SPLINE = "spl"
+
     /** A spatial chunk's id prefix. */
     const val CHUNK = "chk"
 
@@ -99,6 +102,7 @@ object ElementId {
         is ParametricShapeElement -> element.id?.let { element } ?: element.copy(id = mint(SHAPE))
         is CircuitElement -> element.id?.let { element } ?: element.copy(id = mint(CIRCUIT))
         is MathBlockElement -> element.id?.let { element } ?: element.copy(id = mint(MATH))
+        is SplineElement -> element.id?.let { element } ?: element.copy(id = mint(SPLINE))
         is RawElement -> element
     }
 
@@ -117,6 +121,7 @@ object ElementId {
         is ParametricShapeElement -> element.id
         is CircuitElement -> element.id
         is MathBlockElement -> element.id
+        is SplineElement -> element.id
         is RawElement -> null
     }
 
@@ -164,6 +169,7 @@ object ElementId {
         is ParametricShapeElement -> element.copy(id = mint(SHAPE))
         is CircuitElement -> element.copy(id = mint(CIRCUIT))
         is MathBlockElement -> element.copy(id = mint(MATH))
+        is SplineElement -> element.copy(id = mint(SPLINE))
         is RawElement -> element
     }
 

@@ -131,6 +131,15 @@ class DrawingSurfaceView @JvmOverloads constructor(
      * connector magnet read it from.
      */
     internal val shapeDraft = ShapeDraft()
+    internal val splineDraft = SplineDraft()
+    var splineMode: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            if (!value && splineDraft.active) {
+                if (splineDraft.nodes.size >= 2) confirmSplineDraft() else cancelSplineDraft()
+            }
+        }
     /**
      * The gesture in flight as a transaction — the pointer that owns it, whether the shared router is
      * feeding it, and the document it opened on, so one gesture is one undo step ([GestureSession]).

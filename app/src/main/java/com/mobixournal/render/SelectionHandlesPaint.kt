@@ -106,4 +106,5 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
     }
     // A single selected shape: a dot on each corner unless aspect-lock is active.
     if (!aspectLocked) drawShapeVertexHandles(canvas, box)
+    drawSplineEditHandles(canvas, box)
 }

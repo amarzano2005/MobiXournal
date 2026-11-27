@@ -114,7 +114,7 @@ val TOOL_GROUPS: List<ToolGroup> = listOf(
  * the family's members are what that button's menu offers.
  */
 val SECONDARY_TOOL_GROUPS: List<ToolGroup> = listOf(
-    ToolGroup("line", "Line", listOf(EditorTool.LINE)),
+    ToolGroup("line", "Line", listOf(EditorTool.LINE, EditorTool.SPLINE)),
     ToolGroup("rectangle", "Rectangle", listOf(EditorTool.RECTANGLE)),
     ToolGroup(
         "shape", "Shapes",

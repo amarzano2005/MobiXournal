@@ -8,6 +8,7 @@ import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.PlotInfoSide
 import com.mobixournal.format.model.RawElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.TableElement
 import com.mobixournal.format.model.TexImageElement
@@ -84,6 +85,7 @@ object ElementBounds {
         // has the vertex handles its editor drags, which is why its box must be the real one.
         is PlotElement, is TableElement, is CircuitElement -> true
         is ParametricShapeElement -> element.vertices.size >= 2
+        is SplineElement -> element.nodes.size >= 2
         is MathBlockElement -> element.source.isNotBlank()
         is Stroke -> element.points.isNotEmpty()
         else -> true
@@ -106,6 +108,31 @@ object ElementBounds {
         // every hit test, the same answer an empty stroke gets.
         is RawElement -> Bounds(0.0, 0.0, 0.0, 0.0)
         is ParametricShapeElement -> shapeBounds(element)
+        is SplineElement -> splineBounds(element)
+    }
+
+    private fun splineBounds(s: SplineElement): Bounds {
+        if (s.nodes.isEmpty()) return Bounds(0.0, 0.0, 0.0, 0.0)
+        val pts = SplineInk.samplePoints(s.nodes, s.closed)
+        val half = s.width / 2.0
+        if (pts.isNullOrEmpty()) {
+            val l = s.nodes.minOf { it.x }
+            val t = s.nodes.minOf { it.y }
+            val r = s.nodes.maxOf { it.x }
+            val b = s.nodes.maxOf { it.y }
+            return Bounds(l - half, t - half, r + half, b + half)
+        }
+        var left = Double.MAX_VALUE
+        var top = Double.MAX_VALUE
+        var right = -Double.MAX_VALUE
+        var bottom = -Double.MAX_VALUE
+        for (p in pts) {
+            if (p.x < left) left = p.x
+            if (p.y < top) top = p.y
+            if (p.x > right) right = p.x
+            if (p.y > bottom) bottom = p.y
+        }
+        return Bounds(left - half, top - half, right + half, bottom + half)
     }
 
     /**

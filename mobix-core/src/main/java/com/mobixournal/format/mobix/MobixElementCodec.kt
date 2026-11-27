@@ -13,6 +13,7 @@ import com.mobixournal.format.model.MathBlockElement
 import com.mobixournal.format.model.ParametricShapeElement
 import com.mobixournal.format.model.PlotElement
 import com.mobixournal.format.model.RawElement
+import com.mobixournal.format.model.SplineElement
 import com.mobixournal.format.model.Stroke
 import com.mobixournal.format.model.StrokePoint
 import com.mobixournal.format.model.TableElement
@@ -129,6 +130,7 @@ object MobixElementCodec {
         is ParametricShapeElement -> MobixShapeCodec.encode(element)
         is CircuitElement -> MobixCircuitCodec.encode(element)
         is MathBlockElement -> MobixMathCodec.encode(element)
+        is SplineElement -> MobixSplineCodec.encode(element)
         is RawElement -> encodeRaw(element)
     }
 
@@ -278,6 +280,7 @@ object MobixElementCodec {
             MobixShapeCodec.TYPE -> MobixShapeCodec.decode(node, mint) ?: preserve(type, node)
             MobixCircuitCodec.TYPE -> MobixCircuitCodec.decode(node, mint) ?: preserve(type, node)
             MobixMathCodec.TYPE -> MobixMathCodec.decode(node, mint) ?: preserve(type, node)
+            MobixSplineCodec.TYPE -> MobixSplineCodec.decode(node, mint) ?: preserve(type, node)
             else -> preserve(type, node)
         }
     }
