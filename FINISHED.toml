@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "desktop-remove-saving-badge"
+title = "Remove Saving... text overlay below header Save button on Desktop"
+description = "Removed SavingBadge text overlay from DesktopShellView and DesktopSaveWorker; header Save button keeps its spinning SavingArc indicator."
+status = "finished"
+level = "task"
+category = "refactor"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "states: Existing header SavingArc spinner indicates saving without floating text; tests: DesktopShellTest, SourceStructureTest, and desktop createDistributable passed."
+
+[[task]]
 id = "selection-bar-closing-freeze-guard"
 title = "Freeze spline flags in SelectionBarCapabilities during closing animation and add guard"
 description = "Moved spline bar flags into SelectionBarCapabilities (frozen via rememberClosingArgument) and added a mechanical guard in InteractionContractGuardTest preventing direct surface?.singleSelected* visibility reads in SelectionActionBar."

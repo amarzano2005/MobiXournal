@@ -387,13 +387,10 @@ class DesktopShellTest {
      * the regression is read where the order is written — the one fact the pixels depend on.
      */
     @Test
-    fun `the saving badge is composed above the screen it floats over`() {
+    fun `no saving text badge floats below the header save button`() {
         val view = File("src/main/java/com/mobixournal/desktop/shell/DesktopShellView.kt").readText()
         val body = view.substringAfter("private fun BoxScope.WorkspaceBody(")
-        val badge = body.indexOf("SavingBadge()")
-        val screen = body.indexOf("ScreenEntrance(")
-        assertTrue("the badge is still raised somewhere", badge > 0)
-        assertTrue("and after the screen, or it paints beneath it", screen > 0 && badge > screen)
+        assertTrue("SavingBadge text overlay must not be rendered", !body.contains("SavingBadge()"))
     }
 
     /**

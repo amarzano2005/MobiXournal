@@ -233,16 +233,5 @@ internal fun commitSaveRequest(request: SaveRequest, staged: DesktopSaves.Staged
     }
 }
 
-/**
- * A save in progress, said **on** the page rather than instead of it: one line in the accent, no scrim and
- * no second surface. The document stays readable and editable while the bytes are written — the window used
- * to swap the whole workspace for a placeholder, which read as a crash and threw every canvas away.
- */
-@Composable internal fun BoxScope.SavingBadge() {
-    Text(
-        text = "Saving...",
-        color = DesktopTheme.accent,
-        modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
-    )
-}
+
 
