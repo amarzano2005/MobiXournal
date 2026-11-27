@@ -50,23 +50,24 @@ internal fun DrawingSurfaceView.drawSelectionHandleDots(
             )
         }
     }
-    // Corner & edge resize handles: skipped for a single living parametric shape (unless aspect-lock) or spline.
-    val isSingleShape = singleSelectedShape() != null || singleSelectedSpline() != null
-    val aspectLocked = gestures.aspectLocked && singleSelectedSpline() == null
-    if (shaft == null && !flatX && !flatY && (!isSingleShape || aspectLocked)) {
+    // Corner & edge resize handles: skipped for splines and for unlocked parametric shapes (which show vertex handles).
+    val isSingleShape = singleSelectedShape() != null
+    val isSingleSpline = singleSelectedSpline() != null
+    val aspectLocked = gestures.aspectLocked && !isSingleSpline
+    val showBoxHandles = !isSingleSpline && (!isSingleShape || aspectLocked)
+    if (shaft == null && !flatX && !flatY && showBoxHandles) {
         for (hx in floatArrayOf(l, r)) for (hy in floatArrayOf(t, bottom)) {
             canvas.drawCircle(hx, hy, HANDLE_DRAW_PX, chrome.handle)
         }
     }
-    // Edge-midpoint handles: one axis each (hidden in lock mode for shapes/strokes so proportions stay locked).
-    val suppressEdgeHandles = aspectLocked && canToggleSelectionAspectLock()
+    // Edge-midpoint handles: one axis each (X on left/right, Y on top/bottom).
     val midX = (l + r) / 2f
     val midY = (t + bottom) / 2f
-    if (shaft == null && !flatY && !isSingleShape && !suppressEdgeHandles) {
+    if (shaft == null && !flatY && showBoxHandles) {
         canvas.drawCircle(midX, t, HANDLE_DRAW_PX, chrome.handle)
         canvas.drawCircle(midX, bottom, HANDLE_DRAW_PX, chrome.handle)
     }
-    if (shaft == null && !flatX && !isSingleShape && !suppressEdgeHandles) {
+    if (shaft == null && !flatX && showBoxHandles) {
         canvas.drawCircle(l, midY, HANDLE_DRAW_PX, chrome.handle)
         canvas.drawCircle(r, midY, HANDLE_DRAW_PX, chrome.handle)
     }

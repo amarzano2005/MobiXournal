@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "locked-figure-xy-handles"
+title = "Show X and Y edge handles when aspect lock is active"
+description = "Displayed and enabled X/Y edge-midpoint resize handles on locked figures and strokes in SelectionHandlesPaint and SelectionHandleResize, while keeping splines boxless."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "tokens: Existing canvas accent handle dots (HANDLE_DRAW_PX) on edge midpoints matching corner handles; tests: SourceStructureTest, ColorContractGuardTest, and SelectionResizeMathTest passed"
+
+[[task]]
 id = "spline-living-element"
 title = "Hybrid scientific Spline living element across mobix-core, Android, and Desktop"
 description = "SplineElement, SplineInk, MobixSplineCodec, Android Spline tool & handle editing, Desktop Spline tool & LivingGrips, docs and coverage tests"

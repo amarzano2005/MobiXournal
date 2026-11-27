@@ -61,11 +61,13 @@ internal fun handleResizeStart(
         return ResizeStart(axis, anchorX, anchorY, startPtX, startPtY, dist)
     }
 
-    // A single living parametric shape uses its vertex handles by default, and switches to proportional
-    // corner handles when aspect-lock is enabled on the selection bar.
-    val isSingleShape = selection?.refs?.singleOrNull()?.let { ref ->
-        page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex) as? ParametricShapeElement
-    } != null
+    // A single spline never uses box resize handles; a single parametric shape uses vertex handles
+    // when unlocked and box handles (corners + X/Y edges) when aspect-lock is active.
+    val singleEl = selection?.refs?.singleOrNull()?.let { ref ->
+        page?.layers?.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
+    }
+    if (singleEl is com.mobixournal.format.model.SplineElement) return null
+    val isSingleShape = singleEl is ParametricShapeElement
     if (isSingleShape && !aspectLocked) return null
     // The corner handles: the anchor is the diagonally-opposite corner.
     if (!flatX && !flatY) {
@@ -81,13 +83,6 @@ internal fun handleResizeStart(
             }
         }
     }
-    val selectedElements = if (selection != null && page != null) {
-        selection.refs.mapNotNull { ref ->
-            page.layers.getOrNull(ref.layerIndex)?.elements?.getOrNull(ref.elementIndex)
-        }
-    } else emptyList()
-    val suppressEdgeHandles = aspectLocked && SelectionResizeMath.supportsAspectLockToggle(selectedElements, isShaft = false)
-    if (isSingleShape || suppressEdgeHandles) return null
     // Edge-midpoint handles stretch one axis only — the out-of-proportion resize. The anchor is the
     // opposite edge's midpoint, so the far edge stays pinned while this one follows the pointer: pull
     // the right edge out and the element gets wider without getting taller.
