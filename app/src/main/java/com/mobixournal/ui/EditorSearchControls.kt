@@ -94,21 +94,28 @@ internal fun SearchTriggerButton(
     modifier: Modifier = Modifier,
 ) {
     val chromeInk = rememberChromeInk()
-    IconButton(
-        onClick = { if (!open) onOpen() },
-        enabled = !open,
+    Box(
         modifier = modifier
             .size(36.dp)
             .graphicsLayer {
                 alpha = (1f - progressProvider() * 2.5f).coerceIn(0f, 1f)
             },
+        contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            Icons.Outlined.Search,
-            contentDescription = "Search",
-            tint = chromeInk,
-            modifier = Modifier.size(20.dp),
-        )
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(enabled = !open, onClick = { if (!open) onOpen() }),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Outlined.Search,
+                contentDescription = "Search",
+                tint = chromeInk,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 

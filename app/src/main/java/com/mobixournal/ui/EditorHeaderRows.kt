@@ -1,6 +1,7 @@
 package com.mobixournal.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -81,21 +82,16 @@ internal fun EditorDocumentActions(
             )
         }
         if (chromePolicy.showInlineSplitView) {
-            IconButton(onClick = onToggleSplitView, modifier = Modifier.size(36.dp)) {
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (splitView) MaterialTheme.colorScheme.primaryContainer else Color.Transparent),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Outlined.VerticalSplit,
-                        contentDescription = if (splitView) "Close split view" else "Split view",
-                        tint = if (splitView) MaterialTheme.colorScheme.primary else chromeInk,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
+            HeaderActionButton(
+                onClick = onToggleSplitView,
+                container = if (splitView) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+            ) {
+                Icon(
+                    Icons.Outlined.VerticalSplit,
+                    contentDescription = if (splitView) "Close split view" else "Split view",
+                    tint = if (splitView) MaterialTheme.colorScheme.primary else chromeInk,
+                    modifier = Modifier.size(20.dp),
+                )
             }
         }
         TopBarToolDivider(air = 4.dp)
@@ -106,7 +102,7 @@ internal fun EditorDocumentActions(
         Box(modifier = Modifier.size(36.dp), contentAlignment = Alignment.Center) {
             Box(
                 modifier = Modifier
-                    .size(30.dp)
+                    .size(32.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(if (canSave) MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f) else Color.Transparent),
             )
@@ -132,10 +128,32 @@ internal fun EditorDocumentActions(
 }
 
 @Composable
+internal fun HeaderActionButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    container: Color = Color.Transparent,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(modifier = modifier.size(36.dp), contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(container)
+                .clickable(enabled = enabled, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
 private fun UndoRedoButtons(pane: PaneState, chromeInk: Color) {
     val undoEnabled = !pane.isReadOnly && pane.canUndo
     val redoEnabled = !pane.isReadOnly && pane.canRedo
-    IconButton(onClick = { pane.surface?.undo() }, enabled = undoEnabled, modifier = Modifier.size(36.dp)) {
+    HeaderActionButton(onClick = { pane.surface?.undo() }, enabled = undoEnabled) {
         Icon(
             ChromeGlyph.UNDO.imageVector(),
             contentDescription = "Undo",
@@ -143,7 +161,7 @@ private fun UndoRedoButtons(pane: PaneState, chromeInk: Color) {
             modifier = Modifier.size(20.dp),
         )
     }
-    IconButton(onClick = { pane.surface?.redo() }, enabled = redoEnabled, modifier = Modifier.size(36.dp)) {
+    HeaderActionButton(onClick = { pane.surface?.redo() }, enabled = redoEnabled) {
         Icon(
             ChromeGlyph.REDO.imageVector(),
             contentDescription = "Redo",

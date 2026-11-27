@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "unify-row-1-header-action-boxes-to-32dp-and-fix-topappbar-clipping"
+title = "Unify Row 1 header action boxes to 32dp and fix TopAppBar clipping"
+description = "Standardized every Row 1 header action button to a 32dp clipped plate inside a 36dp target via HeaderActionButton and passed zero windowInsets to TopAppBar so no box is clipped or oversized."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "tokens: uniform 32dp rounded-8dp plate inside 36dp target; states: clipped ripple and active plate on all Row 1 actions; tests: ColorContractGuardTest, SourceStructureTest, release APK and desktop distributable"
+
+[[task]]
 id = "use-play-triangle-on-paused-recording-resume-and-uniform-30dp-row-1-plates"
 title = "Use Play triangle on paused recording resume and uniform 30dp Row 1 plates"
 description = "Switched paused-recording resume button to Play triangle on both shells and standardized Split View, Save, and Hamburger highlight plates to 30dp inside 36dp targets with 4dp spacing."

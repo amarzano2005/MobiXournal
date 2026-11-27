@@ -14,10 +14,9 @@ import com.mobixournal.ui.theme.LocalChromeLayoutPolicy
 @Composable
 internal fun QuickPdfExport(ui: EditorUiState, pane: PaneState) {
     if (!LocalChromeLayoutPolicy.current.showInlinePdfExport) return
-    IconButton(
+    HeaderActionButton(
         onClick = { ui.exportPdfOpen = true },
         enabled = !pane.isReadOnly,
-        modifier = Modifier.size(36.dp),
     ) {
         Icon(
             ChromeGlyph.PDF.imageVector(),

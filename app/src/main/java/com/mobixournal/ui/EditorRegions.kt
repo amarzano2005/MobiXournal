@@ -218,6 +218,7 @@ fun EditorTopBar(
                         },
                 ) {
                     TopAppBar(
+                        windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
                         navigationIcon = {
                             if (settings != null && !railOnLeft && !ui.fullPage) {
                                 Spacer(Modifier.width(4.dp))

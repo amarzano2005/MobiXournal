@@ -45,15 +45,13 @@ import com.mobixournal.io.SaveActivity
 internal fun SaveControl(enabled: Boolean, onSave: () -> Unit) {
     val saving = SaveActivity.saving
     val writable = enabled && !saving
-    IconButton(onClick = onSave, enabled = writable, modifier = Modifier.size(36.dp)) {
+    HeaderActionButton(onClick = onSave, enabled = writable) {
         if (saving) {
             SavingSpinMark(colour = MaterialTheme.colorScheme.secondary)
         } else {
             Icon(
                 ChromeGlyph.SAVE.imageVector(),
                 contentDescription = "Save",
-                // The glyph wears the state, not only the click: a Save with nothing to write dims to the
-                // same 0.38 the history pair beside it uses, or a blue icon would go on offering a write.
                 tint = MaterialTheme.colorScheme.secondary.let {
                     if (enabled) it else it.copy(alpha = 0.38f)
                 },

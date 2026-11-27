@@ -101,12 +101,7 @@ internal fun BookmarkSegment(ui: EditorUiState) {
     val container = if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
     Box(
         modifier = Modifier
-            .size(ContentsRowLayout.ACTION_DP.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(container)
-            .clickable(interactionSource = interaction, indication = null) {
-                ui.toggleNavigation(NavigationTab.BOOKMARKS)
-            }
+            .size(36.dp)
             .semantics {
                 contentDescription = "Bookmarks"
                 role = Role.Button
@@ -114,11 +109,22 @@ internal fun BookmarkSegment(ui: EditorUiState) {
             },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            ChromeGlyph.BOOKMARK.imageVector(), null,
-            tint = if (selected) MaterialTheme.colorScheme.primary else rememberChromeInk(),
-            modifier = Modifier.size(20.dp),
-        )
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(container)
+                .clickable(interactionSource = interaction, indication = null) {
+                    ui.toggleNavigation(NavigationTab.BOOKMARKS)
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                ChromeGlyph.BOOKMARK.imageVector(), null,
+                tint = if (selected) MaterialTheme.colorScheme.primary else rememberChromeInk(),
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 

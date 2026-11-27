@@ -165,19 +165,25 @@ internal fun PageListSegment(open: Boolean, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = Modifier
-            .size(DocumentNavigationLayout.PAGE_CONTROL_DP.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(container)
-            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .size(36.dp)
             .semantics { contentDescription = "Page list"; selected = open },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            Icons.Outlined.ViewList,
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(20.dp),
-        )
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(container)
+                .clickable(interactionSource = interaction, indication = null, onClick = onClick),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                Icons.Outlined.ViewList,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }
 
