@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "files-data-embed-pdf-switch"
+title = "Expose Embed PDF backgrounds switch in Android FilesDataSection"
+description = "Added Embed PDF backgrounds SwitchRow to FilesDataSection.kt in Android Settings."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-27
+completed = 2026-11-27
+tags = []
+design = "tokens: Existing SwitchRow and SettingsDivider inside Files & Data SettingsGroup; tests: SourceStructureTest and ColorContractGuardTest passed."
+
+[[task]]
 id = "xoppzip-stored-attachments"
 title = "Store PDF and image attachments with ZipEntry.STORED in XoppZip"
 description = "Updated XoppZip.putFile to compute streaming 64 KB CRC32 and write bg.pdf and image attachments with ZipEntry.STORED while keeping XML/metadata DEFLATED."

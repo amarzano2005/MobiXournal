@@ -54,6 +54,13 @@ fun FilesDataSection(settings: AppSettings, onChange: (AppSettings) -> Unit) {
         }
         SettingsDivider()
         SwitchRow(
+            title = "Embed PDF backgrounds",
+            subtitle = "Store imported PDFs inside .mobix and .xopp files so notebooks keep their background when moved or shared.",
+            checked = settings.embedPdfBackgrounds,
+            onCheckedChange = { onChange(settings.copy(embedPdfBackgrounds = it)) },
+        )
+        SettingsDivider()
+        SwitchRow(
             title = "Save automatically",
             subtitle = "Writes the document a few seconds after you stop writing (only for named files).",
             checked = settings.autoSave,
