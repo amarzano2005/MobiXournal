@@ -65,4 +65,14 @@ class CompactTopBarGroupingTest {
             entries.map { (it as CompactTopBarEntry.Single).item.id },
         )
     }
+
+    @Test
+    fun `compactTopBarEntries drops factory dividers instead of appending them`() {
+        val visible = visibleTopBarItems(FACTORY_TOP_BAR_ORDER_WITH_DIVIDERS, emptySet(), emptySet())
+        assertTrue("factory order includes dividers", visible.any { isDividerId(it.id) })
+        val entries = compactTopBarEntries(visible)
+        assertEquals(7, entries.size)
+        val singles = entries.filterIsInstance<CompactTopBarEntry.Single>()
+        assertTrue("no divider leaks into compact entries", singles.none { isDividerId(it.item.id) })
+    }
 }

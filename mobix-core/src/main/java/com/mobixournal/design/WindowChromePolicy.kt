@@ -19,6 +19,7 @@ enum class ScreenWidthClass {
 data class ChromeLayoutPolicy(
     val widthClass: ScreenWidthClass,
     val isCompact: Boolean,
+    val showInlineNavigation: Boolean,
     val showInlinePdfExport: Boolean,
     val showInlineSplitView: Boolean,
     val showInlineSearchWhenClosed: Boolean,
@@ -47,6 +48,7 @@ object WindowChromePolicy {
         return ChromeLayoutPolicy(
             widthClass = widthClass,
             isCompact = isCompact,
+            showInlineNavigation = !isCompact,
             showInlinePdfExport = !isCompact,
             showInlineSplitView = !isCompact,
             showInlineSearchWhenClosed = !isCompact,

@@ -64,12 +64,14 @@ internal fun EditorDocumentActions(
     val chromeInk = rememberChromeInk()
 
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Box(
-            modifier = Modifier.graphicsLayer {
-                alpha = (1f - searchProgressProvider() * 2.5f).coerceIn(0f, 1f)
-            },
-        ) {
-            NavigationCapsule(ui)
+        if (chromePolicy.showInlineNavigation) {
+            Box(
+                modifier = Modifier.graphicsLayer {
+                    alpha = (1f - searchProgressProvider() * 2.5f).coerceIn(0f, 1f)
+                },
+            ) {
+                NavigationCapsule(ui)
+            }
         }
         if (chromePolicy.showInlineSearchWhenClosed) {
             SearchTriggerButton(
@@ -94,7 +96,9 @@ internal fun EditorDocumentActions(
                 )
             }
         }
-        TopBarToolDivider(air = 4.dp)
+        if (chromePolicy.showInlineNavigation || chromePolicy.showInlineSearchWhenClosed || chromePolicy.showInlineSplitView) {
+            TopBarToolDivider(air = 4.dp)
+        }
         UndoRedoButtons(pane = pane, chromeInk = chromeInk)
         TopBarToolDivider(air = 4.dp)
         QuickPdfExport(ui, pane)

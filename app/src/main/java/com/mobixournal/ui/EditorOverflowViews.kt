@@ -1,4 +1,4 @@
-﻿package com.mobixournal.ui
+package com.mobixournal.ui
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Canvas
@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material.icons.outlined.ViewList
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -60,12 +61,14 @@ import java.util.Locale
 internal fun DocumentTabView(
     isReadOnly: Boolean,
     showSearchAction: Boolean = false,
+    showCompactNavigation: Boolean = false,
     onNewTab: () -> Unit,
     onOpen: () -> Unit,
     onSaveAs: () -> Unit,
     onImportPdf: () -> Unit,
     onOpenExport: () -> Unit,
     onOpenSearch: () -> Unit = {},
+    onOpenNavigation: (NavigationTab) -> Unit = {},
 ) {
     val ink = rememberChromeInk()
     val accent = MaterialTheme.colorScheme.primary
@@ -100,6 +103,26 @@ internal fun DocumentTabView(
                 .clip(RoundedCornerShape(16.dp))
                 .background(rememberSheetSurfaceColor()),
         ) {
+            if (showCompactNavigation) {
+                SheetActionRow(
+                    icon = Icons.Outlined.ViewList,
+                    badgeTint = accent,
+                    title = "Page list",
+                    subtitle = null,
+                    ink = ink,
+                    enabled = true,
+                    onClick = { onOpenNavigation(NavigationTab.PAGES) },
+                )
+                SheetActionRow(
+                    icon = ChromeGlyph.BOOKMARK.imageVector(),
+                    badgeTint = accent,
+                    title = "Bookmarks",
+                    subtitle = null,
+                    ink = ink,
+                    enabled = true,
+                    onClick = { onOpenNavigation(NavigationTab.BOOKMARKS) },
+                )
+            }
             if (showSearchAction) {
                 SheetActionRow(
                     icon = Icons.Outlined.Search,

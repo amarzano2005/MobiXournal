@@ -25,6 +25,18 @@ growth = "This file only grows; nothing is removed from it."
 release = "A task's `release` stamp is the version it shipped in; a task without one is pending the next version. `todo.sh release --version X.Y.Z` stamps the pending set and drafts docs/releases/vX.Y.Z.md, which is what keeps the per-version changelog correct."
 
 [[task]]
+id = "compact-phone-header-tabs-and-divider-fix"
+title = "Fix compact phone header tab space and orphan secondary toolbar dividers"
+description = "Fixed compact phone (< 600 dp) top bar layout and secondary toolbar grouping: added showInlineNavigation = !isCompact to ChromeLayoutPolicy (WindowChromePolicy.kt), hid NavigationCapsule and its leading divider from EditorDocumentActions (EditorHeaderRows.kt) on compact phones to restore TabStrip title width, exposed Page list and Bookmarks rows inside DocumentTabView (EditorOverflowViews.kt, EditorOverflowMenu.kt) when inline navigation is hidden, and filtered out factory divider IDs (isDividerId) in compactTopBarEntries (CompactTopBarGrouping.kt) so no orphan dividers stack on the right edge. Updated docs/chrome.md. Verified with WindowChromePolicyTest, CompactTopBarGroupingTest, DocsGuardTest, SourceStructureTest, ColorContractGuardTest, ChromeGeometryGuardTest, ToolbarMenuGuardTest, signed release APK via scripts/release-apk.sh, and :desktop:createDistributable."
+status = "finished"
+level = "task"
+category = "bug"
+created = 2026-11-28
+completed = 2026-11-28
+tags = []
+design = "material: Existing Command Sheet floating glass rows and header band tokens unchanged; glyph: Reused ViewList and ChromeGlyph.BOOKMARK matching NavigationCapsule; states: SheetActionRow preserves tap/enabled states in DocumentTabView; docs: Updated docs/chrome.md; tests: WindowChromePolicyTest, CompactTopBarGroupingTest, ChromeGeometryGuardTest, ToolbarMenuGuardTest, DocsGuardTest, SourceStructureTest"
+
+[[task]]
 id = "desktop-spline-plot-shade-and-ink-sync"
 title = "Align desktop spline, plot shade, line width, and element ink sync with mobile"
 description = "Aligned desktop spline drafting pill, floating bar knot/loop actions, accent pin colours, Line width popup, plot shadeIntegral fill, plot/table ink/lineStyle sync, and mobile selection clearing on tab close; refreshed docs/assets/preview-desktop.png."

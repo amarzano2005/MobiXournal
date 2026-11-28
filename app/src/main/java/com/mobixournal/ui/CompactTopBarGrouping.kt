@@ -71,7 +71,7 @@ internal fun compactTopBarEntries(items: List<RailItem>): List<CompactTopBarEntr
     byId["guides"]?.let { out += CompactTopBarEntry.Single(it) }
 
     for (item in items) {
-        if (item.id !in KNOWN_GROUPED_IDS) out += CompactTopBarEntry.Single(item)
+        if (!isDividerId(item.id) && item.id !in KNOWN_GROUPED_IDS) out += CompactTopBarEntry.Single(item)
     }
     return out
 }
